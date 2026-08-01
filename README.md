@@ -47,7 +47,7 @@ Chores and reward points are deliberately **not** re-implemented — if you use
 ### HACS (custom repository)
 
 1. HACS → three-dot menu → **Custom repositories**
-2. Repository: this repository's URL — Type: **Integration** → **Add**
+2. Repository: `https://github.com/DomCim/Homeassistant-hearth` — Type: **Integration** → **Add**
 3. Search for **Hearth** in HACS, download it, and restart Home Assistant
 4. **Settings → Devices & Services → Add integration → Hearth**
 

@@ -185,5 +185,5 @@ window.customCards.push({
   name: 'Hearth Header',
   description: 'Clock, date and weather, sized to be read from across the room.',
   preview: true,
-  documentationURL: 'https://github.com/DomCim/Homeassistant-daely',
+  documentationURL: 'https://github.com/DomCim/Homeassistant-hearth',
 });

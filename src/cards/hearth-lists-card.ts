@@ -443,5 +443,5 @@ window.customCards.push({
   name: 'Hearth Lists',
   description: 'Shopping lists and checklists as tiles, ticked off with one tap.',
   preview: true,
-  documentationURL: 'https://github.com/DomCim/Homeassistant-daely',
+  documentationURL: 'https://github.com/DomCim/Homeassistant-hearth',
 });

@@ -4,10 +4,10 @@
   "codeowners": ["@DomCim"],
   "config_flow": true,
   "dependencies": ["frontend", "http"],
-  "documentation": "https://github.com/DomCim/Homeassistant-daely",
+  "documentation": "https://github.com/DomCim/Homeassistant-hearth",
   "integration_type": "helper",
   "iot_class": "calculated",
-  "issue_tracker": "https://github.com/DomCim/Homeassistant-daely/issues",
+  "issue_tracker": "https://github.com/DomCim/Homeassistant-hearth/issues",
   "single_config_entry": true,
   "version": "0.1.0"
 }

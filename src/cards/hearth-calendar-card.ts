@@ -815,5 +815,5 @@ window.customCards.push({
   name: 'Hearth Calendar',
   description: 'Family calendar as a month, week or day grid, coloured per member.',
   preview: true,
-  documentationURL: 'https://github.com/DomCim/Homeassistant-daely',
+  documentationURL: 'https://github.com/DomCim/Homeassistant-hearth',
 });

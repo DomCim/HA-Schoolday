@@ -352,5 +352,5 @@ window.customCards.push({
   name: 'Hearth People',
   description: "Who's home, what's on today, open tasks and points.",
   preview: true,
-  documentationURL: 'https://github.com/DomCim/Homeassistant-daely',
+  documentationURL: 'https://github.com/DomCim/Homeassistant-hearth',
 });

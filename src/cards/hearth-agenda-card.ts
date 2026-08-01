@@ -270,5 +270,5 @@ window.customCards.push({
   name: 'Hearth Agenda',
   description: 'The next few days as a list, coloured per family member.',
   preview: true,
-  documentationURL: 'https://github.com/DomCim/Homeassistant-daely',
+  documentationURL: 'https://github.com/DomCim/Homeassistant-hearth',
 });

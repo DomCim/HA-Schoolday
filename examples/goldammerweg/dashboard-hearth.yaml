@@ -1,0 +1,136 @@
+# Hearth board for the Goldammerweg KitchenTab (1920x1080, landscape).
+#
+# Paste into a new dashboard via three-dot menu -> "Raw configuration editor".
+# Every custom:hearth-* card comes from the Hearth integration; custom:chores4kids-card
+# and custom:trash-card come from HACS and are optional.
+#
+# Set the family up first under Settings -> Devices & Services -> Hearth -> Configure.
+# The values this config assumes are listed in README.md next to this file.
+
+views:
+  - title: Board
+    path: board
+    icon: mdi:bulletin-board
+    type: sections
+    max_columns: 4
+    sections:
+      - type: grid
+        column_span: 4
+        cards:
+          - type: custom:hearth-header-card
+            weather_entity: weather.forecast_goldammerweg
+            greeting: Goldammerweg
+            grid_options:
+              columns: full
+
+      - type: grid
+        column_span: 4
+        cards:
+          - type: custom:hearth-people-card
+            show_events: true
+            max_events: 2
+            grid_options:
+              columns: full
+
+      # The calendar is the centrepiece: give it the full width and plenty of rows,
+      # otherwise the month grid squeezes each day below a usable height.
+      - type: grid
+        column_span: 3
+        cards:
+          - type: heading
+            heading: Kalender
+            icon: mdi:calendar-month
+          - type: custom:hearth-calendar-card
+            view: month
+            views:
+              - month
+              - week
+              - day
+            show_legend: true
+            create: true
+            max_events_per_day: 4
+            grid_options:
+              columns: full
+              rows: 14
+
+      - type: grid
+        column_span: 1
+        cards:
+          - type: heading
+            heading: Als Nächstes
+            icon: mdi:clock-outline
+          - type: custom:hearth-agenda-card
+            days: 3
+            max_events: 6
+            grid_options:
+              columns: full
+          - type: heading
+            heading: Müll
+            icon: mdi:trash-can
+            heading_style: subtitle
+          # Optional, from HACS: idaho/hassio-trash-card
+          - type: custom:trash-card
+            grid_options:
+              columns: full
+
+  - title: Listen
+    path: lists
+    icon: mdi:format-list-checks
+    type: sections
+    max_columns: 3
+    sections:
+      - type: grid
+        column_span: 3
+        cards:
+          - type: heading
+            heading: Einkaufslisten
+            icon: mdi:cart
+          - type: custom:hearth-lists-card
+            entities:
+              - todo.kaufland
+              - todo.dm
+              - todo.obi
+              - todo.tedi
+            columns: 4
+            max_items: 12
+            grid_options:
+              columns: full
+
+      - type: grid
+        column_span: 3
+        cards:
+          - type: heading
+            heading: Familie
+            icon: mdi:home-heart
+          - type: custom:hearth-lists-card
+            entities:
+              - todo.familie
+              - todo.familien_erinnerungen
+              - todo.erinnerungen
+              - todo.nachbarn
+            columns: 4
+            max_items: 12
+            grid_options:
+              columns: full
+
+  - title: Aufgaben & Punkte
+    path: chores
+    icon: mdi:star-circle
+    type: sections
+    max_columns: 3
+    sections:
+      - type: grid
+        column_span: 3
+        cards:
+          - type: heading
+            heading: Aufgaben & Belohnungen
+            icon: mdi:star-circle
+          # Hearth deliberately does not reimplement points and rewards.
+          # From HACS: qlerup/lovelace-chores4kids-card (needs the chores4kids integration).
+          # Its README says "chores4kids-dev-card", but the shipped bundle registers
+          # "chores4kids-card" — that is the one that works.
+          - type: custom:chores4kids-card
+            mode: admin
+            show_scoreboard: true
+            grid_options:
+              columns: full

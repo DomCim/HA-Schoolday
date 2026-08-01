@@ -58,6 +58,18 @@ The cards register themselves; there is nothing to add under Lovelace resources.
 Copy `custom_components/hearth/` into your Home Assistant `config/` directory, restart, then add the
 integration under **Settings → Devices & Services**.
 
+## Setting it up
+
+1. **Settings → Devices & Services → Hearth → Configure** — add each family member with a colour and
+   the calendars and lists that belong to them.
+2. Under **Shared calendars and lists**, pick the calendars the whole family shares, and list any
+   calendar that cannot take new events (holidays, workday, school terms) as **read-only**. Those stay
+   visible on the board but are kept out of the create sheet.
+3. Add the cards to a dashboard. They read the setup from `sensor.hearth_board`, so no card needs to
+   be told who your family is.
+
+`examples/goldammerweg/` contains a complete three-view dashboard and the options it assumes.
+
 ## Development
 
 ```bash

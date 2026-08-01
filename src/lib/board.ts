@@ -125,6 +125,16 @@ export function writableCalendars(board: HearthBoard): string[] {
   return [...new Set(all)].filter((entityId) => !readonly.has(entityId));
 }
 
+/**
+ * The per-member sensor Hearth publishes, located by its `member_id` attribute so
+ * renaming the entity does not break the lookup.
+ */
+export function memberSensor(hass: HomeAssistant, memberId: string): HassEntity | undefined {
+  return Object.values(hass.states).find(
+    (entity) => entity.attributes?.member_id === memberId,
+  );
+}
+
 /** Friendly name for a calendar entity, falling back to the entity id. */
 export function calendarName(hass: HomeAssistant, entityId: string): string {
   const entity = hass.states[entityId];

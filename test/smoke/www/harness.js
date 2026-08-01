@@ -53,7 +53,25 @@ const EVENTS = {
       rrule: null,
     },
   ],
-  'calendar.nik': [],
+  // Nik gets an event on whatever "today" happens to be, so the cards that only ever
+  // show today stay testable no matter when the suite runs.
+  'calendar.nik': [
+    (() => {
+      const pad = (n) => `${n}`.padStart(2, '0');
+      const now = new Date();
+      const key = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+      return {
+        start: { dateTime: `${key}T16:00:00+02:00` },
+        end: { dateTime: `${key}T17:00:00+02:00` },
+        summary: 'Klavierstunde',
+        description: null,
+        location: null,
+        uid: 'nik-today',
+        recurrence_id: null,
+        rrule: null,
+      };
+    })(),
+  ],
   // Read-only holiday calendar.
   'calendar.deutschland_by': [
     {
@@ -69,6 +87,17 @@ const EVENTS = {
   ],
 };
 
+// Open items per to-do list, returned through the todo.get_items action response.
+const TODO_ITEMS = {
+  'todo.kaufland': [
+    { uid: 'k1', summary: 'Milch', status: 'needs_action' },
+    { uid: 'k2', summary: 'Brot', status: 'needs_action' },
+    { uid: 'k3', summary: 'Kaffee', status: 'needs_action' },
+  ],
+  'todo.dm': [{ uid: 'd1', summary: 'Zahnpasta', status: 'needs_action' }],
+  'todo.jan_todo': [{ uid: 'j1', summary: 'Zimmer aufräumen', status: 'needs_action' }],
+};
+
 function calendarState(entityId, name) {
   return {
     entity_id: entityId,
@@ -79,8 +108,39 @@ function calendarState(entityId, name) {
   };
 }
 
+function todoState(entityId, name) {
+  return {
+    entity_id: entityId,
+    state: String((TODO_ITEMS[entityId] ?? []).length),
+    attributes: { friendly_name: name },
+    last_changed: STAMP,
+    last_updated: STAMP,
+  };
+}
+
+// One sensor per member, matching what custom_components/hearth/sensor.py publishes.
+function memberState(entityId, name, memberId, color, openTasks, points) {
+  return {
+    entity_id: entityId,
+    state: String(openTasks),
+    attributes: {
+      friendly_name: `Hearth ${name}`,
+      member_id: memberId,
+      color,
+      avatar: null,
+      presence: null,
+      points,
+      calendars: [],
+      todo_lists: [],
+    },
+    last_changed: STAMP,
+    last_updated: STAMP,
+  };
+}
+
 window.__calls = { api: [], services: [] };
 window.__failCalendars = new Set();
+window.__failLists = new Set();
 
 const hass = {
   states: {
@@ -137,6 +197,44 @@ const hass = {
       'Familien Kalender Dill',
     ),
     'calendar.deutschland_by': calendarState('calendar.deutschland_by', 'Deutschland, BY'),
+    'todo.kaufland': todoState('todo.kaufland', 'Kaufland'),
+    'todo.dm': todoState('todo.dm', 'DM'),
+    'todo.jan_todo': todoState('todo.jan_todo', 'Jan Todo'),
+    'person.ben': {
+      entity_id: 'person.ben',
+      state: 'home',
+      attributes: { friendly_name: 'Ben' },
+      last_changed: STAMP,
+      last_updated: STAMP,
+    },
+    'person.jan_dill': {
+      entity_id: 'person.jan_dill',
+      state: 'not_home',
+      attributes: { friendly_name: 'Jan' },
+      last_changed: STAMP,
+      last_updated: STAMP,
+    },
+    'person.nik': {
+      entity_id: 'person.nik',
+      state: 'School',
+      attributes: { friendly_name: 'Nik' },
+      last_changed: STAMP,
+      last_updated: STAMP,
+    },
+    'sensor.hearth_ben': memberState('sensor.hearth_ben', 'Ben', 'm1', '#e0603a', 1, 42),
+    'sensor.hearth_jan': memberState('sensor.hearth_jan', 'Jan', 'm2', '#3a86c8', 0, 7),
+    'sensor.hearth_nik': memberState('sensor.hearth_nik', 'Nik', 'm3', '#4f9d69', 3, null),
+    'weather.forecast_goldammerweg': {
+      entity_id: 'weather.forecast_goldammerweg',
+      state: 'sunny',
+      attributes: {
+        friendly_name: 'Forecast Goldammerweg',
+        temperature: 23.4,
+        temperature_unit: '°C',
+      },
+      last_changed: STAMP,
+      last_updated: STAMP,
+    },
   },
   config: { time_zone: 'Europe/Berlin' },
   themes: { darkMode: false },
@@ -160,6 +258,41 @@ const hass = {
 
   async callService(domain, service, data, target) {
     window.__calls.services.push({ domain, service, data, target });
+
+    if (domain === 'todo' && service === 'get_items') {
+      const entityId = target.entity_id;
+      if (window.__failLists.has(entityId)) {
+        throw new Error(`boom: ${entityId}`);
+      }
+      // Honour the status filter the way Home Assistant does, so a completed item
+      // really does disappear from an open-items request.
+      const wanted = data?.status ?? ['needs_action', 'completed'];
+      const items = (TODO_ITEMS[entityId] ?? []).filter((i) => wanted.includes(i.status));
+      return { response: { [entityId]: { items } } };
+    }
+
+    if (domain === 'todo' && service === 'update_item') {
+      const items = TODO_ITEMS[target.entity_id] ?? [];
+      const item = items.find((i) => i.uid === data.item || i.summary === data.item);
+      if (item) item.status = data.status;
+      // Mirror what Home Assistant does: the entity's state is the open-item count.
+      hass.states[target.entity_id] = {
+        ...hass.states[target.entity_id],
+        state: String(items.filter((i) => i.status === 'needs_action').length),
+        last_changed: new Date().toISOString(),
+      };
+      window.__pushHass();
+    }
+
+    if (domain === 'todo' && service === 'add_item') {
+      (TODO_ITEMS[target.entity_id] ??= []).push({
+        uid: `new-${Math.random().toString(36).slice(2, 8)}`,
+        summary: data.item,
+        status: 'needs_action',
+      });
+      window.__pushHass();
+    }
+
     return {};
   },
 
@@ -174,10 +307,18 @@ const hass = {
 
 window.__hass = hass;
 
-window.__mount = (config) => {
+// Hand every mounted card a fresh hass reference, the way the dashboard does.
+window.__pushHass = () => {
+  const next = { ...hass, states: { ...hass.states } };
+  for (const card of document.getElementById('host').children) {
+    card.hass = next;
+  }
+};
+
+window.__mount = (config, tag = 'hearth-calendar-card') => {
   const host = document.getElementById('host');
   host.innerHTML = '';
-  const card = document.createElement('hearth-calendar-card');
+  const card = document.createElement(tag);
   card.setConfig(config);
   card.hass = hass;
   host.appendChild(card);

@@ -1,4 +1,4 @@
-const t="0.1.0",e=["#e0603a","#3a86c8","#4f9d69","#c9a227","#8e6bbf","#d1707f"];function i(t,e,i,r){var s,a=arguments.length,n=a<3?e:null===r?r=Object.getOwnPropertyDescriptor(e,i):r;if("object"==typeof Reflect&&"function"==typeof Reflect.decorate)n=Reflect.decorate(t,e,i,r);else for(var o=t.length-1;o>=0;o--)(s=t[o])&&(n=(a<3?s(n):a>3?s(e,i,n):s(e,i))||n);return a>3&&n&&Object.defineProperty(e,i,n),n}"function"==typeof SuppressedError&&SuppressedError;const r=globalThis,s=r.ShadowRoot&&(void 0===r.ShadyCSS||r.ShadyCSS.nativeShadow)&&"adoptedStyleSheets"in Document.prototype&&"replace"in CSSStyleSheet.prototype,a=Symbol(),n=new WeakMap;let o=class{constructor(t,e,i){if(this._$cssResult$=!0,i!==a)throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");this.cssText=t,this.t=e}get styleSheet(){let t=this.o;const e=this.t;if(s&&void 0===t){const i=void 0!==e&&1===e.length;i&&(t=n.get(e)),void 0===t&&((this.o=t=new CSSStyleSheet).replaceSync(this.cssText),i&&n.set(e,t))}return t}toString(){return this.cssText}};const l=(t,...e)=>{const i=1===t.length?t[0]:e.reduce((e,i,r)=>e+(t=>{if(!0===t._$cssResult$)return t.cssText;if("number"==typeof t)return t;throw Error("Value passed to 'css' function must be a 'css' function result: "+t+". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.")})(i)+t[r+1],t[0]);return new o(i,t,a)},d=s?t=>t:t=>t instanceof CSSStyleSheet?(t=>{let e="";for(const i of t.cssRules)e+=i.cssText;return(t=>new o("string"==typeof t?t:t+"",void 0,a))(e)})(t):t,{is:h,defineProperty:c,getOwnPropertyDescriptor:p,getOwnPropertyNames:u,getOwnPropertySymbols:m,getPrototypeOf:f}=Object,g=globalThis,_=g.trustedTypes,y=_?_.emptyScript:"",v=g.reactiveElementPolyfillSupport,$=(t,e)=>t,b={toAttribute(t,e){switch(e){case Boolean:t=t?y:null;break;case Object:case Array:t=null==t?t:JSON.stringify(t)}return t},fromAttribute(t,e){let i=t;switch(e){case Boolean:i=null!==t;break;case Number:i=null===t?null:Number(t);break;case Object:case Array:try{i=JSON.parse(t)}catch(t){i=null}}return i}},w=(t,e)=>!h(t,e),x={attribute:!0,type:String,converter:b,reflect:!1,useDefault:!1,hasChanged:w};Symbol.metadata??=Symbol("metadata"),g.litPropertyMetadata??=new WeakMap;let A=class extends HTMLElement{static addInitializer(t){this._$Ei(),(this.l??=[]).push(t)}static get observedAttributes(){return this.finalize(),this._$Eh&&[...this._$Eh.keys()]}static createProperty(t,e=x){if(e.state&&(e.attribute=!1),this._$Ei(),this.prototype.hasOwnProperty(t)&&((e=Object.create(e)).wrapped=!0),this.elementProperties.set(t,e),!e.noAccessor){const i=Symbol(),r=this.getPropertyDescriptor(t,i,e);void 0!==r&&c(this.prototype,t,r)}}static getPropertyDescriptor(t,e,i){const{get:r,set:s}=p(this.prototype,t)??{get(){return this[e]},set(t){this[e]=t}};return{get:r,set(e){const a=r?.call(this);s?.call(this,e),this.requestUpdate(t,a,i)},configurable:!0,enumerable:!0}}static getPropertyOptions(t){return this.elementProperties.get(t)??x}static _$Ei(){if(this.hasOwnProperty($("elementProperties")))return;const t=f(this);t.finalize(),void 0!==t.l&&(this.l=[...t.l]),this.elementProperties=new Map(t.elementProperties)}static finalize(){if(this.hasOwnProperty($("finalized")))return;if(this.finalized=!0,this._$Ei(),this.hasOwnProperty($("properties"))){const t=this.properties,e=[...u(t),...m(t)];for(const i of e)this.createProperty(i,t[i])}const t=this[Symbol.metadata];if(null!==t){const e=litPropertyMetadata.get(t);if(void 0!==e)for(const[t,i]of e)this.elementProperties.set(t,i)}this._$Eh=new Map;for(const[t,e]of this.elementProperties){const i=this._$Eu(t,e);void 0!==i&&this._$Eh.set(i,t)}this.elementStyles=this.finalizeStyles(this.styles)}static finalizeStyles(t){const e=[];if(Array.isArray(t)){const i=new Set(t.flat(1/0).reverse());for(const t of i)e.unshift(d(t))}else void 0!==t&&e.push(d(t));return e}static _$Eu(t,e){const i=e.attribute;return!1===i?void 0:"string"==typeof i?i:"string"==typeof t?t.toLowerCase():void 0}constructor(){super(),this._$Ep=void 0,this.isUpdatePending=!1,this.hasUpdated=!1,this._$Em=null,this._$Ev()}_$Ev(){this._$ES=new Promise(t=>this.enableUpdating=t),this._$AL=new Map,this._$E_(),this.requestUpdate(),this.constructor.l?.forEach(t=>t(this))}addController(t){(this._$EO??=new Set).add(t),void 0!==this.renderRoot&&this.isConnected&&t.hostConnected?.()}removeController(t){this._$EO?.delete(t)}_$E_(){const t=new Map,e=this.constructor.elementProperties;for(const i of e.keys())this.hasOwnProperty(i)&&(t.set(i,this[i]),delete this[i]);t.size>0&&(this._$Ep=t)}createRenderRoot(){const t=this.shadowRoot??this.attachShadow(this.constructor.shadowRootOptions);return((t,e)=>{if(s)t.adoptedStyleSheets=e.map(t=>t instanceof CSSStyleSheet?t:t.styleSheet);else for(const i of e){const e=document.createElement("style"),s=r.litNonce;void 0!==s&&e.setAttribute("nonce",s),e.textContent=i.cssText,t.appendChild(e)}})(t,this.constructor.elementStyles),t}connectedCallback(){this.renderRoot??=this.createRenderRoot(),this.enableUpdating(!0),this._$EO?.forEach(t=>t.hostConnected?.())}enableUpdating(t){}disconnectedCallback(){this._$EO?.forEach(t=>t.hostDisconnected?.())}attributeChangedCallback(t,e,i){this._$AK(t,i)}_$ET(t,e){const i=this.constructor.elementProperties.get(t),r=this.constructor._$Eu(t,i);if(void 0!==r&&!0===i.reflect){const s=(void 0!==i.converter?.toAttribute?i.converter:b).toAttribute(e,i.type);this._$Em=t,null==s?this.removeAttribute(r):this.setAttribute(r,s),this._$Em=null}}_$AK(t,e){const i=this.constructor,r=i._$Eh.get(t);if(void 0!==r&&this._$Em!==r){const t=i.getPropertyOptions(r),s="function"==typeof t.converter?{fromAttribute:t.converter}:void 0!==t.converter?.fromAttribute?t.converter:b;this._$Em=r;const a=s.fromAttribute(e,t.type);this[r]=a??this._$Ej?.get(r)??a,this._$Em=null}}requestUpdate(t,e,i,r=!1,s){if(void 0!==t){const a=this.constructor;if(!1===r&&(s=this[t]),i??=a.getPropertyOptions(t),!((i.hasChanged??w)(s,e)||i.useDefault&&i.reflect&&s===this._$Ej?.get(t)&&!this.hasAttribute(a._$Eu(t,i))))return;this.C(t,e,i)}!1===this.isUpdatePending&&(this._$ES=this._$EP())}C(t,e,{useDefault:i,reflect:r,wrapped:s},a){i&&!(this._$Ej??=new Map).has(t)&&(this._$Ej.set(t,a??e??this[t]),!0!==s||void 0!==a)||(this._$AL.has(t)||(this.hasUpdated||i||(e=void 0),this._$AL.set(t,e)),!0===r&&this._$Em!==t&&(this._$Eq??=new Set).add(t))}async _$EP(){this.isUpdatePending=!0;try{await this._$ES}catch(t){Promise.reject(t)}const t=this.scheduleUpdate();return null!=t&&await t,!this.isUpdatePending}scheduleUpdate(){return this.performUpdate()}performUpdate(){if(!this.isUpdatePending)return;if(!this.hasUpdated){if(this.renderRoot??=this.createRenderRoot(),this._$Ep){for(const[t,e]of this._$Ep)this[t]=e;this._$Ep=void 0}const t=this.constructor.elementProperties;if(t.size>0)for(const[e,i]of t){const{wrapped:t}=i,r=this[e];!0!==t||this._$AL.has(e)||void 0===r||this.C(e,void 0,i,r)}}let t=!1;const e=this._$AL;try{t=this.shouldUpdate(e),t?(this.willUpdate(e),this._$EO?.forEach(t=>t.hostUpdate?.()),this.update(e)):this._$EM()}catch(e){throw t=!1,this._$EM(),e}t&&this._$AE(e)}willUpdate(t){}_$AE(t){this._$EO?.forEach(t=>t.hostUpdated?.()),this.hasUpdated||(this.hasUpdated=!0,this.firstUpdated(t)),this.updated(t)}_$EM(){this._$AL=new Map,this.isUpdatePending=!1}get updateComplete(){return this.getUpdateComplete()}getUpdateComplete(){return this._$ES}shouldUpdate(t){return!0}update(t){this._$Eq&&=this._$Eq.forEach(t=>this._$ET(t,this[t])),this._$EM()}updated(t){}firstUpdated(t){}};A.elementStyles=[],A.shadowRootOptions={mode:"open"},A[$("elementProperties")]=new Map,A[$("finalized")]=new Map,v?.({ReactiveElement:A}),(g.reactiveElementVersions??=[]).push("2.1.2");const k=globalThis,E=t=>t,S=k.trustedTypes,C=S?S.createPolicy("lit-html",{createHTML:t=>t}):void 0,D="$lit$",T=`lit$${Math.random().toFixed(9).slice(2)}$`,H="?"+T,M=`<${H}>`,P=document,O=()=>P.createComment(""),N=t=>null===t||"object"!=typeof t&&"function"!=typeof t,U=Array.isArray,R="[ \t\n\f\r]",z=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,I=/-->/g,L=/>/g,j=RegExp(`>|${R}(?:([^\\s"'>=/]+)(${R}*=${R}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`,"g"),V=/'/g,F=/"/g,B=/^(?:script|style|textarea|title)$/i,W=(t=>(e,...i)=>({_$litType$:t,strings:e,values:i}))(1),q=Symbol.for("lit-noChange"),K=Symbol.for("lit-nothing"),Z=new WeakMap,Y=P.createTreeWalker(P,129);function G(t,e){if(!U(t)||!t.hasOwnProperty("raw"))throw Error("invalid template strings array");return void 0!==C?C.createHTML(e):e}const J=(t,e)=>{const i=t.length-1,r=[];let s,a=2===e?"<svg>":3===e?"<math>":"",n=z;for(let e=0;e<i;e++){const i=t[e];let o,l,d=-1,h=0;for(;h<i.length&&(n.lastIndex=h,l=n.exec(i),null!==l);)h=n.lastIndex,n===z?"!--"===l[1]?n=I:void 0!==l[1]?n=L:void 0!==l[2]?(B.test(l[2])&&(s=RegExp("</"+l[2],"g")),n=j):void 0!==l[3]&&(n=j):n===j?">"===l[0]?(n=s??z,d=-1):void 0===l[1]?d=-2:(d=n.lastIndex-l[2].length,o=l[1],n=void 0===l[3]?j:'"'===l[3]?F:V):n===F||n===V?n=j:n===I||n===L?n=z:(n=j,s=void 0);const c=n===j&&t[e+1].startsWith("/>")?" ":"";a+=n===z?i+M:d>=0?(r.push(o),i.slice(0,d)+D+i.slice(d)+T+c):i+T+(-2===d?e:c)}return[G(t,a+(t[i]||"<?>")+(2===e?"</svg>":3===e?"</math>":"")),r]};class X{constructor({strings:t,_$litType$:e},i){let r;this.parts=[];let s=0,a=0;const n=t.length-1,o=this.parts,[l,d]=J(t,e);if(this.el=X.createElement(l,i),Y.currentNode=this.el.content,2===e||3===e){const t=this.el.content.firstChild;t.replaceWith(...t.childNodes)}for(;null!==(r=Y.nextNode())&&o.length<n;){if(1===r.nodeType){if(r.hasAttributes())for(const t of r.getAttributeNames())if(t.endsWith(D)){const e=d[a++],i=r.getAttribute(t).split(T),n=/([.?@])?(.*)/.exec(e);o.push({type:1,index:s,name:n[2],strings:i,ctor:"."===n[1]?rt:"?"===n[1]?st:"@"===n[1]?at:it}),r.removeAttribute(t)}else t.startsWith(T)&&(o.push({type:6,index:s}),r.removeAttribute(t));if(B.test(r.tagName)){const t=r.textContent.split(T),e=t.length-1;if(e>0){r.textContent=S?S.emptyScript:"";for(let i=0;i<e;i++)r.append(t[i],O()),Y.nextNode(),o.push({type:2,index:++s});r.append(t[e],O())}}}else if(8===r.nodeType)if(r.data===H)o.push({type:2,index:s});else{let t=-1;for(;-1!==(t=r.data.indexOf(T,t+1));)o.push({type:7,index:s}),t+=T.length-1}s++}}static createElement(t,e){const i=P.createElement("template");return i.innerHTML=t,i}}function Q(t,e,i=t,r){if(e===q)return e;let s=void 0!==r?i._$Co?.[r]:i._$Cl;const a=N(e)?void 0:e._$litDirective$;return s?.constructor!==a&&(s?._$AO?.(!1),void 0===a?s=void 0:(s=new a(t),s._$AT(t,i,r)),void 0!==r?(i._$Co??=[])[r]=s:i._$Cl=s),void 0!==s&&(e=Q(t,s._$AS(t,e.values),s,r)),e}class tt{constructor(t,e){this._$AV=[],this._$AN=void 0,this._$AD=t,this._$AM=e}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(t){const{el:{content:e},parts:i}=this._$AD,r=(t?.creationScope??P).importNode(e,!0);Y.currentNode=r;let s=Y.nextNode(),a=0,n=0,o=i[0];for(;void 0!==o;){if(a===o.index){let e;2===o.type?e=new et(s,s.nextSibling,this,t):1===o.type?e=new o.ctor(s,o.name,o.strings,this,t):6===o.type&&(e=new nt(s,this,t)),this._$AV.push(e),o=i[++n]}a!==o?.index&&(s=Y.nextNode(),a++)}return Y.currentNode=P,r}p(t){let e=0;for(const i of this._$AV)void 0!==i&&(void 0!==i.strings?(i._$AI(t,i,e),e+=i.strings.length-2):i._$AI(t[e])),e++}}class et{get _$AU(){return this._$AM?._$AU??this._$Cv}constructor(t,e,i,r){this.type=2,this._$AH=K,this._$AN=void 0,this._$AA=t,this._$AB=e,this._$AM=i,this.options=r,this._$Cv=r?.isConnected??!0}get parentNode(){let t=this._$AA.parentNode;const e=this._$AM;return void 0!==e&&11===t?.nodeType&&(t=e.parentNode),t}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(t,e=this){t=Q(this,t,e),N(t)?t===K||null==t||""===t?(this._$AH!==K&&this._$AR(),this._$AH=K):t!==this._$AH&&t!==q&&this._(t):void 0!==t._$litType$?this.$(t):void 0!==t.nodeType?this.T(t):(t=>U(t)||"function"==typeof t?.[Symbol.iterator])(t)?this.k(t):this._(t)}O(t){return this._$AA.parentNode.insertBefore(t,this._$AB)}T(t){this._$AH!==t&&(this._$AR(),this._$AH=this.O(t))}_(t){this._$AH!==K&&N(this._$AH)?this._$AA.nextSibling.data=t:this.T(P.createTextNode(t)),this._$AH=t}$(t){const{values:e,_$litType$:i}=t,r="number"==typeof i?this._$AC(t):(void 0===i.el&&(i.el=X.createElement(G(i.h,i.h[0]),this.options)),i);if(this._$AH?._$AD===r)this._$AH.p(e);else{const t=new tt(r,this),i=t.u(this.options);t.p(e),this.T(i),this._$AH=t}}_$AC(t){let e=Z.get(t.strings);return void 0===e&&Z.set(t.strings,e=new X(t)),e}k(t){U(this._$AH)||(this._$AH=[],this._$AR());const e=this._$AH;let i,r=0;for(const s of t)r===e.length?e.push(i=new et(this.O(O()),this.O(O()),this,this.options)):i=e[r],i._$AI(s),r++;r<e.length&&(this._$AR(i&&i._$AB.nextSibling,r),e.length=r)}_$AR(t=this._$AA.nextSibling,e){for(this._$AP?.(!1,!0,e);t!==this._$AB;){const e=E(t).nextSibling;E(t).remove(),t=e}}setConnected(t){void 0===this._$AM&&(this._$Cv=t,this._$AP?.(t))}}class it{get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}constructor(t,e,i,r,s){this.type=1,this._$AH=K,this._$AN=void 0,this.element=t,this.name=e,this._$AM=r,this.options=s,i.length>2||""!==i[0]||""!==i[1]?(this._$AH=Array(i.length-1).fill(new String),this.strings=i):this._$AH=K}_$AI(t,e=this,i,r){const s=this.strings;let a=!1;if(void 0===s)t=Q(this,t,e,0),a=!N(t)||t!==this._$AH&&t!==q,a&&(this._$AH=t);else{const r=t;let n,o;for(t=s[0],n=0;n<s.length-1;n++)o=Q(this,r[i+n],e,n),o===q&&(o=this._$AH[n]),a||=!N(o)||o!==this._$AH[n],o===K?t=K:t!==K&&(t+=(o??"")+s[n+1]),this._$AH[n]=o}a&&!r&&this.j(t)}j(t){t===K?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,t??"")}}class rt extends it{constructor(){super(...arguments),this.type=3}j(t){this.element[this.name]=t===K?void 0:t}}class st extends it{constructor(){super(...arguments),this.type=4}j(t){this.element.toggleAttribute(this.name,!!t&&t!==K)}}class at extends it{constructor(t,e,i,r,s){super(t,e,i,r,s),this.type=5}_$AI(t,e=this){if((t=Q(this,t,e,0)??K)===q)return;const i=this._$AH,r=t===K&&i!==K||t.capture!==i.capture||t.once!==i.once||t.passive!==i.passive,s=t!==K&&(i===K||r);r&&this.element.removeEventListener(this.name,this,i),s&&this.element.addEventListener(this.name,this,t),this._$AH=t}handleEvent(t){"function"==typeof this._$AH?this._$AH.call(this.options?.host??this.element,t):this._$AH.handleEvent(t)}}class nt{constructor(t,e,i){this.element=t,this.type=6,this._$AN=void 0,this._$AM=e,this.options=i}get _$AU(){return this._$AM._$AU}_$AI(t){Q(this,t)}}const ot=k.litHtmlPolyfillSupport;ot?.(X,et),(k.litHtmlVersions??=[]).push("3.3.3");const lt=globalThis;class dt extends A{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0}createRenderRoot(){const t=super.createRenderRoot();return this.renderOptions.renderBefore??=t.firstChild,t}update(t){const e=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(t),this._$Do=((t,e,i)=>{const r=i?.renderBefore??e;let s=r._$litPart$;if(void 0===s){const t=i?.renderBefore??null;r._$litPart$=s=new et(e.insertBefore(O(),t),t,void 0,i??{})}return s._$AI(t),s})(e,this.renderRoot,this.renderOptions)}connectedCallback(){super.connectedCallback(),this._$Do?.setConnected(!0)}disconnectedCallback(){super.disconnectedCallback(),this._$Do?.setConnected(!1)}render(){return q}}dt._$litElement$=!0,dt.finalized=!0,lt.litElementHydrateSupport?.({LitElement:dt});const ht=lt.litElementPolyfillSupport;ht?.({LitElement:dt}),(lt.litElementVersions??=[]).push("4.2.2");const ct=t=>(e,i)=>{void 0!==i?i.addInitializer(()=>{customElements.define(t,e)}):customElements.define(t,e)},pt={attribute:!0,type:String,converter:b,reflect:!1,hasChanged:w},ut=(t=pt,e,i)=>{const{kind:r,metadata:s}=i;let a=globalThis.litPropertyMetadata.get(s);if(void 0===a&&globalThis.litPropertyMetadata.set(s,a=new Map),"setter"===r&&((t=Object.create(t)).wrapped=!0),a.set(i.name,t),"accessor"===r){const{name:r}=i;return{set(i){const s=e.get.call(this);e.set.call(this,i),this.requestUpdate(r,s,t,!0,i)},init(e){return void 0!==e&&this.C(r,void 0,t,e),e}}}if("setter"===r){const{name:r}=i;return function(i){const s=this[r];e.call(this,i),this.requestUpdate(r,s,t,!0,i)}}throw Error("Unsupported decorator location: "+r)};function mt(t){return(e,i)=>"object"==typeof i?ut(t,e,i):((t,e,i)=>{const r=e.hasOwnProperty(i);return e.constructor.createProperty(i,t),r?Object.getOwnPropertyDescriptor(e,i):void 0})(t,e,i)}function ft(t){return mt({...t,state:!0,attribute:!1})}function gt(t){return!0===t.attributes?.hearth_board}function _t(t,e){const i={};for(const e of[...t.sharedCalendars,...t.readonlyCalendars])i[e]={memberId:null,color:"#7a8b99"};for(const e of t.members)for(const t of e.calendars)i[t]={memberId:e.id,color:e.color};return i}function yt(t){const e=new Set(t.readonlyCalendars),i=[...t.sharedCalendars,...t.members.flatMap(t=>t.calendars)];return[...new Set(i)].filter(t=>!e.has(t))}function vt(t,e){const i=t.states[e];return i?.attributes?.friendly_name||e}const $t=["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];function bt(t){const e=new Date(t);return e.setHours(0,0,0,0),e}function wt(t,e){const i=new Date(t);return i.setDate(i.getDate()+e),i}function xt(t,e){const i=new Date(t);return i.setDate(1),i.setMonth(i.getMonth()+e),i}function At(t){const e=bt(t);return e.setDate(1),e}function kt(t,e){const i=bt(t);return wt(i,-(i.getDay()-e+7)%7)}function Et(t){return function(t,e){return t.getFullYear()===e.getFullYear()&&t.getMonth()===e.getMonth()&&t.getDate()===e.getDate()}(t,new Date)}function St(t){const e=`${t.getMonth()+1}`.padStart(2,"0"),i=`${t.getDate()}`.padStart(2,"0");return`${t.getFullYear()}-${e}-${i}`}function Ct(t){const e=t=>`${t}`.padStart(2,"0");return`${t.getFullYear()}-${e(t.getMonth()+1)}-${e(t.getDate())} ${e(t.getHours())}:${e(t.getMinutes())}:00`}function Dt(t){const e=t=>`${t}`.padStart(2,"0");return`${e(t.getHours())}:${e(t.getMinutes())}`}function Tt(t){switch(t.locale?.time_format){case"12":return!0;case"24":return!1;default:return}}function Ht(t){return t.locale?.language||t.language||"en"}function Mt(t){return t.date?{date:bt(new Date(`${t.date}T00:00:00`)),allDay:!0}:{date:new Date(t.dateTime),allDay:!1}}async function Pt(t,e,i,r){const s=`start=${encodeURIComponent(i.toISOString())}&end=${encodeURIComponent(r.toISOString())}`,a=await Promise.all(Object.keys(e).map(async i=>{try{const r=await t.callApi("GET",`calendars/${i}?${s}`);return{entityId:i,events:(r||[]).map(t=>function(t,e,i){if(!t?.start||!t?.end)return null;const r=Mt(t.start),s=Mt(t.end);return Number.isNaN(r.date.getTime())||Number.isNaN(s.date.getTime())?null:{summary:t.summary||"",start:r.date,end:s.date,allDay:r.allDay,calendar:e,memberId:i.memberId,color:i.color,description:t.description,location:t.location,uid:t.uid,recurrenceId:t.recurrence_id}}(t,i,e[i])).filter(t=>null!==t)}}catch(t){return console.warn(`[hearth] could not load ${i}`,t),{entityId:i,events:null}}})),n=[],o=[];for(const t of a)null===t.events?o.push(t.entityId):n.push(...t.events);return n.sort((t,e)=>t.allDay!==e.allDay?t.allDay?-1:1:t.start.getTime()-e.start.getTime()),{events:n,failed:o}}function Ot(t,e){const i=[];for(let r=bt(t);r<e;r=wt(r,1))i.push(r);return i}function Nt(t,e){const i=e.map(t=>({key:St(t),from:t.getTime(),to:wt(t,1).getTime()})),r=new Map(i.map(t=>[t.key,[]]));for(const e of t){const t=e.start.getTime(),s=e.end.getTime();for(const a of i)t<a.to&&s>a.from&&r.get(a.key).push(e)}return r}const Ut=l`
+const t="0.1.0",e=["#e0603a","#3a86c8","#4f9d69","#c9a227","#8e6bbf","#d1707f"];function i(t,e,i,s){var r,a=arguments.length,n=a<3?e:null===s?s=Object.getOwnPropertyDescriptor(e,i):s;if("object"==typeof Reflect&&"function"==typeof Reflect.decorate)n=Reflect.decorate(t,e,i,s);else for(var o=t.length-1;o>=0;o--)(r=t[o])&&(n=(a<3?r(n):a>3?r(e,i,n):r(e,i))||n);return a>3&&n&&Object.defineProperty(e,i,n),n}"function"==typeof SuppressedError&&SuppressedError;const s=globalThis,r=s.ShadowRoot&&(void 0===s.ShadyCSS||s.ShadyCSS.nativeShadow)&&"adoptedStyleSheets"in Document.prototype&&"replace"in CSSStyleSheet.prototype,a=Symbol(),n=new WeakMap;let o=class{constructor(t,e,i){if(this._$cssResult$=!0,i!==a)throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");this.cssText=t,this.t=e}get styleSheet(){let t=this.o;const e=this.t;if(r&&void 0===t){const i=void 0!==e&&1===e.length;i&&(t=n.get(e)),void 0===t&&((this.o=t=new CSSStyleSheet).replaceSync(this.cssText),i&&n.set(e,t))}return t}toString(){return this.cssText}};const d=(t,...e)=>{const i=1===t.length?t[0]:e.reduce((e,i,s)=>e+(t=>{if(!0===t._$cssResult$)return t.cssText;if("number"==typeof t)return t;throw Error("Value passed to 'css' function must be a 'css' function result: "+t+". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.")})(i)+t[s+1],t[0]);return new o(i,t,a)},h=r?t=>t:t=>t instanceof CSSStyleSheet?(t=>{let e="";for(const i of t.cssRules)e+=i.cssText;return(t=>new o("string"==typeof t?t:t+"",void 0,a))(e)})(t):t,{is:l,defineProperty:c,getOwnPropertyDescriptor:p,getOwnPropertyNames:u,getOwnPropertySymbols:m,getPrototypeOf:g}=Object,f=globalThis,_=f.trustedTypes,v=_?_.emptyScript:"",y=f.reactiveElementPolyfillSupport,b=(t,e)=>t,w={toAttribute(t,e){switch(e){case Boolean:t=t?v:null;break;case Object:case Array:t=null==t?t:JSON.stringify(t)}return t},fromAttribute(t,e){let i=t;switch(e){case Boolean:i=null!==t;break;case Number:i=null===t?null:Number(t);break;case Object:case Array:try{i=JSON.parse(t)}catch(t){i=null}}return i}},$=(t,e)=>!l(t,e),x={attribute:!0,type:String,converter:w,reflect:!1,useDefault:!1,hasChanged:$};Symbol.metadata??=Symbol("metadata"),f.litPropertyMetadata??=new WeakMap;let k=class extends HTMLElement{static addInitializer(t){this._$Ei(),(this.l??=[]).push(t)}static get observedAttributes(){return this.finalize(),this._$Eh&&[...this._$Eh.keys()]}static createProperty(t,e=x){if(e.state&&(e.attribute=!1),this._$Ei(),this.prototype.hasOwnProperty(t)&&((e=Object.create(e)).wrapped=!0),this.elementProperties.set(t,e),!e.noAccessor){const i=Symbol(),s=this.getPropertyDescriptor(t,i,e);void 0!==s&&c(this.prototype,t,s)}}static getPropertyDescriptor(t,e,i){const{get:s,set:r}=p(this.prototype,t)??{get(){return this[e]},set(t){this[e]=t}};return{get:s,set(e){const a=s?.call(this);r?.call(this,e),this.requestUpdate(t,a,i)},configurable:!0,enumerable:!0}}static getPropertyOptions(t){return this.elementProperties.get(t)??x}static _$Ei(){if(this.hasOwnProperty(b("elementProperties")))return;const t=g(this);t.finalize(),void 0!==t.l&&(this.l=[...t.l]),this.elementProperties=new Map(t.elementProperties)}static finalize(){if(this.hasOwnProperty(b("finalized")))return;if(this.finalized=!0,this._$Ei(),this.hasOwnProperty(b("properties"))){const t=this.properties,e=[...u(t),...m(t)];for(const i of e)this.createProperty(i,t[i])}const t=this[Symbol.metadata];if(null!==t){const e=litPropertyMetadata.get(t);if(void 0!==e)for(const[t,i]of e)this.elementProperties.set(t,i)}this._$Eh=new Map;for(const[t,e]of this.elementProperties){const i=this._$Eu(t,e);void 0!==i&&this._$Eh.set(i,t)}this.elementStyles=this.finalizeStyles(this.styles)}static finalizeStyles(t){const e=[];if(Array.isArray(t)){const i=new Set(t.flat(1/0).reverse());for(const t of i)e.unshift(h(t))}else void 0!==t&&e.push(h(t));return e}static _$Eu(t,e){const i=e.attribute;return!1===i?void 0:"string"==typeof i?i:"string"==typeof t?t.toLowerCase():void 0}constructor(){super(),this._$Ep=void 0,this.isUpdatePending=!1,this.hasUpdated=!1,this._$Em=null,this._$Ev()}_$Ev(){this._$ES=new Promise(t=>this.enableUpdating=t),this._$AL=new Map,this._$E_(),this.requestUpdate(),this.constructor.l?.forEach(t=>t(this))}addController(t){(this._$EO??=new Set).add(t),void 0!==this.renderRoot&&this.isConnected&&t.hostConnected?.()}removeController(t){this._$EO?.delete(t)}_$E_(){const t=new Map,e=this.constructor.elementProperties;for(const i of e.keys())this.hasOwnProperty(i)&&(t.set(i,this[i]),delete this[i]);t.size>0&&(this._$Ep=t)}createRenderRoot(){const t=this.shadowRoot??this.attachShadow(this.constructor.shadowRootOptions);return((t,e)=>{if(r)t.adoptedStyleSheets=e.map(t=>t instanceof CSSStyleSheet?t:t.styleSheet);else for(const i of e){const e=document.createElement("style"),r=s.litNonce;void 0!==r&&e.setAttribute("nonce",r),e.textContent=i.cssText,t.appendChild(e)}})(t,this.constructor.elementStyles),t}connectedCallback(){this.renderRoot??=this.createRenderRoot(),this.enableUpdating(!0),this._$EO?.forEach(t=>t.hostConnected?.())}enableUpdating(t){}disconnectedCallback(){this._$EO?.forEach(t=>t.hostDisconnected?.())}attributeChangedCallback(t,e,i){this._$AK(t,i)}_$ET(t,e){const i=this.constructor.elementProperties.get(t),s=this.constructor._$Eu(t,i);if(void 0!==s&&!0===i.reflect){const r=(void 0!==i.converter?.toAttribute?i.converter:w).toAttribute(e,i.type);this._$Em=t,null==r?this.removeAttribute(s):this.setAttribute(s,r),this._$Em=null}}_$AK(t,e){const i=this.constructor,s=i._$Eh.get(t);if(void 0!==s&&this._$Em!==s){const t=i.getPropertyOptions(s),r="function"==typeof t.converter?{fromAttribute:t.converter}:void 0!==t.converter?.fromAttribute?t.converter:w;this._$Em=s;const a=r.fromAttribute(e,t.type);this[s]=a??this._$Ej?.get(s)??a,this._$Em=null}}requestUpdate(t,e,i,s=!1,r){if(void 0!==t){const a=this.constructor;if(!1===s&&(r=this[t]),i??=a.getPropertyOptions(t),!((i.hasChanged??$)(r,e)||i.useDefault&&i.reflect&&r===this._$Ej?.get(t)&&!this.hasAttribute(a._$Eu(t,i))))return;this.C(t,e,i)}!1===this.isUpdatePending&&(this._$ES=this._$EP())}C(t,e,{useDefault:i,reflect:s,wrapped:r},a){i&&!(this._$Ej??=new Map).has(t)&&(this._$Ej.set(t,a??e??this[t]),!0!==r||void 0!==a)||(this._$AL.has(t)||(this.hasUpdated||i||(e=void 0),this._$AL.set(t,e)),!0===s&&this._$Em!==t&&(this._$Eq??=new Set).add(t))}async _$EP(){this.isUpdatePending=!0;try{await this._$ES}catch(t){Promise.reject(t)}const t=this.scheduleUpdate();return null!=t&&await t,!this.isUpdatePending}scheduleUpdate(){return this.performUpdate()}performUpdate(){if(!this.isUpdatePending)return;if(!this.hasUpdated){if(this.renderRoot??=this.createRenderRoot(),this._$Ep){for(const[t,e]of this._$Ep)this[t]=e;this._$Ep=void 0}const t=this.constructor.elementProperties;if(t.size>0)for(const[e,i]of t){const{wrapped:t}=i,s=this[e];!0!==t||this._$AL.has(e)||void 0===s||this.C(e,void 0,i,s)}}let t=!1;const e=this._$AL;try{t=this.shouldUpdate(e),t?(this.willUpdate(e),this._$EO?.forEach(t=>t.hostUpdate?.()),this.update(e)):this._$EM()}catch(e){throw t=!1,this._$EM(),e}t&&this._$AE(e)}willUpdate(t){}_$AE(t){this._$EO?.forEach(t=>t.hostUpdated?.()),this.hasUpdated||(this.hasUpdated=!0,this.firstUpdated(t)),this.updated(t)}_$EM(){this._$AL=new Map,this.isUpdatePending=!1}get updateComplete(){return this.getUpdateComplete()}getUpdateComplete(){return this._$ES}shouldUpdate(t){return!0}update(t){this._$Eq&&=this._$Eq.forEach(t=>this._$ET(t,this[t])),this._$EM()}updated(t){}firstUpdated(t){}};k.elementStyles=[],k.shadowRootOptions={mode:"open"},k[b("elementProperties")]=new Map,k[b("finalized")]=new Map,y?.({ReactiveElement:k}),(f.reactiveElementVersions??=[]).push("2.1.2");const A=globalThis,C=t=>t,S=A.trustedTypes,H=S?S.createPolicy("lit-html",{createHTML:t=>t}):void 0,T="$lit$",D=`lit$${Math.random().toFixed(9).slice(2)}$`,E="?"+D,M=`<${E}>`,L=document,I=()=>L.createComment(""),z=t=>null===t||"object"!=typeof t&&"function"!=typeof t,O=Array.isArray,P="[ \t\n\f\r]",N=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,U=/-->/g,V=/>/g,j=RegExp(`>|${P}(?:([^\\s"'>=/]+)(${P}*=${P}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`,"g"),R=/'/g,F=/"/g,B=/^(?:script|style|textarea|title)$/i,Z=(t=>(e,...i)=>({_$litType$:t,strings:e,values:i}))(1),W=Symbol.for("lit-noChange"),q=Symbol.for("lit-nothing"),K=new WeakMap,G=L.createTreeWalker(L,129);function Y(t,e){if(!O(t)||!t.hasOwnProperty("raw"))throw Error("invalid template strings array");return void 0!==H?H.createHTML(e):e}const J=(t,e)=>{const i=t.length-1,s=[];let r,a=2===e?"<svg>":3===e?"<math>":"",n=N;for(let e=0;e<i;e++){const i=t[e];let o,d,h=-1,l=0;for(;l<i.length&&(n.lastIndex=l,d=n.exec(i),null!==d);)l=n.lastIndex,n===N?"!--"===d[1]?n=U:void 0!==d[1]?n=V:void 0!==d[2]?(B.test(d[2])&&(r=RegExp("</"+d[2],"g")),n=j):void 0!==d[3]&&(n=j):n===j?">"===d[0]?(n=r??N,h=-1):void 0===d[1]?h=-2:(h=n.lastIndex-d[2].length,o=d[1],n=void 0===d[3]?j:'"'===d[3]?F:R):n===F||n===R?n=j:n===U||n===V?n=N:(n=j,r=void 0);const c=n===j&&t[e+1].startsWith("/>")?" ":"";a+=n===N?i+M:h>=0?(s.push(o),i.slice(0,h)+T+i.slice(h)+D+c):i+D+(-2===h?e:c)}return[Y(t,a+(t[i]||"<?>")+(2===e?"</svg>":3===e?"</math>":"")),s]};class X{constructor({strings:t,_$litType$:e},i){let s;this.parts=[];let r=0,a=0;const n=t.length-1,o=this.parts,[d,h]=J(t,e);if(this.el=X.createElement(d,i),G.currentNode=this.el.content,2===e||3===e){const t=this.el.content.firstChild;t.replaceWith(...t.childNodes)}for(;null!==(s=G.nextNode())&&o.length<n;){if(1===s.nodeType){if(s.hasAttributes())for(const t of s.getAttributeNames())if(t.endsWith(T)){const e=h[a++],i=s.getAttribute(t).split(D),n=/([.?@])?(.*)/.exec(e);o.push({type:1,index:r,name:n[2],strings:i,ctor:"."===n[1]?st:"?"===n[1]?rt:"@"===n[1]?at:it}),s.removeAttribute(t)}else t.startsWith(D)&&(o.push({type:6,index:r}),s.removeAttribute(t));if(B.test(s.tagName)){const t=s.textContent.split(D),e=t.length-1;if(e>0){s.textContent=S?S.emptyScript:"";for(let i=0;i<e;i++)s.append(t[i],I()),G.nextNode(),o.push({type:2,index:++r});s.append(t[e],I())}}}else if(8===s.nodeType)if(s.data===E)o.push({type:2,index:r});else{let t=-1;for(;-1!==(t=s.data.indexOf(D,t+1));)o.push({type:7,index:r}),t+=D.length-1}r++}}static createElement(t,e){const i=L.createElement("template");return i.innerHTML=t,i}}function Q(t,e,i=t,s){if(e===W)return e;let r=void 0!==s?i._$Co?.[s]:i._$Cl;const a=z(e)?void 0:e._$litDirective$;return r?.constructor!==a&&(r?._$AO?.(!1),void 0===a?r=void 0:(r=new a(t),r._$AT(t,i,s)),void 0!==s?(i._$Co??=[])[s]=r:i._$Cl=r),void 0!==r&&(e=Q(t,r._$AS(t,e.values),r,s)),e}class tt{constructor(t,e){this._$AV=[],this._$AN=void 0,this._$AD=t,this._$AM=e}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(t){const{el:{content:e},parts:i}=this._$AD,s=(t?.creationScope??L).importNode(e,!0);G.currentNode=s;let r=G.nextNode(),a=0,n=0,o=i[0];for(;void 0!==o;){if(a===o.index){let e;2===o.type?e=new et(r,r.nextSibling,this,t):1===o.type?e=new o.ctor(r,o.name,o.strings,this,t):6===o.type&&(e=new nt(r,this,t)),this._$AV.push(e),o=i[++n]}a!==o?.index&&(r=G.nextNode(),a++)}return G.currentNode=L,s}p(t){let e=0;for(const i of this._$AV)void 0!==i&&(void 0!==i.strings?(i._$AI(t,i,e),e+=i.strings.length-2):i._$AI(t[e])),e++}}class et{get _$AU(){return this._$AM?._$AU??this._$Cv}constructor(t,e,i,s){this.type=2,this._$AH=q,this._$AN=void 0,this._$AA=t,this._$AB=e,this._$AM=i,this.options=s,this._$Cv=s?.isConnected??!0}get parentNode(){let t=this._$AA.parentNode;const e=this._$AM;return void 0!==e&&11===t?.nodeType&&(t=e.parentNode),t}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(t,e=this){t=Q(this,t,e),z(t)?t===q||null==t||""===t?(this._$AH!==q&&this._$AR(),this._$AH=q):t!==this._$AH&&t!==W&&this._(t):void 0!==t._$litType$?this.$(t):void 0!==t.nodeType?this.T(t):(t=>O(t)||"function"==typeof t?.[Symbol.iterator])(t)?this.k(t):this._(t)}O(t){return this._$AA.parentNode.insertBefore(t,this._$AB)}T(t){this._$AH!==t&&(this._$AR(),this._$AH=this.O(t))}_(t){this._$AH!==q&&z(this._$AH)?this._$AA.nextSibling.data=t:this.T(L.createTextNode(t)),this._$AH=t}$(t){const{values:e,_$litType$:i}=t,s="number"==typeof i?this._$AC(t):(void 0===i.el&&(i.el=X.createElement(Y(i.h,i.h[0]),this.options)),i);if(this._$AH?._$AD===s)this._$AH.p(e);else{const t=new tt(s,this),i=t.u(this.options);t.p(e),this.T(i),this._$AH=t}}_$AC(t){let e=K.get(t.strings);return void 0===e&&K.set(t.strings,e=new X(t)),e}k(t){O(this._$AH)||(this._$AH=[],this._$AR());const e=this._$AH;let i,s=0;for(const r of t)s===e.length?e.push(i=new et(this.O(I()),this.O(I()),this,this.options)):i=e[s],i._$AI(r),s++;s<e.length&&(this._$AR(i&&i._$AB.nextSibling,s),e.length=s)}_$AR(t=this._$AA.nextSibling,e){for(this._$AP?.(!1,!0,e);t!==this._$AB;){const e=C(t).nextSibling;C(t).remove(),t=e}}setConnected(t){void 0===this._$AM&&(this._$Cv=t,this._$AP?.(t))}}class it{get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}constructor(t,e,i,s,r){this.type=1,this._$AH=q,this._$AN=void 0,this.element=t,this.name=e,this._$AM=s,this.options=r,i.length>2||""!==i[0]||""!==i[1]?(this._$AH=Array(i.length-1).fill(new String),this.strings=i):this._$AH=q}_$AI(t,e=this,i,s){const r=this.strings;let a=!1;if(void 0===r)t=Q(this,t,e,0),a=!z(t)||t!==this._$AH&&t!==W,a&&(this._$AH=t);else{const s=t;let n,o;for(t=r[0],n=0;n<r.length-1;n++)o=Q(this,s[i+n],e,n),o===W&&(o=this._$AH[n]),a||=!z(o)||o!==this._$AH[n],o===q?t=q:t!==q&&(t+=(o??"")+r[n+1]),this._$AH[n]=o}a&&!s&&this.j(t)}j(t){t===q?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,t??"")}}class st extends it{constructor(){super(...arguments),this.type=3}j(t){this.element[this.name]=t===q?void 0:t}}class rt extends it{constructor(){super(...arguments),this.type=4}j(t){this.element.toggleAttribute(this.name,!!t&&t!==q)}}class at extends it{constructor(t,e,i,s,r){super(t,e,i,s,r),this.type=5}_$AI(t,e=this){if((t=Q(this,t,e,0)??q)===W)return;const i=this._$AH,s=t===q&&i!==q||t.capture!==i.capture||t.once!==i.once||t.passive!==i.passive,r=t!==q&&(i===q||s);s&&this.element.removeEventListener(this.name,this,i),r&&this.element.addEventListener(this.name,this,t),this._$AH=t}handleEvent(t){"function"==typeof this._$AH?this._$AH.call(this.options?.host??this.element,t):this._$AH.handleEvent(t)}}class nt{constructor(t,e,i){this.element=t,this.type=6,this._$AN=void 0,this._$AM=e,this.options=i}get _$AU(){return this._$AM._$AU}_$AI(t){Q(this,t)}}const ot=A.litHtmlPolyfillSupport;ot?.(X,et),(A.litHtmlVersions??=[]).push("3.3.3");const dt=globalThis;class ht extends k{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0}createRenderRoot(){const t=super.createRenderRoot();return this.renderOptions.renderBefore??=t.firstChild,t}update(t){const e=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(t),this._$Do=((t,e,i)=>{const s=i?.renderBefore??e;let r=s._$litPart$;if(void 0===r){const t=i?.renderBefore??null;s._$litPart$=r=new et(e.insertBefore(I(),t),t,void 0,i??{})}return r._$AI(t),r})(e,this.renderRoot,this.renderOptions)}connectedCallback(){super.connectedCallback(),this._$Do?.setConnected(!0)}disconnectedCallback(){super.disconnectedCallback(),this._$Do?.setConnected(!1)}render(){return W}}ht._$litElement$=!0,ht.finalized=!0,dt.litElementHydrateSupport?.({LitElement:ht});const lt=dt.litElementPolyfillSupport;lt?.({LitElement:ht}),(dt.litElementVersions??=[]).push("4.2.2");const ct=t=>(e,i)=>{void 0!==i?i.addInitializer(()=>{customElements.define(t,e)}):customElements.define(t,e)},pt={attribute:!0,type:String,converter:w,reflect:!1,hasChanged:$},ut=(t=pt,e,i)=>{const{kind:s,metadata:r}=i;let a=globalThis.litPropertyMetadata.get(r);if(void 0===a&&globalThis.litPropertyMetadata.set(r,a=new Map),"setter"===s&&((t=Object.create(t)).wrapped=!0),a.set(i.name,t),"accessor"===s){const{name:s}=i;return{set(i){const r=e.get.call(this);e.set.call(this,i),this.requestUpdate(s,r,t,!0,i)},init(e){return void 0!==e&&this.C(s,void 0,t,e),e}}}if("setter"===s){const{name:s}=i;return function(i){const r=this[s];e.call(this,i),this.requestUpdate(s,r,t,!0,i)}}throw Error("Unsupported decorator location: "+s)};function mt(t){return(e,i)=>"object"==typeof i?ut(t,e,i):((t,e,i)=>{const s=e.hasOwnProperty(i);return e.constructor.createProperty(i,t),s?Object.getOwnPropertyDescriptor(e,i):void 0})(t,e,i)}function gt(t){return mt({...t,state:!0,attribute:!1})}const ft=["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];function _t(t){const e=new Date(t);return e.setHours(0,0,0,0),e}function vt(t,e){const i=new Date(t);return i.setDate(i.getDate()+e),i}function yt(t,e){const i=new Date(t);return i.setDate(1),i.setMonth(i.getMonth()+e),i}function bt(t){const e=_t(t);return e.setDate(1),e}function wt(t,e){const i=_t(t);return vt(i,-(i.getDay()-e+7)%7)}function $t(t,e){return t.getFullYear()===e.getFullYear()&&t.getMonth()===e.getMonth()&&t.getDate()===e.getDate()}function xt(t){return $t(t,new Date)}function kt(t){const e=`${t.getMonth()+1}`.padStart(2,"0"),i=`${t.getDate()}`.padStart(2,"0");return`${t.getFullYear()}-${e}-${i}`}function At(t){const e=t=>`${t}`.padStart(2,"0");return`${t.getFullYear()}-${e(t.getMonth()+1)}-${e(t.getDate())} ${e(t.getHours())}:${e(t.getMinutes())}:00`}function Ct(t){const e=t=>`${t}`.padStart(2,"0");return`${e(t.getHours())}:${e(t.getMinutes())}`}function St(t){switch(t.locale?.time_format){case"12":return!0;case"24":return!1;default:return}}function Ht(t){return t.locale?.language||t.language||"en"}const Tt=d`
   :host {
     --hearth-gap: 8px;
     --hearth-radius: 12px;
@@ -9,7 +9,7 @@ const t="0.1.0",e=["#e0603a","#3a86c8","#4f9d69","#c9a227","#8e6bbf","#d1707f"];
     --hearth-surface-alt: rgba(127, 127, 127, 0.08);
     --hearth-today: var(--primary-color, #03a9f4);
   }
-`,Rt=l`
+`,Dt=d`
   button {
     font: inherit;
     color: inherit;
@@ -59,7 +59,7 @@ const t="0.1.0",e=["#e0603a","#3a86c8","#4f9d69","#c9a227","#8e6bbf","#d1707f"];
     background: var(--hearth-today);
     color: var(--text-primary-color, #fff);
   }
-`,zt=l`
+`,Et=d`
   .scrim {
     position: fixed;
     inset: 0;
@@ -219,18 +219,237 @@ const t="0.1.0",e=["#e0603a","#3a86c8","#4f9d69","#c9a227","#8e6bbf","#d1707f"];
     color: var(--error-color, #c33);
     font-size: 0.85rem;
   }
-`;let It=class extends dt{constructor(){super(...arguments),this._summary="",this._calendar="",this._dateKey="",this._allDay=!0,this._startTime="",this._endTime="",this._description="",this._saving=!1}connectedCallback(){super.connectedCallback();const t=yt(this.board);this._calendar=this.defaultCalendar&&t.includes(this.defaultCalendar)?this.defaultCalendar:t[0]??"",this._dateKey=St(this.day);const e=new Date(this.day);e.setHours(9,0,0,0),this._startTime=Dt(e),e.setHours(e.getHours()+1),this._endTime=Dt(e)}_close(){this.dispatchEvent(new CustomEvent("hearth-close",{bubbles:!0,composed:!0}))}_onScrimClick(t){t.target===t.currentTarget&&this._close()}async _save(){const t=this._summary.trim();if(!t||!this._calendar||this._saving)return;const e=function(t){const[e,i,r]=t.split("-").map(Number);return new Date(e,i-1,r)}(this._dateKey);let i,r;if(this._allDay)i=e,r=wt(e,1);else{const[t,s]=this._startTime.split(":").map(Number),[a,n]=this._endTime.split(":").map(Number);i=new Date(e),i.setHours(t,s,0,0),r=new Date(e),r.setHours(a,n,0,0),r<=i&&(r=wt(r,1))}this._saving=!0,this._error=void 0;try{await async function(t,e,i){const r={summary:i.summary};i.description&&(r.description=i.description),i.allDay?(r.start_date=St(i.start),r.end_date=St(i.end)):(r.start_date_time=Ct(i.start),r.end_date_time=Ct(i.end)),await t.callService("calendar","create_event",r,{entity_id:e})}(this.hass,this._calendar,{summary:t,start:i,end:r,allDay:this._allDay,description:this._description.trim()||void 0}),this.dispatchEvent(new CustomEvent("hearth-created",{bubbles:!0,composed:!0})),this._close()}catch(t){this._error=t instanceof Error?t.message:"The event could not be created."}finally{this._saving=!1}}_calendarOptions(){const t=new Map;for(const e of this.board.members)for(const i of e.calendars)t.set(i,e.name);return yt(this.board).map(e=>{const i=t.get(e),r=i?`${i} — ${vt(this.hass,e)}`:vt(this.hass,e);return W`<option value=${e} ?selected=${e===this._calendar}>
-        ${r}
-      </option>`})}render(){const t=this._calendarOptions(),e=Boolean(this._summary.trim()&&this._calendar)&&!this._saving;return W`
+`;let Mt=class extends ht{constructor(){super(...arguments),this._config={type:""},this._now=new Date}setConfig(t){this._config={...t}}getCardSize(){return 2}getGridOptions(){return{columns:"full",rows:"auto"}}connectedCallback(){super.connectedCallback();const t=this._config.show_seconds?1e3:2e4;this._timer=window.setInterval(()=>{this._now=new Date},t)}disconnectedCallback(){super.disconnectedCallback(),this._timer&&(window.clearInterval(this._timer),this._timer=void 0)}_weather(){const t=this._config.weather_entity;if(!t)return q;const e=this.hass.states[t];if(!e)return q;const i=e.attributes?.temperature,s=e.attributes?.temperature_unit??"",r=this.hass.formatEntityState(e);return Z`
+      <div class="weather">
+        <div class="temperature">
+          ${"number"==typeof i?`${Math.round(i)}${s}`:"—"}
+        </div>
+        <div class="condition">${r}</div>
+      </div>
+    `}render(){if(!this.hass)return Z`<ha-card></ha-card>`;const t=Ht(this.hass),e=new Intl.DateTimeFormat(t,{hour:"2-digit",minute:"2-digit",...this._config.show_seconds?{second:"2-digit"}:{},hour12:St(this.hass)}).format(this._now),i=new Intl.DateTimeFormat(t,{weekday:"long",day:"numeric",month:"long",year:"numeric"}).format(this._now);return Z`
+      <ha-card>
+        <div class="bar">
+          <div class="left">
+            <div class="clock">${e}</div>
+            <div class="date">${i}</div>
+            ${this._config.greeting?Z`<div class="greeting">${this._config.greeting}</div>`:q}
+          </div>
+          ${this._weather()}
+        </div>
+      </ha-card>
+    `}};Mt.styles=[Tt,d`
+      ha-card {
+        padding: 16px 20px;
+        box-sizing: border-box;
+      }
+
+      .bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+
+      .clock {
+        font-size: 3.2rem;
+        font-weight: 300;
+        line-height: 1;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .date {
+        margin-top: 4px;
+        font-size: 1.05rem;
+        font-weight: 600;
+      }
+
+      .greeting {
+        margin-top: 2px;
+        font-size: 0.9rem;
+        color: var(--hearth-muted);
+      }
+
+      .weather {
+        text-align: right;
+      }
+
+      .temperature {
+        font-size: 2.2rem;
+        font-weight: 300;
+        line-height: 1;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .condition {
+        margin-top: 4px;
+        font-size: 0.9rem;
+        color: var(--hearth-muted);
+      }
+    `],i([mt({attribute:!1})],Mt.prototype,"hass",void 0),i([gt()],Mt.prototype,"_config",void 0),i([gt()],Mt.prototype,"_now",void 0),Mt=i([ct("hearth-header-card")],Mt),window.customCards=window.customCards||[],window.customCards.push({type:"hearth-header-card",name:"Hearth Header",description:"Clock, date and weather, sized to be read from across the room.",preview:!0,documentationURL:"https://github.com/DomCim/Homeassistant-daely"});function Lt(t){return!0===t.attributes?.hearth_board}function It(t,i){let s;if(i){if(s=t.states[i],!s)return null}else if(s=Object.values(t.states).find(Lt),!s)return null;const r=s.attributes,a=(Array.isArray(r.members)?r.members:[]).map((t,i)=>{const s=t;return{id:String(s.id??i),name:String(s.name??""),color:s.color||e[i%e.length],avatar:s.avatar??null,person:s.person??null,calendars:s.calendars??[],todo_lists:s.todo_lists??[],order:s.order??i}});a.sort((t,e)=>t.order-e.order||t.name.localeCompare(e.name));const n=t=>Array.isArray(r[t])?r[t]:[];return{entityId:s.entity_id,members:a,sharedCalendars:n("shared_calendars"),sharedTodoLists:n("shared_todo_lists"),readonlyCalendars:n("readonly_calendars")}}function zt(t,e){const i={};for(const e of[...t.sharedCalendars,...t.readonlyCalendars])i[e]={memberId:null,color:"#7a8b99"};for(const e of t.members)for(const t of e.calendars)i[t]={memberId:e.id,color:e.color};return i}function Ot(t){const e=new Set(t.readonlyCalendars),i=[...t.sharedCalendars,...t.members.flatMap(t=>t.calendars)];return[...new Set(i)].filter(t=>!e.has(t))}function Pt(t,e){const i=t.states[e];return i?.attributes?.friendly_name||e}function Nt(t){return t.date?{date:_t(new Date(`${t.date}T00:00:00`)),allDay:!0}:{date:new Date(t.dateTime),allDay:!1}}async function Ut(t,e,i,s){const r=`start=${encodeURIComponent(i.toISOString())}&end=${encodeURIComponent(s.toISOString())}`,a=await Promise.all(Object.keys(e).map(async i=>{try{const s=await t.callApi("GET",`calendars/${i}?${r}`);return{entityId:i,events:(s||[]).map(t=>function(t,e,i){if(!t?.start||!t?.end)return null;const s=Nt(t.start),r=Nt(t.end);return Number.isNaN(s.date.getTime())||Number.isNaN(r.date.getTime())?null:{summary:t.summary||"",start:s.date,end:r.date,allDay:s.allDay,calendar:e,memberId:i.memberId,color:i.color,description:t.description,location:t.location,uid:t.uid,recurrenceId:t.recurrence_id}}(t,i,e[i])).filter(t=>null!==t)}}catch(t){return console.warn(`[hearth] could not load ${i}`,t),{entityId:i,events:null}}})),n=[],o=[];for(const t of a)null===t.events?o.push(t.entityId):n.push(...t.events);return n.sort((t,e)=>t.allDay!==e.allDay?t.allDay?-1:1:t.start.getTime()-e.start.getTime()),{events:n,failed:o}}function Vt(t,e){const i=[];for(let s=_t(t);s<e;s=vt(s,1))i.push(s);return i}function jt(t,e){const i=e.map(t=>({key:kt(t),from:t.getTime(),to:vt(t,1).getTime()})),s=new Map(i.map(t=>[t.key,[]]));for(const e of t){const t=e.start.getTime(),r=e.end.getTime();for(const a of i)t<a.to&&r>a.from&&s.get(a.key).push(e)}return s}const Rt="M10,20V14H14V20H19V12H22L12,3L2,12H5V20H10Z",Ft="M14,4V6H18V18H14V20H20V4M13,12L9,8V11H1V13H9V16L13,12Z",Bt="M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3M10,17L5,12L6.41,10.59L10,14.17L17.59,6.58L19,8L10,17Z",Zt="M12,17.27L18.18,21L16.54,13.97L22,9.24L14.81,8.62L12,2L9.19,8.62L2,9.24L7.45,13.97L5.82,21L12,17.27Z";let Wt=class extends ht{constructor(){super(...arguments),this._config={type:""},this._events=[],this._loadedSignature="",this._reloadToken=0}setConfig(t){this._config={...t}}getCardSize(){return 4}getGridOptions(){return{columns:"full",rows:"auto"}}connectedCallback(){super.connectedCallback(),this._timer=window.setInterval(()=>{this._reloadToken+=1,this._maybeFetch()},6e5)}disconnectedCallback(){super.disconnectedCallback(),this._timer&&(window.clearInterval(this._timer),this._timer=void 0)}updated(t){super.updated(t),this._maybeFetch()}async _maybeFetch(){const t=this.hass,e=t?It(t,this._config.board_entity):null;if(!t||!e||!1===this._config.show_events)return;const i=zt(e),s=Object.keys(i).sort(),r=_t(new Date),a=s.map(e=>t.states[e]?.last_changed??"-"),n=[r.getTime(),s.join(","),a.join(","),this._reloadToken].join("|");if(n===this._loadedSignature||0===s.length)return;this._loadedSignature=n;const{events:o}=await Ut(t,i,r,vt(r,1));this._loadedSignature===n&&(this._events=o)}_icon(t){return Z`<svg viewBox="0 0 24 24"><path d=${t} /></svg>`}_formatTime(t){return new Intl.DateTimeFormat(Ht(this.hass),{hour:"numeric",minute:"2-digit",hour12:St(this.hass)}).format(t)}_presence(t){if(!t.person)return null;const e=this.hass.states[t.person]?.state;return e&&"unknown"!==e&&"unavailable"!==e?"home"===e?{label:"Home",home:!0}:"not_home"===e?{label:"Out",home:!1}:{label:e,home:!1}:null}_renderMember(t){const e=(i=this.hass,s=t.id,Object.values(i.states).find(t=>t.attributes?.member_id===s));var i,s;const r=this._presence(t),a=Number(e?.state),n=!1!==this._config.show_tasks&&Number.isFinite(a),o=e?.attributes?.points,d=!1!==this._config.show_points&&"number"==typeof o,h=_t(new Date),l=!1===this._config.show_events?[]:this._events.filter(e=>e.memberId===t.id&&function(t,e){const i=_t(e),s=vt(i,1);return t.start<s&&t.end>i}(e,h)).slice(0,this._config.max_events??2),c=t.name.trim().charAt(0).toUpperCase()||"?";return Z`
+      <div class="person" style=${`--member-color:${t.color}`}>
+        <div class="avatar ${r&&!r.home?"away":""}">
+          ${t.avatar?Z`<img src=${t.avatar} alt="" />`:Z`<span>${c}</span>`}
+        </div>
+
+        <div class="name">${t.name}</div>
+
+        <div class="chips">
+          ${r?Z`<span class="chip">
+                ${this._icon(r.home?Rt:Ft)}${r.label}
+              </span>`:q}
+          ${n&&a>0?Z`<span class="chip">${this._icon(Bt)}${a}</span>`:q}
+          ${d?Z`<span class="chip">${this._icon(Zt)}${o}</span>`:q}
+        </div>
+
+        ${l.length>0?Z`<div class="today">
+              ${l.map(t=>Z`
+                  <div class="today-event">
+                    ${t.allDay?q:Z`<span class="time">${this._formatTime(t.start)}</span>`}
+                    <span class="summary">${t.summary}</span>
+                  </div>
+                `)}
+            </div>`:q}
+      </div>
+    `}render(){if(!this.hass)return Z`<ha-card></ha-card>`;const t=It(this.hass,this._config.board_entity);return t&&0!==t.members.length?Z`
+      <ha-card>
+        <div class="strip">${t.members.map(t=>this._renderMember(t))}</div>
+      </ha-card>
+    `:Z`
+        <ha-card>
+          <div class="notice">
+            No family members yet. Add them in the Hearth integration's options.
+          </div>
+        </ha-card>
+      `}};Wt.styles=[Tt,Dt,d`
+      ha-card {
+        padding: 12px;
+        box-sizing: border-box;
+      }
+
+      .strip {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+        gap: var(--hearth-gap);
+      }
+
+      .person {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        padding: 12px 8px;
+        border-radius: var(--hearth-radius);
+        background: color-mix(in srgb, var(--member-color) 12%, transparent);
+        border-top: 3px solid var(--member-color);
+      }
+
+      .avatar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        overflow: hidden;
+        background: var(--member-color);
+        color: #fff;
+        font-size: 1.5rem;
+        font-weight: 700;
+      }
+
+      /* Someone who is out reads as dimmed at a glance from across the room. */
+      .avatar.away {
+        opacity: 0.45;
+        filter: grayscale(0.5);
+      }
+
+      .avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .name {
+        font-weight: 700;
+        font-size: 1rem;
+        text-align: center;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 100%;
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 4px;
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        padding: 2px 8px;
+        border-radius: 10px;
+        background: var(--hearth-surface);
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--hearth-muted);
+      }
+
+      .chip svg {
+        width: 14px;
+        height: 14px;
+        fill: currentColor;
+      }
+
+      .today {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        width: 100%;
+        margin-top: 2px;
+      }
+
+      .today-event {
+        display: flex;
+        gap: 4px;
+        font-size: 0.75rem;
+        line-height: 1.3;
+        min-width: 0;
+      }
+
+      .time {
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+        flex: none;
+      }
+
+      .summary {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .notice {
+        padding: 16px 8px;
+        color: var(--hearth-muted);
+        font-size: 0.9rem;
+      }
+    `],i([mt({attribute:!1})],Wt.prototype,"hass",void 0),i([gt()],Wt.prototype,"_config",void 0),i([gt()],Wt.prototype,"_events",void 0),Wt=i([ct("hearth-people-card")],Wt),window.customCards=window.customCards||[],window.customCards.push({type:"hearth-people-card",name:"Hearth People",description:"Who's home, what's on today, open tasks and points.",preview:!0,documentationURL:"https://github.com/DomCim/Homeassistant-daely"});let qt=class extends ht{constructor(){super(...arguments),this._summary="",this._calendar="",this._dateKey="",this._allDay=!0,this._startTime="",this._endTime="",this._description="",this._saving=!1}connectedCallback(){super.connectedCallback();const t=Ot(this.board);this._calendar=this.defaultCalendar&&t.includes(this.defaultCalendar)?this.defaultCalendar:t[0]??"",this._dateKey=kt(this.day);const e=new Date(this.day);e.setHours(9,0,0,0),this._startTime=Ct(e),e.setHours(e.getHours()+1),this._endTime=Ct(e)}_close(){this.dispatchEvent(new CustomEvent("hearth-close",{bubbles:!0,composed:!0}))}_onScrimClick(t){t.target===t.currentTarget&&this._close()}async _save(){const t=this._summary.trim();if(!t||!this._calendar||this._saving)return;const e=function(t){const[e,i,s]=t.split("-").map(Number);return new Date(e,i-1,s)}(this._dateKey);let i,s;if(this._allDay)i=e,s=vt(e,1);else{const[t,r]=this._startTime.split(":").map(Number),[a,n]=this._endTime.split(":").map(Number);i=new Date(e),i.setHours(t,r,0,0),s=new Date(e),s.setHours(a,n,0,0),s<=i&&(s=vt(s,1))}this._saving=!0,this._error=void 0;try{await async function(t,e,i){const s={summary:i.summary};i.description&&(s.description=i.description),i.allDay?(s.start_date=kt(i.start),s.end_date=kt(i.end)):(s.start_date_time=At(i.start),s.end_date_time=At(i.end)),await t.callService("calendar","create_event",s,{entity_id:e})}(this.hass,this._calendar,{summary:t,start:i,end:s,allDay:this._allDay,description:this._description.trim()||void 0}),this.dispatchEvent(new CustomEvent("hearth-created",{bubbles:!0,composed:!0})),this._close()}catch(t){this._error=t instanceof Error?t.message:"The event could not be created."}finally{this._saving=!1}}_calendarOptions(){const t=new Map;for(const e of this.board.members)for(const i of e.calendars)t.set(i,e.name);return Ot(this.board).map(e=>{const i=t.get(e),s=i?`${i} — ${Pt(this.hass,e)}`:Pt(this.hass,e);return Z`<option value=${e} ?selected=${e===this._calendar}>
+        ${s}
+      </option>`})}render(){const t=this._calendarOptions(),e=Boolean(this._summary.trim()&&this._calendar)&&!this._saving;return Z`
       <div class="scrim" @click=${this._onScrimClick}>
         <div class="sheet" role="dialog" aria-modal="true">
           <h2>New event</h2>
 
-          ${this._error?W`<p class="error">${this._error}</p>`:K}
-          ${0===t.length?W`<p class="error">
+          ${this._error?Z`<p class="error">${this._error}</p>`:q}
+          ${0===t.length?Z`<p class="error">
                 No writable calendar is configured. Add calendars to a family member, or
                 remove one from the read-only list.
-              </p>`:K}
+              </p>`:q}
 
           <div class="field">
             <label for="summary">Title</label>
@@ -274,7 +493,7 @@ const t="0.1.0",e=["#e0603a","#3a86c8","#4f9d69","#c9a227","#8e6bbf","#d1707f"];
             <span class="switch"></span>
           </button>
 
-          ${this._allDay?K:W`
+          ${this._allDay?q:Z`
                 <div class="row">
                   <div class="field">
                     <label for="from">From</label>
@@ -314,24 +533,24 @@ const t="0.1.0",e=["#e0603a","#3a86c8","#4f9d69","#c9a227","#8e6bbf","#d1707f"];
           </div>
         </div>
       </div>
-    `}};It.styles=[Ut,Rt,zt],i([mt({attribute:!1})],It.prototype,"hass",void 0),i([mt({attribute:!1})],It.prototype,"board",void 0),i([mt({attribute:!1})],It.prototype,"day",void 0),i([mt({attribute:!1})],It.prototype,"defaultCalendar",void 0),i([ft()],It.prototype,"_summary",void 0),i([ft()],It.prototype,"_calendar",void 0),i([ft()],It.prototype,"_dateKey",void 0),i([ft()],It.prototype,"_allDay",void 0),i([ft()],It.prototype,"_startTime",void 0),i([ft()],It.prototype,"_endTime",void 0),i([ft()],It.prototype,"_description",void 0),i([ft()],It.prototype,"_saving",void 0),i([ft()],It.prototype,"_error",void 0),It=i([ct("hearth-event-dialog")],It);const Lt=["month","week","day"],jt={month:"Month",week:"Week",day:"Day"},Vt="M15.41,16.58L10.83,12L15.41,7.41L14,6L8,12L14,18L15.41,16.58Z",Ft="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z",Bt="M19,3H18V1H16V3H8V1H6V3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M19,19H5V8H19V19Z",Wt="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z",qt="M13,14H11V9H13M13,18H11V16H13M1,21H23L12,2L1,21Z";let Kt=class extends dt{constructor(){super(...arguments),this._config={type:""},this._view="month",this._anchor=bt(new Date),this._events=[],this._failed=[],this._loading=!1,this._loadedSignature="",this._reloadToken=0}setConfig(t){this._config={...t},t.view&&Lt.includes(t.view)&&(this._view=t.view)}getCardSize(){return"month"===this._view?12:8}getGridOptions(){return{columns:"full",rows:"month"===this._view?12:8}}connectedCallback(){super.connectedCallback(),this._timer=window.setInterval(()=>this._reload(),3e5)}disconnectedCallback(){super.disconnectedCallback(),this._timer&&(window.clearInterval(this._timer),this._timer=void 0)}updated(t){super.updated(t),this._maybeFetch()}get _board(){return this.hass?function(t,i){let r;if(i){if(r=t.states[i],!r)return null}else if(r=Object.values(t.states).find(gt),!r)return null;const s=r.attributes,a=(Array.isArray(s.members)?s.members:[]).map((t,i)=>{const r=t;return{id:String(r.id??i),name:String(r.name??""),color:r.color||e[i%e.length],avatar:r.avatar??null,person:r.person??null,calendars:r.calendars??[],todo_lists:r.todo_lists??[],order:r.order??i}});a.sort((t,e)=>t.order-e.order||t.name.localeCompare(e.name));const n=t=>Array.isArray(s[t])?s[t]:[];return{entityId:r.entity_id,members:a,sharedCalendars:n("shared_calendars"),sharedTodoLists:n("shared_todo_lists"),readonlyCalendars:n("readonly_calendars")}}(this.hass,this._config.board_entity):null}get _firstDay(){return this.hass?function(t){const e=t.locale?.first_weekday;if(e&&"language"!==e){const t=$t.indexOf(e);if(t>=0)return t}try{const e=new Intl.Locale(t.locale?.language||t.language||"en").weekInfo;if(e?.firstDay)return e.firstDay%7}catch{}return 1}(this.hass):1}_range(){if("month"===this._view){const{start:t,end:e}=function(t,e){const i=kt(At(t),e);let r=kt(wt(xt(At(t),1),-1),e);r=wt(r,7);let s=Math.round((r.getTime()-i.getTime())/6048e5);return s<6&&(r=wt(r,7*(6-s)),s=6),{start:i,end:r,weeks:s}}(this._anchor,this._firstDay);return{start:t,end:e}}if("week"===this._view){const t=kt(this._anchor,this._firstDay);return{start:t,end:wt(t,7)}}const t=bt(this._anchor);return{start:t,end:wt(t,1)}}_reload(){this._reloadToken+=1,this._maybeFetch()}async _maybeFetch(){const t=this.hass,e=this._board;if(!t||!e)return;const i=_t(e),r=Object.keys(i).sort(),{start:s,end:a}=this._range(),n=r.map(e=>t.states[e]?.last_changed??"-"),o=[s.getTime(),a.getTime(),r.join(","),n.join(","),this._reloadToken].join("|");if(o!==this._loadedSignature){if(this._loadedSignature=o,0===r.length)return this._events=[],void(this._failed=[]);this._loading=!0;try{const{events:e,failed:r}=await Pt(t,i,s,a);this._loadedSignature===o&&(this._events=e,this._failed=r)}finally{this._loadedSignature===o&&(this._loading=!1)}}}_step(t){"month"===this._view?this._anchor=xt(this._anchor,t):"week"===this._view?this._anchor=wt(this._anchor,7*t):this._anchor=wt(this._anchor,t)}_goToday(){this._anchor=bt(new Date)}_setView(t){this._view=t}get _createEnabled(){return!1!==this._config.create}_openCreate(t){this._createEnabled&&(this._dialogDay=t)}_openDay(t){this._anchor=bt(t),this._view="day"}_formatTime(t){return new Intl.DateTimeFormat(Ht(this.hass),{hour:"numeric",minute:"2-digit",hour12:Tt(this.hass)}).format(t)}_title(){const t=Ht(this.hass);if("month"===this._view)return new Intl.DateTimeFormat(t,{month:"long",year:"numeric"}).format(this._anchor);if("week"===this._view){const{start:e,end:i}=this._range();return new Intl.DateTimeFormat(t,{day:"numeric",month:"short",year:"numeric"}).formatRange(e,wt(i,-1))}return new Intl.DateTimeFormat(t,{weekday:"long",day:"numeric",month:"long",year:"numeric"}).format(this._anchor)}_weekdayLabels(){const t=new Intl.DateTimeFormat(Ht(this.hass),{weekday:"short"}),e=kt(new Date,this._firstDay);return Array.from({length:7},(i,r)=>t.format(wt(e,r)))}_icon(t){return W`<svg viewBox="0 0 24 24"><path d=${t} /></svg>`}_renderEvent(t,e){const i=t.allDay?"":this._formatTime(t.start);return W`
+    `}};qt.styles=[Tt,Dt,Et],i([mt({attribute:!1})],qt.prototype,"hass",void 0),i([mt({attribute:!1})],qt.prototype,"board",void 0),i([mt({attribute:!1})],qt.prototype,"day",void 0),i([mt({attribute:!1})],qt.prototype,"defaultCalendar",void 0),i([gt()],qt.prototype,"_summary",void 0),i([gt()],qt.prototype,"_calendar",void 0),i([gt()],qt.prototype,"_dateKey",void 0),i([gt()],qt.prototype,"_allDay",void 0),i([gt()],qt.prototype,"_startTime",void 0),i([gt()],qt.prototype,"_endTime",void 0),i([gt()],qt.prototype,"_description",void 0),i([gt()],qt.prototype,"_saving",void 0),i([gt()],qt.prototype,"_error",void 0),qt=i([ct("hearth-event-dialog")],qt);const Kt=["month","week","day"],Gt={month:"Month",week:"Week",day:"Day"},Yt="M15.41,16.58L10.83,12L15.41,7.41L14,6L8,12L14,18L15.41,16.58Z",Jt="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z",Xt="M19,3H18V1H16V3H8V1H6V3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M19,19H5V8H19V19Z",Qt="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z",te="M13,14H11V9H13M13,18H11V16H13M1,21H23L12,2L1,21Z";let ee=class extends ht{constructor(){super(...arguments),this._config={type:""},this._view="month",this._anchor=_t(new Date),this._events=[],this._failed=[],this._loading=!1,this._loadedSignature="",this._reloadToken=0}setConfig(t){this._config={...t},t.view&&Kt.includes(t.view)&&(this._view=t.view)}getCardSize(){return"month"===this._view?12:8}getGridOptions(){return{columns:"full",rows:"month"===this._view?12:8}}connectedCallback(){super.connectedCallback(),this._timer=window.setInterval(()=>this._reload(),3e5)}disconnectedCallback(){super.disconnectedCallback(),this._timer&&(window.clearInterval(this._timer),this._timer=void 0)}updated(t){super.updated(t),this._maybeFetch()}get _board(){return this.hass?It(this.hass,this._config.board_entity):null}get _firstDay(){return this.hass?function(t){const e=t.locale?.first_weekday;if(e&&"language"!==e){const t=ft.indexOf(e);if(t>=0)return t}try{const e=new Intl.Locale(t.locale?.language||t.language||"en").weekInfo;if(e?.firstDay)return e.firstDay%7}catch{}return 1}(this.hass):1}_range(){if("month"===this._view){const{start:t,end:e}=function(t,e){const i=wt(bt(t),e);let s=wt(vt(yt(bt(t),1),-1),e);s=vt(s,7);let r=Math.round((s.getTime()-i.getTime())/6048e5);return r<6&&(s=vt(s,7*(6-r)),r=6),{start:i,end:s,weeks:r}}(this._anchor,this._firstDay);return{start:t,end:e}}if("week"===this._view){const t=wt(this._anchor,this._firstDay);return{start:t,end:vt(t,7)}}const t=_t(this._anchor);return{start:t,end:vt(t,1)}}_reload(){this._reloadToken+=1,this._maybeFetch()}async _maybeFetch(){const t=this.hass,e=this._board;if(!t||!e)return;const i=zt(e),s=Object.keys(i).sort(),{start:r,end:a}=this._range(),n=s.map(e=>t.states[e]?.last_changed??"-"),o=[r.getTime(),a.getTime(),s.join(","),n.join(","),this._reloadToken].join("|");if(o!==this._loadedSignature){if(this._loadedSignature=o,0===s.length)return this._events=[],void(this._failed=[]);this._loading=!0;try{const{events:e,failed:s}=await Ut(t,i,r,a);this._loadedSignature===o&&(this._events=e,this._failed=s)}finally{this._loadedSignature===o&&(this._loading=!1)}}}_step(t){"month"===this._view?this._anchor=yt(this._anchor,t):"week"===this._view?this._anchor=vt(this._anchor,7*t):this._anchor=vt(this._anchor,t)}_goToday(){this._anchor=_t(new Date)}_setView(t){this._view=t}get _createEnabled(){return!1!==this._config.create}_openCreate(t){this._createEnabled&&(this._dialogDay=t)}_openDay(t){this._anchor=_t(t),this._view="day"}_formatTime(t){return new Intl.DateTimeFormat(Ht(this.hass),{hour:"numeric",minute:"2-digit",hour12:St(this.hass)}).format(t)}_title(){const t=Ht(this.hass);if("month"===this._view)return new Intl.DateTimeFormat(t,{month:"long",year:"numeric"}).format(this._anchor);if("week"===this._view){const{start:e,end:i}=this._range();return new Intl.DateTimeFormat(t,{day:"numeric",month:"short",year:"numeric"}).formatRange(e,vt(i,-1))}return new Intl.DateTimeFormat(t,{weekday:"long",day:"numeric",month:"long",year:"numeric"}).format(this._anchor)}_weekdayLabels(){const t=new Intl.DateTimeFormat(Ht(this.hass),{weekday:"short"}),e=wt(new Date,this._firstDay);return Array.from({length:7},(i,s)=>t.format(vt(e,s)))}_icon(t){return Z`<svg viewBox="0 0 24 24"><path d=${t} /></svg>`}_renderEvent(t,e){const i=t.allDay?"":this._formatTime(t.start);return Z`
       <div
         class="event ${t.allDay?"all-day":""}"
         style=${`--event-color:${t.color}`}
         title=${t.summary}
       >
-        ${t.allDay?K:W`<span class="dot"></span><span class="time">${i}</span>`}
+        ${t.allDay?q:Z`<span class="dot"></span><span class="time">${i}</span>`}
         <span class="summary">${t.summary}</span>
-        ${e||!t.location?K:W`<span class="location">${t.location}</span>`}
+        ${e||!t.location?q:Z`<span class="location">${t.location}</span>`}
       </div>
-    `}_renderMonth(){const{start:t,end:e}=this._range(),i=Ot(t,e),r=Nt(this._events,i),s=this._config.max_events_per_day??3,a=this._anchor.getMonth();return W`
+    `}_renderMonth(){const{start:t,end:e}=this._range(),i=Vt(t,e),s=jt(this._events,i),r=this._config.max_events_per_day??3,a=this._anchor.getMonth();return Z`
       <div class="weekday-row">
-        ${this._weekdayLabels().map(t=>W`<div class="weekday">${t}</div>`)}
+        ${this._weekdayLabels().map(t=>Z`<div class="weekday">${t}</div>`)}
       </div>
       <div class="month-grid" style=${"--weeks:"+i.length/7}>
-        ${i.map(t=>{const e=r.get(St(t))??[],i=e.slice(0,s),n=e.length-i.length;return W`
+        ${i.map(t=>{const e=s.get(kt(t))??[],i=e.slice(0,r),n=e.length-i.length;return Z`
             <div
-              class="day-cell ${t.getMonth()===a?"":"outside"} ${Et(t)?"today":""}"
+              class="day-cell ${t.getMonth()===a?"":"outside"} ${xt(t)?"today":""}"
               @click=${()=>this._openCreate(t)}
             >
               <button
@@ -342,108 +561,108 @@ const t="0.1.0",e=["#e0603a","#3a86c8","#4f9d69","#c9a227","#8e6bbf","#d1707f"];
               </button>
               <div class="day-events">
                 ${i.map(t=>this._renderEvent(t,!0))}
-                ${n>0?W`<button
+                ${n>0?Z`<button
                       class="more"
                       @click=${e=>{e.stopPropagation(),this._openDay(t)}}
                     >
                       +${n}
-                    </button>`:K}
+                    </button>`:q}
               </div>
             </div>
           `})}
       </div>
-    `}_renderWeek(){const{start:t,end:e}=this._range(),i=Ot(t,e),r=Nt(this._events,i),s=new Intl.DateTimeFormat(Ht(this.hass),{weekday:"short",day:"numeric"});return W`
+    `}_renderWeek(){const{start:t,end:e}=this._range(),i=Vt(t,e),s=jt(this._events,i),r=new Intl.DateTimeFormat(Ht(this.hass),{weekday:"short",day:"numeric"});return Z`
       <div class="week-grid">
-        ${i.map(t=>{const e=r.get(St(t))??[];return W`
+        ${i.map(t=>{const e=s.get(kt(t))??[];return Z`
             <div
-              class="week-column ${Et(t)?"today":""}"
+              class="week-column ${xt(t)?"today":""}"
               @click=${()=>this._openCreate(t)}
             >
-              <div class="week-heading">${s.format(t)}</div>
+              <div class="week-heading">${r.format(t)}</div>
               <div class="week-events">
-                ${0===e.length?W`<div class="empty-hint">—</div>`:e.map(t=>this._renderEvent(t,!0))}
+                ${0===e.length?Z`<div class="empty-hint">—</div>`:e.map(t=>this._renderEvent(t,!0))}
               </div>
             </div>
           `})}
       </div>
-    `}_renderDay(){const{start:t,end:e}=this._range(),i=Nt(this._events,Ot(t,e)).get(St(t))??[];return W`
+    `}_renderDay(){const{start:t,end:e}=this._range(),i=jt(this._events,Vt(t,e)).get(kt(t))??[];return Z`
       <div class="day-list" @click=${()=>this._openCreate(t)}>
-        ${0===i.length?W`<div class="empty-day">
+        ${0===i.length?Z`<div class="empty-day">
               Nothing planned.${this._createEnabled?" Tap to add something.":""}
             </div>`:i.map(t=>this._renderEvent(t,!1))}
       </div>
-    `}_renderLegend(t){return!1===this._config.show_legend||0===t.members.length?K:W`
+    `}_renderLegend(t){return!1===this._config.show_legend||0===t.members.length?q:Z`
       <div class="legend">
-        ${t.members.map(t=>W`
+        ${t.members.map(t=>Z`
             <span class="legend-item">
               <span class="swatch" style=${`background:${t.color}`}></span>
               ${t.name}
             </span>
           `)}
       </div>
-    `}render(){if(!this.hass)return W`<ha-card></ha-card>`;const t=this._board;if(!t)return W`
+    `}render(){if(!this.hass)return Z`<ha-card></ha-card>`;const t=this._board;if(!t)return Z`
         <ha-card>
           <div class="notice">
             No Hearth board found. Add the Hearth integration, or set
             <code>board_entity</code> in this card's configuration.
           </div>
         </ha-card>
-      `;const e=_t(t),i=this._config.views??Lt;return W`
+      `;const e=zt(t),i=this._config.views??Kt;return Z`
       <ha-card>
         <div class="toolbar">
           <button class="icon-button" @click=${()=>this._step(-1)} aria-label="Previous">
-            ${this._icon(Vt)}
+            ${this._icon(Yt)}
           </button>
           <button class="icon-button" @click=${this._goToday} aria-label="Today">
-            ${this._icon(Bt)}
+            ${this._icon(Xt)}
           </button>
           <button class="icon-button" @click=${()=>this._step(1)} aria-label="Next">
-            ${this._icon(Ft)}
+            ${this._icon(Jt)}
           </button>
           <h1 class="title">${this._title()}</h1>
-          ${i.length>1?W`<div class="segmented">
-                ${i.map(t=>W`
+          ${i.length>1?Z`<div class="segmented">
+                ${i.map(t=>Z`
                     <button
                       aria-pressed=${this._view===t}
                       @click=${()=>this._setView(t)}
                     >
-                      ${jt[t]}
+                      ${Gt[t]}
                     </button>
                   `)}
-              </div>`:K}
-          ${this._createEnabled?W`<button
+              </div>`:q}
+          ${this._createEnabled?Z`<button
                 class="icon-button"
                 aria-label="New event"
-                @click=${()=>this._openCreate(bt(this._anchor))}
+                @click=${()=>this._openCreate(_t(this._anchor))}
               >
-                ${this._icon(Wt)}
-              </button>`:K}
+                ${this._icon(Qt)}
+              </button>`:q}
         </div>
 
         ${this._renderLegend(t)}
-        ${0===Object.keys(e).length?W`<div class="notice">
+        ${0===Object.keys(e).length?Z`<div class="notice">
               No calendars are assigned yet. Open the Hearth integration's options and give
               your family members their calendars.
-            </div>`:K}
-        ${this._failed.length>0?W`<div class="warning">
-              ${this._icon(qt)}
+            </div>`:q}
+        ${this._failed.length>0?Z`<div class="warning">
+              ${this._icon(te)}
               <span>Could not load: ${this._failed.join(", ")}</span>
-            </div>`:K}
+            </div>`:q}
 
         <div class="body ${this._loading?"loading":""}">
           ${"month"===this._view?this._renderMonth():"week"===this._view?this._renderWeek():this._renderDay()}
         </div>
 
-        ${this._dialogDay?W`<hearth-event-dialog
+        ${this._dialogDay?Z`<hearth-event-dialog
               .hass=${this.hass}
               .board=${t}
               .day=${this._dialogDay}
               .defaultCalendar=${this._config.default_calendar}
               @hearth-close=${()=>{this._dialogDay=void 0}}
               @hearth-created=${()=>this._reload()}
-            ></hearth-event-dialog>`:K}
+            ></hearth-event-dialog>`:q}
       </ha-card>
-    `}};Kt.styles=[Ut,Rt,l`
+    `}};ee.styles=[Tt,Dt,d`
       ha-card {
         display: flex;
         flex-direction: column;
@@ -728,4 +947,302 @@ const t="0.1.0",e=["#e0603a","#3a86c8","#4f9d69","#c9a227","#8e6bbf","#d1707f"];
         text-overflow: ellipsis;
         white-space: nowrap;
       }
-    `],i([mt({attribute:!1})],Kt.prototype,"hass",void 0),i([ft()],Kt.prototype,"_config",void 0),i([ft()],Kt.prototype,"_view",void 0),i([ft()],Kt.prototype,"_anchor",void 0),i([ft()],Kt.prototype,"_events",void 0),i([ft()],Kt.prototype,"_failed",void 0),i([ft()],Kt.prototype,"_loading",void 0),i([ft()],Kt.prototype,"_dialogDay",void 0),Kt=i([ct("hearth-calendar-card")],Kt),window.customCards=window.customCards||[],window.customCards.push({type:"hearth-calendar-card",name:"Hearth Calendar",description:"Family calendar as a month, week or day grid, coloured per member.",preview:!0,documentationURL:"https://github.com/DomCim/Homeassistant-daely"}),console.info(`%c HEARTH %c ${t} `,"color:#fff;background:#e0603a;font-weight:700;border-radius:3px 0 0 3px;padding:2px 6px","color:#e0603a;background:#2b2118;font-weight:700;border-radius:0 3px 3px 0;padding:2px 6px");export{t as HEARTH_VERSION};
+    `],i([mt({attribute:!1})],ee.prototype,"hass",void 0),i([gt()],ee.prototype,"_config",void 0),i([gt()],ee.prototype,"_view",void 0),i([gt()],ee.prototype,"_anchor",void 0),i([gt()],ee.prototype,"_events",void 0),i([gt()],ee.prototype,"_failed",void 0),i([gt()],ee.prototype,"_loading",void 0),i([gt()],ee.prototype,"_dialogDay",void 0),ee=i([ct("hearth-calendar-card")],ee),window.customCards=window.customCards||[],window.customCards.push({type:"hearth-calendar-card",name:"Hearth Calendar",description:"Family calendar as a month, week or day grid, coloured per member.",preview:!0,documentationURL:"https://github.com/DomCim/Homeassistant-daely"});let ie=class extends ht{constructor(){super(...arguments),this._config={type:""},this._events=[],this._loadedSignature="",this._reloadToken=0}setConfig(t){this._config={...t}}getCardSize(){return 6}getGridOptions(){return{columns:"full",rows:"auto"}}connectedCallback(){super.connectedCallback(),this._timer=window.setInterval(()=>{this._reloadToken+=1,this._maybeFetch()},3e5)}disconnectedCallback(){super.disconnectedCallback(),this._timer&&(window.clearInterval(this._timer),this._timer=void 0)}updated(t){super.updated(t),this._maybeFetch()}get _days(){return Math.max(1,this._config.days??3)}async _maybeFetch(){const t=this.hass,e=t?It(t,this._config.board_entity):null;if(!t||!e)return;const i=zt(e),s=Object.keys(i).sort(),r=_t(new Date),a=vt(r,this._days),n=s.map(e=>t.states[e]?.last_changed??"-"),o=[r.getTime(),a.getTime(),s.join(","),n.join(","),this._reloadToken].join("|");if(o===this._loadedSignature)return;if(this._loadedSignature=o,0===s.length)return void(this._events=[]);const{events:d}=await Ut(t,i,r,a);this._loadedSignature===o&&(this._events=d)}_formatTime(t){return new Intl.DateTimeFormat(Ht(this.hass),{hour:"numeric",minute:"2-digit",hour12:St(this.hass)}).format(t)}_dayLabel(t){const e=_t(new Date),i=Ht(this.hass);return $t(t,e)?new Intl.RelativeTimeFormat(i,{numeric:"auto"}).format(0,"day"):$t(t,vt(e,1))?new Intl.RelativeTimeFormat(i,{numeric:"auto"}).format(1,"day"):new Intl.DateTimeFormat(i,{weekday:"long",day:"numeric",month:"long"}).format(t)}render(){if(!this.hass)return Z`<ha-card></ha-card>`;const t=It(this.hass,this._config.board_entity);if(!t)return Z`<ha-card
+        ><div class="notice">No Hearth board found. Add the Hearth integration.</div></ha-card
+      >`;const e=_t(new Date),i=Vt(e,vt(e,this._days)),s=jt(this._events,i),r=this._config.max_events??6,a=new Map(t.members.map(t=>[t.id,t.name])),n=i.filter(t=>!0!==this._config.hide_empty_days||(s.get(kt(t))?.length??0)>0);return Z`
+      <ha-card>
+        ${0===n.length?Z`<div class="notice">Nothing coming up.</div>`:n.map(t=>{const e=(s.get(kt(t))??[]).slice(0,r);return Z`
+                <section class="day">
+                  <h3 class="day-label">${this._dayLabel(t)}</h3>
+                  ${0===e.length?Z`<div class="empty">Nothing planned</div>`:e.map(t=>Z`
+                          <div class="row" style=${`--event-color:${t.color}`}>
+                            <span class="when">
+                              ${t.allDay?"All day":this._formatTime(t.start)}
+                            </span>
+                            <span class="what">${t.summary}</span>
+                            ${t.memberId&&a.has(t.memberId)?Z`<span class="who">${a.get(t.memberId)}</span>`:q}
+                          </div>
+                        `)}
+                </section>
+              `})}
+      </ha-card>
+    `}};function se(t,e){const i=t.states[e];return i?.attributes?.friendly_name||e}function re(t,e){return t.states[e]?.attributes?.icon||null}ie.styles=[Tt,Dt,d`
+      ha-card {
+        padding: 12px;
+        box-sizing: border-box;
+      }
+
+      .day + .day {
+        margin-top: 14px;
+      }
+
+      .day-label {
+        margin: 0 0 6px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--hearth-muted);
+      }
+
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-height: var(--hearth-touch);
+        padding: 4px 10px;
+        margin-bottom: 4px;
+        border-radius: 8px;
+        border-left: 4px solid var(--event-color);
+        background: color-mix(in srgb, var(--event-color) 12%, transparent);
+      }
+
+      .when {
+        flex: none;
+        min-width: 62px;
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+        font-size: 0.85rem;
+      }
+
+      .what {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .who {
+        flex: none;
+        padding: 2px 8px;
+        border-radius: 10px;
+        background: var(--event-color);
+        color: #fff;
+        font-size: 0.72rem;
+        font-weight: 700;
+      }
+
+      .empty,
+      .notice {
+        padding: 8px 2px;
+        color: var(--hearth-muted);
+        font-size: 0.85rem;
+      }
+    `],i([mt({attribute:!1})],ie.prototype,"hass",void 0),i([gt()],ie.prototype,"_config",void 0),i([gt()],ie.prototype,"_events",void 0),ie=i([ct("hearth-agenda-card")],ie),window.customCards=window.customCards||[],window.customCards.push({type:"hearth-agenda-card",name:"Hearth Agenda",description:"The next few days as a list, coloured per family member.",preview:!0,documentationURL:"https://github.com/DomCim/Homeassistant-daely"});const ae="M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3M19,5V19H5V5H19Z",ne="M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3M10,17L5,12L6.41,10.59L10,14.17L17.59,6.58L19,8L10,17Z",oe="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z",de="M13,14H11V9H13M13,18H11V16H13M1,21H23L12,2L1,21Z";let he=class extends ht{constructor(){super(...arguments),this._config={type:""},this._lists=[],this._expanded=new Set,this._draft="",this._pending=new Set,this._loadedSignature="",this._reloadToken=0}setConfig(t){this._config={...t}}getCardSize(){return 6}getGridOptions(){return{columns:"full",rows:"auto"}}connectedCallback(){super.connectedCallback(),this._timer=window.setInterval(()=>this._reload(),3e5)}disconnectedCallback(){super.disconnectedCallback(),this._timer&&(window.clearInterval(this._timer),this._timer=void 0)}updated(t){super.updated(t),this._maybeFetch()}get _entityIds(){if(this._config.entities?.length)return this._config.entities;const t=this.hass?It(this.hass,this._config.board_entity):null;return t?.sharedTodoLists??[]}_reload(){this._reloadToken+=1,this._maybeFetch()}async _maybeFetch(){const t=this.hass;if(!t)return;const e=this._entityIds,i=e.map(e=>`${t.states[e]?.state??"-"}`),s=[e.join(","),i.join(","),this._reloadToken].join("|");if(s===this._loadedSignature)return;if(this._loadedSignature=s,0===e.length)return void(this._lists=[]);const r=await async function(t,e,i=!1){const s=i?["needs_action","completed"]:["needs_action"];return Promise.all(e.map(async e=>{const i={entityId:e,name:se(t,e),icon:re(t,e)};try{const r=await t.callService("todo","get_items",{status:s},{entity_id:e},!1,!0);return{...i,items:r?.response?.[e]?.items??[],ok:!0}}catch(t){return console.warn(`[hearth] could not read ${e}`,t),{...i,items:[],ok:!1}}}))}(t,e);this._loadedSignature===s&&(this._lists=r,this._pending=new Set)}async _toggle(t,e){const i=`${t.entityId}|${e.uid||e.summary}`;this._pending=new Set(this._pending).add(i);try{await async function(t,e,i,s){await t.callService("todo","update_item",{item:i.uid||i.summary,status:s?"completed":"needs_action"},{entity_id:e})}(this.hass,t.entityId,e,"completed"!==e.status)}catch(t){console.warn("[hearth] could not update item",t);const e=new Set(this._pending);return e.delete(i),void(this._pending=e)}this._reload()}async _submitDraft(t){const e=this._draft.trim();if(e){this._draft="";try{await async function(t,e,i){await t.callService("todo","add_item",{item:i},{entity_id:e})}(this.hass,t.entityId,e)}catch(t){console.warn("[hearth] could not add item",t)}this._reload()}}_icon(t){return Z`<svg viewBox="0 0 24 24"><path d=${t} /></svg>`}_renderItem(t,e){const i=`${t.entityId}|${e.uid||e.summary}`,s=this._pending.has(i),r=s?"completed"!==e.status:"completed"===e.status;return Z`
+      <button
+        class="item ${r?"done":""} ${s?"pending":""}"
+        @click=${()=>this._toggle(t,e)}
+      >
+        ${this._icon(r?ne:ae)}
+        <span class="item-text">${e.summary}</span>
+      </button>
+    `}_renderList(t){const e=this._config.max_items??8,i=this._expanded.has(t.entityId)?t.items:t.items.slice(0,e),s=t.items.length-i.length;return Z`
+      <section class="list">
+        <header class="list-header">
+          <span class="list-name">${t.name}</span>
+          <span class="count">${t.items.length}</span>
+        </header>
+
+        ${t.ok?q:Z`<div class="warning">
+              ${this._icon(de)}<span>Not reachable right now</span>
+            </div>`}
+
+        <div class="items">
+          ${0===i.length&&t.ok?Z`<div class="empty">Nothing on this list</div>`:i.map(e=>this._renderItem(t,e))}
+        </div>
+
+        ${s>0?Z`<button
+              class="more"
+              @click=${()=>{this._expanded=new Set(this._expanded).add(t.entityId)}}
+            >
+              Show ${s} more
+            </button>`:q}
+        ${!1===this._config.allow_add?q:this._adding===t.entityId?Z`
+                <form
+                  class="add-row"
+                  @submit=${e=>{e.preventDefault(),this._submitDraft(t)}}
+                >
+                  <input
+                    type="text"
+                    autofocus
+                    placeholder="Add an item"
+                    .value=${this._draft}
+                    @input=${t=>{this._draft=t.target.value}}
+                    @blur=${()=>{this._adding=void 0}}
+                  />
+                </form>
+              `:Z`<button
+                class="add"
+                @click=${()=>{this._draft="",this._adding=t.entityId}}
+              >
+                ${this._icon(oe)}<span>Add</span>
+              </button>`}
+      </section>
+    `}render(){return this.hass?0===this._entityIds.length?Z`
+        <ha-card>
+          <div class="notice">
+            No lists configured. Pick your family lists in the Hearth integration's options,
+            or set <code>entities</code> on this card.
+          </div>
+        </ha-card>
+      `:Z`
+      <ha-card>
+        <div class="grid" style=${`--columns:${this._config.columns??3}`}>
+          ${this._lists.map(t=>this._renderList(t))}
+        </div>
+      </ha-card>
+    `:Z`<ha-card></ha-card>`}};he.styles=[Tt,Dt,d`
+      ha-card {
+        padding: 12px;
+        box-sizing: border-box;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: var(--hearth-gap);
+      }
+
+      @media (min-width: 900px) {
+        .grid {
+          grid-template-columns: repeat(var(--columns, 3), 1fr);
+        }
+      }
+
+      .list {
+        display: flex;
+        flex-direction: column;
+        border-radius: var(--hearth-radius);
+        background: var(--hearth-surface-alt);
+        padding: 10px;
+      }
+
+      .list-header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 8px;
+        padding-bottom: 6px;
+        margin-bottom: 4px;
+        border-bottom: 1px solid var(--hearth-line);
+      }
+
+      .list-name {
+        font-weight: 700;
+        font-size: 1rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .count {
+        flex: none;
+        font-size: 0.8rem;
+        font-variant-numeric: tabular-nums;
+        color: var(--hearth-muted);
+      }
+
+      .items {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-height: var(--hearth-touch);
+        padding: 4px 2px;
+        text-align: left;
+        border-radius: 6px;
+      }
+
+      .item:active {
+        background: var(--hearth-line);
+      }
+
+      .item svg {
+        width: 22px;
+        height: 22px;
+        flex: none;
+        fill: var(--hearth-muted);
+      }
+
+      .item.done svg {
+        fill: var(--hearth-today);
+      }
+
+      .item.done .item-text {
+        text-decoration: line-through;
+        color: var(--hearth-muted);
+      }
+
+      .item.pending {
+        opacity: 0.6;
+      }
+
+      .item-text {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .empty,
+      .notice {
+        padding: 10px 2px;
+        color: var(--hearth-muted);
+        font-size: 0.85rem;
+      }
+
+      .notice code {
+        background: var(--hearth-surface-alt);
+        padding: 1px 5px;
+        border-radius: 4px;
+      }
+
+      .more,
+      .add {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-height: var(--hearth-touch);
+        padding: 0 2px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--hearth-muted);
+      }
+
+      .add svg {
+        width: 20px;
+        height: 20px;
+        fill: currentColor;
+      }
+
+      .add-row input {
+        font: inherit;
+        color: inherit;
+        width: 100%;
+        min-height: var(--hearth-touch);
+        padding: 6px 10px;
+        box-sizing: border-box;
+        background: var(--hearth-surface);
+        border: 1px solid var(--hearth-today);
+        border-radius: 8px;
+      }
+
+      .warning {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 2px;
+        color: var(--warning-color, #b8860b);
+        font-size: 0.8rem;
+      }
+
+      .warning svg {
+        width: 16px;
+        height: 16px;
+        fill: currentColor;
+      }
+    `],i([mt({attribute:!1})],he.prototype,"hass",void 0),i([gt()],he.prototype,"_config",void 0),i([gt()],he.prototype,"_lists",void 0),i([gt()],he.prototype,"_expanded",void 0),i([gt()],he.prototype,"_adding",void 0),i([gt()],he.prototype,"_draft",void 0),i([gt()],he.prototype,"_pending",void 0),he=i([ct("hearth-lists-card")],he),window.customCards=window.customCards||[],window.customCards.push({type:"hearth-lists-card",name:"Hearth Lists",description:"Shopping lists and checklists as tiles, ticked off with one tap.",preview:!0,documentationURL:"https://github.com/DomCim/Homeassistant-daely"}),console.info(`%c HEARTH %c ${t} `,"color:#fff;background:#e0603a;font-weight:700;border-radius:3px 0 0 3px;padding:2px 6px","color:#e0603a;background:#2b2118;font-weight:700;border-radius:0 3px 3px 0;padding:2px 6px");export{t as HEARTH_VERSION};

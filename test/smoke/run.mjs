@@ -296,6 +296,170 @@ await page.waitForTimeout(250);
 const notice = await page.locator('hearth-calendar-card .notice').textContent();
 check('missing board shows guidance instead of crashing', /No Hearth board found/.test(notice), notice.trim().slice(0, 60));
 
+// ------------------------------------------------------------------- lists card
+
+await page.evaluate(() =>
+  window.__mount(
+    { type: 'custom:hearth-lists-card', entities: ['todo.kaufland', 'todo.dm'] },
+    'hearth-lists-card',
+  ),
+);
+await page.waitForTimeout(400);
+
+const listNames = await page.locator('hearth-lists-card .list-name').allTextContents();
+check('lists card renders each configured list', listNames.length === 2, listNames.join(' | '));
+
+const kauflandItems = await page
+  .locator('hearth-lists-card .list', { hasText: 'Kaufland' })
+  .locator('.item-text')
+  .allTextContents();
+check(
+  'open items are listed',
+  kauflandItems.join(',') === 'Milch,Brot,Kaffee',
+  kauflandItems.join(','),
+);
+
+const itemBox = await page.locator('hearth-lists-card .item').first().boundingBox();
+check('list items are touch-sized', itemBox.height >= 44, `${Math.round(itemBox.height)}px tall`);
+
+await page.locator('hearth-lists-card .item', { hasText: 'Brot' }).click();
+await page.waitForTimeout(400);
+const ticked = await page.evaluate(() =>
+  window.__calls.services.filter((c) => c.service === 'update_item').at(-1),
+);
+check(
+  'tapping an item completes it',
+  ticked?.domain === 'todo' && ticked?.data?.item === 'k2' && ticked?.data?.status === 'completed',
+  JSON.stringify(ticked?.data ?? null),
+);
+
+const remaining = await page
+  .locator('hearth-lists-card .list', { hasText: 'Kaufland' })
+  .locator('.item-text')
+  .allTextContents();
+check(
+  'completed item drops off the open list after refresh',
+  !remaining.includes('Brot') && remaining.length === 2,
+  remaining.join(','),
+);
+
+await page.evaluate(() => {
+  window.__failLists.add('todo.dm');
+  window.__card._reloadToken += 1;
+  window.__card.requestUpdate();
+});
+await page.waitForTimeout(400);
+const listWarning = await page
+  .locator('hearth-lists-card .list', { hasText: 'DM' })
+  .locator('.warning')
+  .textContent()
+  .catch(() => null);
+check(
+  'an unreachable list says so without breaking its neighbours',
+  /Not reachable/.test(listWarning ?? '') &&
+    (await page.locator('hearth-lists-card .list').count()) === 2,
+  (listWarning ?? 'no warning').trim(),
+);
+await page.screenshot({ path: join(SHOTS, 'lists.png') });
+
+// ------------------------------------------------------------------ people card
+
+await page.evaluate(() => window.__mount({ type: 'custom:hearth-people-card' }, 'hearth-people-card'));
+await page.waitForTimeout(500);
+
+const peopleNames = await page.locator('hearth-people-card .name').allTextContents();
+check(
+  'people card shows every member in order',
+  peopleNames.map((n) => n.trim()).join(',') === 'Ben,Jan,Nik',
+  peopleNames.map((n) => n.trim()).join(','),
+);
+
+const benChips = await page
+  .locator('hearth-people-card .person', { hasText: 'Ben' })
+  .locator('.chip')
+  .allTextContents();
+check(
+  'presence, open tasks and points are shown',
+  benChips.some((c) => /Home/.test(c)) &&
+    benChips.some((c) => /\b1\b/.test(c)) &&
+    benChips.some((c) => /42/.test(c)),
+  benChips.map((c) => c.trim()).join(' | '),
+);
+
+const nikChips = await page
+  .locator('hearth-people-card .person', { hasText: 'Nik' })
+  .locator('.chip')
+  .allTextContents();
+check(
+  'a zone name is preferred over a bare "away"',
+  nikChips.some((c) => /School/.test(c)),
+  nikChips.map((c) => c.trim()).join(' | '),
+);
+
+const awayCount = await page.locator('hearth-people-card .avatar.away').count();
+check('members who are out are dimmed', awayCount === 2, `${awayCount} dimmed`);
+
+// Only today's events belong on this card, and only under their own member.
+const nikToday = await page
+  .locator('hearth-people-card .person', { hasText: 'Nik' })
+  .textContent();
+const benToday = await page
+  .locator('hearth-people-card .person', { hasText: 'Ben' })
+  .textContent();
+check(
+  "today's events appear under the member who owns them",
+  /Klavierstunde/.test(nikToday) && !/Klavierstunde/.test(benToday),
+  nikToday.replace(/\s+/g, ' ').trim(),
+);
+await page.screenshot({ path: join(SHOTS, 'people.png') });
+
+// ------------------------------------------------------------------ agenda card
+
+await page.evaluate(() =>
+  window.__mount({ type: 'custom:hearth-agenda-card', days: 3 }, 'hearth-agenda-card'),
+);
+await page.waitForTimeout(500);
+
+const dayLabels = await page.locator('hearth-agenda-card .day-label').allTextContents();
+check(
+  'agenda names today and tomorrow relatively',
+  dayLabels.length === 3 && /heute/i.test(dayLabels[0]) && /morgen/i.test(dayLabels[1]),
+  dayLabels.map((l) => l.trim()).join(' | '),
+);
+await page.screenshot({ path: join(SHOTS, 'agenda.png') });
+
+// ------------------------------------------------------------------ header card
+
+await page.evaluate(() =>
+  window.__mount(
+    {
+      type: 'custom:hearth-header-card',
+      weather_entity: 'weather.forecast_goldammerweg',
+      greeting: 'Goldammerweg',
+    },
+    'hearth-header-card',
+  ),
+);
+await page.waitForTimeout(300);
+
+const clock = await page.locator('hearth-header-card .clock').textContent();
+const headerDate = await page.locator('hearth-header-card .date').textContent();
+const temperature = await page.locator('hearth-header-card .temperature').textContent();
+check('header shows a 24h clock', /^\d{2}:\d{2}$/.test(clock.trim()), clock.trim());
+check('header shows a German long date', /\d{1,2}\.\s*\w+\s*2026/.test(headerDate.trim()), headerDate.trim());
+check('header rounds the temperature', temperature.trim() === '23°C', temperature.trim());
+await page.screenshot({ path: join(SHOTS, 'header.png') });
+
+// --------------------------------------------------------------- card registry
+
+const registered = await page.evaluate(() => window.customCards.map((c) => c.type).sort());
+check(
+  'every card registers itself in the picker',
+  registered.join(',') ===
+    'hearth-agenda-card,hearth-calendar-card,hearth-header-card,hearth-lists-card,hearth-people-card',
+  registered.join(','),
+);
+
 check('no uncaught page errors', consoleErrors.length === 0, consoleErrors.slice(0, 3).join(' | '));
 
 await browser.close();

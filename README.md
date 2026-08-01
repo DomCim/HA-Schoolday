@@ -90,6 +90,24 @@ The built bundle is **committed on purpose**: HACS installs `custom_components/h
 never runs a build step, so the artifact has to be in the tree. CI fails if the committed bundle does
 not match the sources.
 
+### CI
+
+`hassfest` validates the integration the way Home Assistant does, and the frontend job
+typechecks, builds, verifies the committed bundle matches the sources, and runs the smoke suite.
+
+The HACS job only runs on the default branch. `hacs/action` reads the repository through the GitHub
+API against the default branch, so on a feature branch it sees none of the files and fails on every
+push regardless of what changed.
+
+### Publishing later
+
+Installing as a HACS custom repository needs the repository to be **public** — HACS cannot read
+private repositories. Beyond that, for a custom repository nothing else is required.
+
+Submitting to the HACS default store additionally needs a repository description, GitHub topics, and
+a licence detectable on the default branch. Those two checks are in `ignore` in the workflow; drop
+them from the list if you ever go that route.
+
 ### Time zones
 
 Cards render dates and times in the **browser's** time zone, matching how Home Assistant's own

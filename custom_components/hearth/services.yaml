@@ -1,0 +1,33 @@
+set_routine_step:
+  fields:
+    member:
+      required: true
+      example: Ben
+      selector:
+        text:
+    block:
+      required: true
+      default: morning
+      selector:
+        select:
+          options:
+            - morning
+            - evening
+    step:
+      required: true
+      example: Sportsachen einpacken
+      selector:
+        text:
+    done:
+      required: false
+      default: true
+      selector:
+        boolean:
+
+reset_routine:
+  fields:
+    member:
+      required: false
+      example: Ben
+      selector:
+        text:

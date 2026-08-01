@@ -19,7 +19,8 @@
           "add_member": "Add a family member",
           "edit_member": "Edit a family member",
           "remove_member": "Remove a family member",
-          "shared": "Shared calendars and lists"
+          "shared": "Shared calendars and lists",
+          "routines": "Edit routines"
         }
       },
       "add_member": {
@@ -89,6 +90,27 @@
           "shared_todo_lists": "Shopping lists and checklists the whole family shares.",
           "readonly_calendars": "Shown but never written to, such as holiday or school calendars."
         }
+      },
+      "routines": {
+        "title": "Choose a routine",
+        "description": "Pick the family member and the time of day. The next step is where the steps per weekday go.",
+        "data": {
+          "id": "Family member",
+          "block": "Time of day"
+        }
+      },
+      "routine_steps": {
+        "title": "{name} – {block}",
+        "description": "One step per line. Empty days have no routine.\n\nThe school timetable is not read from anywhere — it is fixed for a school year. Just put \"pack PE kit\" on the days that have PE.",
+        "data": {
+          "0": "Monday",
+          "1": "Tuesday",
+          "2": "Wednesday",
+          "3": "Thursday",
+          "4": "Friday",
+          "5": "Saturday",
+          "6": "Sunday"
+        }
       }
     },
     "abort": {
@@ -99,6 +121,48 @@
     "sensor": {
       "board": {
         "name": "Board"
+      }
+    }
+  },
+  "selector": {
+    "routine_block": {
+      "options": {
+        "morning": "Morning",
+        "evening": "Evening"
+      }
+    }
+  },
+  "services": {
+    "set_routine_step": {
+      "name": "Set routine step",
+      "description": "Tick a routine step off for today, or put it back.",
+      "fields": {
+        "member": {
+          "name": "Member",
+          "description": "Family member name or id."
+        },
+        "block": {
+          "name": "Time of day",
+          "description": "morning or evening."
+        },
+        "step": {
+          "name": "Step",
+          "description": "The step, exactly as configured in the routine."
+        },
+        "done": {
+          "name": "Done",
+          "description": "True ticks it off, false puts it back."
+        }
+      }
+    },
+    "reset_routine": {
+      "name": "Reset routine",
+      "description": "Clears today's ticks, for one member or for everyone.",
+      "fields": {
+        "member": {
+          "name": "Member",
+          "description": "Leave empty to reset everyone."
+        }
       }
     }
   }

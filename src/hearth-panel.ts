@@ -13,6 +13,7 @@ import './cards/hearth-header-card';
 import './cards/hearth-people-card';
 import './cards/hearth-calendar-card';
 import './cards/hearth-agenda-card';
+import './cards/hearth-routines-card';
 import './cards/hearth-lists-card';
 
 console.info(

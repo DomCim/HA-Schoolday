@@ -19,7 +19,7 @@ no separate resource registration, and the integration and cards can never drift
 
 | Piece | Responsibility |
 |---|---|
-| `custom_components/hearth` | Family member profiles (colour, avatar, which calendars and lists belong to whom), aggregated per-member sensors, a WebSocket API for the cards |
+| `custom_components/hearth` | Family member profiles (colour, avatar, which calendars and lists belong to whom), routine definitions, aggregated per-member sensors, and the two services the routine card calls |
 | Lovelace cards | The entire look and the touch interaction |
 | Your existing integrations | The actual data — Hearth never re-implements calendars, to-do lists or chores |
 
@@ -30,11 +30,35 @@ no separate resource registration, and the integration and cards can never drift
 | `hearth-calendar-card` | Month / week / day grid with per-person colour coding and tap-to-create |
 | `hearth-agenda-card` | Today and tomorrow as a large-touch-target list |
 | `hearth-people-card` | Avatar row: presence, open tasks, points |
+| `hearth-routines-card` | Daily routines per child and weekday, ticked off by the kids |
 | `hearth-lists-card` | Shopping lists and checklists as tiles, tap to tick off |
 | `hearth-header-card` | Clock, date, weather, holiday / school day |
 
 Chores and reward points are deliberately **not** re-implemented — if you use
 [Chores4Kids](https://github.com/qlerup/chores4kids), embed its card alongside Hearth's.
+
+## Routines
+
+A routine is the set of things that simply have to happen — brush teeth, pack the PE kit — as
+opposed to chores you earn points for. Each family member gets a **morning** and an **evening**
+block, and each block holds a different list per weekday.
+
+Set them under **Configure → Edit routines**: pick the member and the block, then fill in seven
+fields, one step per line.
+
+The school timetable is **not** read from anywhere, and does not need to be. It is fixed for a
+school year, so "Tuesday is PE" is encoded once as Tuesday's steps.
+
+Ticks reset overnight on their own. Nothing has to run at midnight for that to be correct — a
+stored day that is not today reads as "nothing done yet" — the scheduled reset exists only so a
+wall panel visibly clears itself.
+
+Two services drive it, for automations and for the card:
+
+| Service | Purpose |
+|---|---|
+| `hearth.set_routine_step` | Tick a step off, or put it back. Takes a member name or id. |
+| `hearth.reset_routine` | Clear today's ticks, for one member or everyone. |
 
 ## Requirements
 

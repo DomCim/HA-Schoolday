@@ -19,7 +19,8 @@
           "add_member": "Familienmitglied hinzufügen",
           "edit_member": "Familienmitglied bearbeiten",
           "remove_member": "Familienmitglied entfernen",
-          "shared": "Gemeinsame Kalender und Listen"
+          "shared": "Gemeinsame Kalender und Listen",
+          "routines": "Routinen bearbeiten"
         }
       },
       "add_member": {
@@ -89,6 +90,27 @@
           "shared_todo_lists": "Einkaufslisten und Checklisten, die die ganze Familie teilt.",
           "readonly_calendars": "Werden angezeigt, aber nie beschrieben – etwa Feiertags- oder Schulkalender."
         }
+      },
+      "routines": {
+        "title": "Routine auswählen",
+        "description": "Wähle das Kind und die Tageszeit. Im nächsten Schritt trägst du die Schritte je Wochentag ein.",
+        "data": {
+          "id": "Familienmitglied",
+          "block": "Tageszeit"
+        }
+      },
+      "routine_steps": {
+        "title": "{name} – {block}",
+        "description": "Ein Schritt pro Zeile. Leere Tage haben keine Routine.\n\nDer Stundenplan wird nicht ausgelesen – er steht ein Schuljahr lang fest. Trage einfach bei Sporttagen „Sportsachen einpacken“ ein.",
+        "data": {
+          "0": "Montag",
+          "1": "Dienstag",
+          "2": "Mittwoch",
+          "3": "Donnerstag",
+          "4": "Freitag",
+          "5": "Samstag",
+          "6": "Sonntag"
+        }
       }
     },
     "abort": {
@@ -99,6 +121,48 @@
     "sensor": {
       "board": {
         "name": "Board"
+      }
+    }
+  },
+  "selector": {
+    "routine_block": {
+      "options": {
+        "morning": "Morgen",
+        "evening": "Abend"
+      }
+    }
+  },
+  "services": {
+    "set_routine_step": {
+      "name": "Routineschritt setzen",
+      "description": "Hakt einen Routineschritt für heute ab oder nimmt ihn zurück.",
+      "fields": {
+        "member": {
+          "name": "Mitglied",
+          "description": "Name oder ID des Familienmitglieds."
+        },
+        "block": {
+          "name": "Tageszeit",
+          "description": "morning oder evening."
+        },
+        "step": {
+          "name": "Schritt",
+          "description": "Der Schritt, exakt wie in der Routine hinterlegt."
+        },
+        "done": {
+          "name": "Erledigt",
+          "description": "Wahr hakt ab, falsch nimmt zurück."
+        }
+      }
+    },
+    "reset_routine": {
+      "name": "Routine zurücksetzen",
+      "description": "Setzt die heutigen Häkchen zurück – für ein Mitglied oder für alle.",
+      "fields": {
+        "member": {
+          "name": "Mitglied",
+          "description": "Leer lassen, um alle zurückzusetzen."
+        }
       }
     }
   }

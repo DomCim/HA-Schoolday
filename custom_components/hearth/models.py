@@ -21,12 +21,26 @@ from .const import (
     CONF_PERSON,
     CONF_POINTS_ENTITY,
     CONF_READONLY_CALENDARS,
+    CONF_ROUTINES,
     CONF_SHARED,
     CONF_SHARED_CALENDARS,
     CONF_SHARED_TODO_LISTS,
     CONF_TODO_LISTS,
     DEFAULT_COLORS,
+    ROUTINE_BLOCKS,
 )
+
+
+def steps_from_text(text: str | None) -> list[str]:
+    """Parse a multi-line options field into routine steps, one per line."""
+    if not text:
+        return []
+    return [line.strip() for line in text.splitlines() if line.strip()]
+
+
+def text_from_steps(steps: list[str] | None) -> str:
+    """Render steps back into the multi-line field the options flow shows."""
+    return "\n".join(steps or [])
 
 
 def color_to_hex(value: Any) -> str | None:
@@ -112,6 +126,39 @@ class Member:
 
 
 @dataclass(slots=True)
+class Routine:
+    """One member's steps for one block, keyed by weekday (0 = Monday).
+
+    The school timetable is not read from anywhere: it is stable for a school
+    year, so "Tuesday is PE" is encoded once as Tuesday's steps.
+    """
+
+    by_weekday: dict[int, list[str]] = field(default_factory=dict)
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any] | None) -> Routine:
+        """Build from the stored ``{"0": ["step", ...]}`` shape."""
+        by_weekday: dict[int, list[str]] = {}
+        for key, steps in (data or {}).items():
+            try:
+                weekday = int(key)
+            except (TypeError, ValueError):
+                continue
+            if 0 <= weekday <= 6 and steps:
+                by_weekday[weekday] = [str(step) for step in steps]
+        return cls(by_weekday=by_weekday)
+
+    def steps_for(self, weekday: int) -> list[str]:
+        """Steps for a given weekday, empty when nothing is planned."""
+        return self.by_weekday.get(weekday, [])
+
+    @property
+    def is_empty(self) -> bool:
+        """True when no weekday has any step."""
+        return not any(self.by_weekday.values())
+
+
+@dataclass(slots=True)
 class HearthConfig:
     """The full Hearth configuration."""
 
@@ -119,6 +166,8 @@ class HearthConfig:
     shared_calendars: list[str] = field(default_factory=list)
     shared_todo_lists: list[str] = field(default_factory=list)
     readonly_calendars: list[str] = field(default_factory=list)
+    #: member id -> block -> Routine
+    routines: dict[str, dict[str, Routine]] = field(default_factory=dict)
 
     @classmethod
     def from_options(cls, options: dict[str, Any]) -> HearthConfig:
@@ -127,12 +176,44 @@ class HearthConfig:
         members = [Member.from_dict(item, index) for index, item in enumerate(raw_members)]
         members.sort(key=lambda member: (member.order, member.name))
 
+        raw_routines = options.get(CONF_ROUTINES) or {}
+        routines = {
+            member.id: {
+                block: Routine.from_dict((raw_routines.get(member.id) or {}).get(block))
+                for block in ROUTINE_BLOCKS
+            }
+            for member in members
+        }
+
         shared = options.get(CONF_SHARED) or {}
         return cls(
             members=members,
             shared_calendars=list(shared.get(CONF_SHARED_CALENDARS) or []),
             shared_todo_lists=list(shared.get(CONF_SHARED_TODO_LISTS) or []),
             readonly_calendars=list(shared.get(CONF_READONLY_CALENDARS) or []),
+            routines=routines,
+        )
+
+    def routine(self, member_id: str, block: str) -> Routine:
+        """A member's routine for a block, empty when never configured."""
+        return (self.routines.get(member_id) or {}).get(block) or Routine()
+
+    def member_by_id(self, member_id: str) -> Member | None:
+        """Look up a member by id."""
+        return next((m for m in self.members if m.id == member_id), None)
+
+    def member_by_name(self, name: str) -> Member | None:
+        """Look up a member by name, case-insensitively."""
+        wanted = name.strip().casefold()
+        return next((m for m in self.members if m.name.casefold() == wanted), None)
+
+    @property
+    def has_routines(self) -> bool:
+        """True when at least one member has at least one step configured."""
+        return any(
+            not routine.is_empty
+            for blocks in self.routines.values()
+            for routine in blocks.values()
         )
 
     @property

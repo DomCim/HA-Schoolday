@@ -450,13 +450,89 @@ check('header shows a German long date', /\d{1,2}\.\s*\w+\s*2026/.test(headerDat
 check('header rounds the temperature', temperature.trim() === '23°C', temperature.trim());
 await page.screenshot({ path: join(SHOTS, 'header.png') });
 
+// ---------------------------------------------------------------- routines card
+
+await page.evaluate(() =>
+  window.__mount({ type: 'custom:hearth-routines-card', block: 'morning' }, 'hearth-routines-card'),
+);
+await page.waitForTimeout(400);
+
+const routinePeople = await page.locator('hearth-routines-card .person-name').allTextContents();
+check(
+  'members with nothing on today are hidden',
+  routinePeople.map((n) => n.trim()).join(',') === 'Ben,Nik',
+  routinePeople.map((n) => n.trim()).join(','),
+);
+
+const progress = await page.locator('hearth-routines-card .progress').allTextContents();
+check(
+  'progress counts already-completed steps',
+  progress.map((p) => p.trim()).join(' ') === '0/2 1/2',
+  progress.map((p) => p.trim()).join(' '),
+);
+
+const stepBox = await page.locator('hearth-routines-card .step').first().boundingBox();
+check('routine steps are touch-sized', stepBox.height >= 44, `${Math.round(stepBox.height)}px tall`);
+
+const preTicked = await page.locator('hearth-routines-card .step.done').count();
+check('an already-done step renders ticked', preTicked === 1, `${preTicked} ticked`);
+
+await page.locator('hearth-routines-card .step', { hasText: 'Sportsachen einpacken' }).click();
+await page.waitForTimeout(400);
+
+const routineCall = await page.evaluate(() =>
+  window.__calls.services.filter((c) => c.service === 'set_routine_step').at(-1),
+);
+check(
+  'tapping a step calls hearth.set_routine_step',
+  routineCall?.domain === 'hearth' &&
+    routineCall?.data?.member === 'm1' &&
+    routineCall?.data?.block === 'morning' &&
+    routineCall?.data?.step === 'Sportsachen einpacken' &&
+    routineCall?.data?.done === true,
+  JSON.stringify(routineCall?.data ?? null),
+);
+
+const benProgress = await page
+  .locator('hearth-routines-card .person', { hasText: 'Ben' })
+  .locator('.progress')
+  .textContent();
+check('progress advances after ticking', benProgress.trim() === '1/2', benProgress.trim());
+
+// Tapping a done step must put it back, not be a one-way trip.
+await page.locator('hearth-routines-card .step', { hasText: 'Sportsachen einpacken' }).click();
+await page.waitForTimeout(400);
+const untick = await page.evaluate(() =>
+  window.__calls.services.filter((c) => c.service === 'set_routine_step').at(-1),
+);
+const benAgain = await page
+  .locator('hearth-routines-card .person', { hasText: 'Ben' })
+  .locator('.progress')
+  .textContent();
+check(
+  'tapping again unticks the step',
+  untick?.data?.done === false && benAgain.trim() === '0/2',
+  `done=${untick?.data?.done} progress=${benAgain.trim()}`,
+);
+
+await page.evaluate(() =>
+  window.__mount({ type: 'custom:hearth-routines-card', block: 'both' }, 'hearth-routines-card'),
+);
+await page.waitForTimeout(300);
+const blockCount = await page
+  .locator('hearth-routines-card .person', { hasText: 'Ben' })
+  .locator('.block')
+  .count();
+check('block "both" shows morning and evening', blockCount === 2, `${blockCount} blocks`);
+await page.screenshot({ path: join(SHOTS, 'routines.png') });
+
 // --------------------------------------------------------------- card registry
 
 const registered = await page.evaluate(() => window.customCards.map((c) => c.type).sort());
 check(
   'every card registers itself in the picker',
   registered.join(',') ===
-    'hearth-agenda-card,hearth-calendar-card,hearth-header-card,hearth-lists-card,hearth-people-card',
+    'hearth-agenda-card,hearth-calendar-card,hearth-header-card,hearth-lists-card,hearth-people-card,hearth-routines-card',
   registered.join(','),
 );
 

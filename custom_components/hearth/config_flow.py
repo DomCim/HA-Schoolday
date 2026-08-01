@@ -20,6 +20,8 @@ from homeassistant.helpers import selector
 from homeassistant.util.ulid import ulid_now
 
 from .const import (
+    ATTR_BLOCK,
+    BLOCK_MORNING,
     CONF_AVATAR,
     CONF_CALENDARS,
     CONF_COLOR,
@@ -30,14 +32,17 @@ from .const import (
     CONF_PERSON,
     CONF_POINTS_ENTITY,
     CONF_READONLY_CALENDARS,
+    CONF_ROUTINES,
     CONF_SHARED,
     CONF_SHARED_CALENDARS,
     CONF_SHARED_TODO_LISTS,
     CONF_TODO_LISTS,
     DEFAULT_COLORS,
     DOMAIN,
+    ROUTINE_BLOCKS,
+    WEEKDAYS,
 )
-from .models import color_to_hex, hex_to_rgb
+from .models import color_to_hex, hex_to_rgb, steps_from_text, text_from_steps
 
 CALENDAR_SELECTOR = selector.EntitySelector(
     selector.EntitySelectorConfig(domain="calendar", multiple=True)
@@ -77,6 +82,7 @@ class HearthOptionsFlow(OptionsFlow):
     def __init__(self) -> None:
         """Initialise per-flow state."""
         self._member_id: str | None = None
+        self._block: str | None = None
 
     # --- helpers ------------------------------------------------------------
 
@@ -87,6 +93,10 @@ class HearthOptionsFlow(OptionsFlow):
     @property
     def _shared(self) -> dict[str, Any]:
         return dict(self.config_entry.options.get(CONF_SHARED) or {})
+
+    @property
+    def _routines(self) -> dict[str, Any]:
+        return dict(self.config_entry.options.get(CONF_ROUTINES) or {})
 
     def _member_labels(self) -> list[selector.SelectOptionDict]:
         return [
@@ -101,6 +111,7 @@ class HearthOptionsFlow(OptionsFlow):
         options: dict[str, Any] = {
             CONF_MEMBERS: self._members,
             CONF_SHARED: self._shared,
+            CONF_ROUTINES: self._routines,
         }
         options.update(changes)
         return self.async_create_entry(title="", data=options)
@@ -141,9 +152,83 @@ class HearthOptionsFlow(OptionsFlow):
         """Show the main menu."""
         options = ["add_member"]
         if self._members:
-            options += ["edit_member", "remove_member"]
+            options += ["edit_member", "remove_member", "routines"]
         options.append("shared")
         return self.async_show_menu(step_id="init", menu_options=options)
+
+    # --- routines -----------------------------------------------------------
+
+    async def async_step_routines(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Pick whose routine, and which block, to edit."""
+        if user_input is not None:
+            self._member_id = user_input[CONF_MEMBER_ID]
+            self._block = user_input[ATTR_BLOCK]
+            return await self.async_step_routine_steps()
+
+        return self.async_show_form(
+            step_id="routines",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_MEMBER_ID): selector.SelectSelector(
+                        selector.SelectSelectorConfig(options=self._member_labels())
+                    ),
+                    vol.Required(ATTR_BLOCK, default=BLOCK_MORNING): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=list(ROUTINE_BLOCKS),
+                            translation_key="routine_block",
+                        )
+                    ),
+                }
+            ),
+        )
+
+    async def async_step_routine_steps(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Edit one member's steps for one block, one field per weekday."""
+        member = next(
+            (m for m in self._members if m[CONF_MEMBER_ID] == self._member_id), None
+        )
+        if member is None or self._block is None:
+            return self.async_abort(reason="member_not_found")
+
+        routines = {
+            key: dict(value) for key, value in (self._routines or {}).items()
+        }
+        current = dict(routines.get(self._member_id) or {})
+
+        if user_input is not None:
+            # One step per line: the least fiddly way to edit a short list on a
+            # phone, and it round-trips exactly.
+            current[self._block] = {
+                day: steps
+                for day in WEEKDAYS
+                if (steps := steps_from_text(user_input.get(day)))
+            }
+            routines[self._member_id] = current
+            return self._save(**{CONF_ROUTINES: routines})
+
+        stored = current.get(self._block) or {}
+        suggested = {day: text_from_steps(stored.get(day)) for day in WEEKDAYS}
+
+        schema = vol.Schema(
+            {
+                vol.Optional(day): selector.TextSelector(
+                    selector.TextSelectorConfig(multiline=True)
+                )
+                for day in WEEKDAYS
+            }
+        )
+        return self.async_show_form(
+            step_id="routine_steps",
+            data_schema=self.add_suggested_values_to_schema(schema, suggested),
+            description_placeholders={
+                "name": member[CONF_NAME],
+                "block": self._block,
+            },
+        )
 
     # --- add ----------------------------------------------------------------
 
@@ -238,7 +323,14 @@ class HearthOptionsFlow(OptionsFlow):
             ]
             for order, member in enumerate(remaining):
                 member[CONF_ORDER] = order
-            return self._save(**{CONF_MEMBERS: remaining})
+            routines = {
+                member_id: value
+                for member_id, value in self._routines.items()
+                if member_id not in doomed
+            }
+            return self._save(
+                **{CONF_MEMBERS: remaining, CONF_ROUTINES: routines}
+            )
 
         return self.async_show_form(
             step_id="remove_member",

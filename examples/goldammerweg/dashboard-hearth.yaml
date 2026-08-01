@@ -32,6 +32,20 @@ views:
             grid_options:
               columns: full
 
+      # "auto" shows the morning block until 14:00 and the evening block after,
+      # so the panel shows what is actually due rather than the whole day at once.
+      - type: grid
+        column_span: 4
+        cards:
+          - type: heading
+            heading: Routine
+            icon: mdi:checkbox-marked-circle-outline
+          - type: custom:hearth-routines-card
+            block: auto
+            evening_from: 14
+            grid_options:
+              columns: full
+
       # The calendar is the centrepiece: give it the full width and plenty of rows,
       # otherwise the month grid squeezes each day below a usable height.
       - type: grid

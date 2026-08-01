@@ -118,6 +118,25 @@ function todoState(entityId, name) {
   };
 }
 
+// Today's routine steps per member and block, as sensor.py publishes them.
+const ROUTINES = {
+  m1: {
+    morning: [
+      { step: 'Zähne putzen', done: false },
+      { step: 'Sportsachen einpacken', done: false },
+    ],
+    evening: [{ step: 'Ranzen packen', done: false }],
+  },
+  m2: { morning: [], evening: [] },
+  m3: {
+    morning: [
+      { step: 'Zähne putzen', done: true },
+      { step: 'Brotdose einpacken', done: false },
+    ],
+    evening: [],
+  },
+};
+
 // One sensor per member, matching what custom_components/hearth/sensor.py publishes.
 function memberState(entityId, name, memberId, color, openTasks, points) {
   return {
@@ -132,6 +151,8 @@ function memberState(entityId, name, memberId, color, openTasks, points) {
       points,
       calendars: [],
       todo_lists: [],
+      routine_morning: ROUTINES[memberId]?.morning ?? [],
+      routine_evening: ROUTINES[memberId]?.evening ?? [],
     },
     last_changed: STAMP,
     last_updated: STAMP,
@@ -281,6 +302,28 @@ const hass = {
         state: String(items.filter((i) => i.status === 'needs_action').length),
         last_changed: new Date().toISOString(),
       };
+      window.__pushHass();
+    }
+
+    if (domain === 'hearth' && service === 'set_routine_step') {
+      const block = ROUTINES[data.member]?.[data.block] ?? [];
+      const entry = block.find((s) => s.step === data.step);
+      if (entry) entry.done = data.done;
+      // Mirror the integration: the member sensor republishes its attributes.
+      const sensorId = Object.keys(hass.states).find(
+        (id) => hass.states[id].attributes?.member_id === data.member,
+      );
+      if (sensorId) {
+        hass.states[sensorId] = {
+          ...hass.states[sensorId],
+          attributes: {
+            ...hass.states[sensorId].attributes,
+            routine_morning: [...(ROUTINES[data.member]?.morning ?? [])],
+            routine_evening: [...(ROUTINES[data.member]?.evening ?? [])],
+          },
+          last_updated: new Date().toISOString(),
+        };
+      }
       window.__pushHass();
     }
 

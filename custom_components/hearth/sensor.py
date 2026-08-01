@@ -8,6 +8,7 @@ and cheaper.
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Any
 
 from homeassistant.components.sensor import SensorEntity
@@ -16,6 +17,7 @@ from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.event import async_track_state_change_event
 
@@ -28,15 +30,24 @@ from .const import (
     ATTR_MEMBERS,
     ATTR_POINTS,
     ATTR_PRESENCE,
+    ATTR_ROUTINE_BLOCKS,
+    ATTR_ROUTINE_EVENING,
+    ATTR_ROUTINE_MORNING,
     ATTR_TODO_LISTS,
     ATTR_VERSION,
+    BLOCK_EVENING,
+    BLOCK_MORNING,
     CONF_READONLY_CALENDARS,
     CONF_SHARED_CALENDARS,
     CONF_SHARED_TODO_LISTS,
+    DATA_STORE,
     DOMAIN,
+    ROUTINE_BLOCKS,
+    SIGNAL_ROUTINE_UPDATED,
     VERSION,
 )
 from .models import HearthConfig, Member
+from .store import RoutineStore
 
 UNKNOWN_STATES = {STATE_UNKNOWN, STATE_UNAVAILABLE}
 
@@ -50,10 +61,14 @@ async def async_setup_entry(
     config = HearthConfig.from_options(entry.options)
     _async_remove_orphans(hass, entry, config)
 
+    store: RoutineStore = hass.data[DATA_STORE]
     async_add_entities(
         [
             HearthBoardSensor(entry, config),
-            *(HearthMemberSensor(entry, member) for member in config.members),
+            *(
+                HearthMemberSensor(entry, member, config, store)
+                for member in config.members
+            ),
         ]
     )
 
@@ -145,6 +160,7 @@ class HearthBoardSensor(HearthBaseSensor):
             CONF_SHARED_CALENDARS: self._config.shared_calendars,
             CONF_SHARED_TODO_LISTS: self._config.shared_todo_lists,
             CONF_READONLY_CALENDARS: self._config.readonly_calendars,
+            ATTR_ROUTINE_BLOCKS: list(ROUTINE_BLOCKS),
             ATTR_VERSION: VERSION,
         }
 
@@ -154,23 +170,43 @@ class HearthMemberSensor(HearthBaseSensor):
 
     _attr_icon = "mdi:account"
 
-    def __init__(self, entry: ConfigEntry, member: Member) -> None:
+    def __init__(
+        self,
+        entry: ConfigEntry,
+        member: Member,
+        config: HearthConfig,
+        store: RoutineStore,
+    ) -> None:
         """Initialise a member sensor."""
         super().__init__(entry)
         self._member = member
+        self._config = config
+        self._store = store
         self._attr_name = member.name
         self._attr_unique_id = _member_unique_id(entry, member.id)
 
     async def async_added_to_hass(self) -> None:
-        """Follow the entities this member is made of."""
+        """Follow the entities this member is made of, and today's routine ticks."""
         if tracked := self._member.tracked_entities:
             self.async_on_remove(
                 async_track_state_change_event(self.hass, tracked, self._handle_change)
             )
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self.hass, SIGNAL_ROUTINE_UPDATED, self._handle_change
+            )
+        )
+
+    def _routine(self, block: str) -> list[dict[str, Any]]:
+        """Today's steps for a block, each marked done or not."""
+        weekday = date.today().weekday()
+        steps = self._config.routine(self._member.id, block).steps_for(weekday)
+        completed = self._store.completed(self._member.id, block)
+        return [{"step": step, "done": step in completed} for step in steps]
 
     @callback
-    def _handle_change(self, _event: Any) -> None:
-        """Re-publish when a tracked entity changes."""
+    def _handle_change(self, _event: Any = None) -> None:
+        """Re-publish when a tracked entity or a routine tick changes."""
         self.async_write_ha_state()
 
     @property
@@ -204,4 +240,6 @@ class HearthMemberSensor(HearthBaseSensor):
             ATTR_POINTS: points,
             ATTR_CALENDARS: self._member.calendars,
             ATTR_TODO_LISTS: self._member.todo_lists,
+            ATTR_ROUTINE_MORNING: self._routine(BLOCK_MORNING),
+            ATTR_ROUTINE_EVENING: self._routine(BLOCK_EVENING),
         }

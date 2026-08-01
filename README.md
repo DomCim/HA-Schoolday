@@ -65,11 +65,24 @@ npm install
 npm run build      # writes custom_components/hearth/frontend/hearth-panel.js
 npm run watch      # rebuild on change
 npm run typecheck
+npm test           # renders the built cards in headless Chromium
 ```
+
+`npm test` boots the built bundle in a real browser against a stubbed `hass` and checks the things
+that actually break: events landing on the right day, all-day events honouring their exclusive end,
+dashboard churn not triggering refetches, a broken calendar warning instead of blanking the board,
+and touch targets being big enough. It needs a browser once: `npx playwright install chromium`.
+Set `HEARTH_CHROMIUM` to use one you already have.
 
 The built bundle is **committed on purpose**: HACS installs `custom_components/hearth/` verbatim and
 never runs a build step, so the artifact has to be in the tree. CI fails if the committed bundle does
 not match the sources.
+
+### Time zones
+
+Cards render dates and times in the **browser's** time zone, matching how Home Assistant's own
+calendar views behave. On the wall tablet this is the household's zone. A phone in another country
+will show events shifted to local time.
 
 ## Licence
 

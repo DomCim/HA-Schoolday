@@ -21,6 +21,7 @@ from homeassistant.helpers.event import async_track_state_change_event
 
 from .const import (
     ATTR_AVATAR,
+    ATTR_BOARD,
     ATTR_CALENDARS,
     ATTR_COLOR,
     ATTR_MEMBER_ID,
@@ -139,6 +140,7 @@ class HearthBoardSensor(HearthBaseSensor):
     def extra_state_attributes(self) -> dict[str, Any]:
         """The full Hearth configuration."""
         return {
+            ATTR_BOARD: True,
             ATTR_MEMBERS: [member.as_card_dict() for member in self._config.members],
             CONF_SHARED_CALENDARS: self._config.shared_calendars,
             CONF_SHARED_TODO_LISTS: self._config.shared_todo_lists,

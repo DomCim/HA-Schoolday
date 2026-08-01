@@ -38,6 +38,9 @@ CONF_READONLY_CALENDARS: Final = "readonly_calendars"
 
 # --- Entity attributes exposed to the cards ---------------------------------
 
+# Marker the cards use to locate the board sensor, so renaming it does not break them.
+ATTR_BOARD: Final = "hearth_board"
+
 ATTR_MEMBER_ID: Final = "member_id"
 ATTR_MEMBERS: Final = "members"
 ATTR_COLOR: Final = "color"

@@ -2,6 +2,8 @@ node_modules/
 *.tsbuildinfo
 *.log
 
+test/smoke/screenshots/
+
 __pycache__/
 *.py[cod]
 .venv/

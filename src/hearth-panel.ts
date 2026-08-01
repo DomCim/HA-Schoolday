@@ -9,7 +9,7 @@ import { HEARTH_VERSION } from './lib/const';
 
 // Cards are imported for their side effect: each module defines its custom element
 // and pushes an entry onto window.customCards.
-// (registrations are added here as the cards land)
+import './cards/hearth-calendar-card';
 
 console.info(
   `%c HEARTH %c ${HEARTH_VERSION} `,

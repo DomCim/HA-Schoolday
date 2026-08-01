@@ -44,3 +44,11 @@ jobs:
             echo "::error::hearth-panel.js is out of date. Run 'npm run build' and commit the result."
             exit 1
           fi
+      - run: npx playwright install --with-deps chromium
+      - run: npm test
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: smoke-screenshots
+          path: test/smoke/screenshots/
+          if-no-files-found: ignore

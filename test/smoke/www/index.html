@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Hearth smoke test</title>
+    <style>
+      body { margin: 0; padding: 16px; font-family: system-ui, sans-serif; background: #f4f4f6; }
+      /* Stand-in for Home Assistant's ha-card, which does not exist outside HA. */
+      ha-card { display: block; background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+      #host { max-width: 1400px; margin: 0 auto; }
+    </style>
+  </head>
+  <body>
+    <div id="host"></div>
+    <script type="module" src="./hearth-panel.js"></script>
+    <script type="module" src="./harness.js"></script>
+  </body>
+</html>

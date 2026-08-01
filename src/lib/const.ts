@@ -1,5 +1,5 @@
 /** Kept in sync with custom_components/hearth/manifest.json and package.json. */
-export const HEARTH_VERSION = '0.1.0';
+export const HEARTH_VERSION = '0.1.1';
 
 /** Prefix for every custom element this bundle defines. */
 export const PREFIX = 'hearth';

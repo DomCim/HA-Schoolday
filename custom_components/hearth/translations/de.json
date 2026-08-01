@@ -14,13 +14,14 @@
     "step": {
       "init": {
         "title": "Hearth",
-        "description": "Familien-Board verwalten.",
+        "description": "Änderungen werden sofort gespeichert. Du kannst mehrere hintereinander machen.",
         "menu_options": {
           "add_member": "Familienmitglied hinzufügen",
           "edit_member": "Familienmitglied bearbeiten",
           "remove_member": "Familienmitglied entfernen",
           "shared": "Gemeinsame Kalender und Listen",
-          "routines": "Routinen bearbeiten"
+          "routines": "Routinen bearbeiten",
+          "done": "Fertig"
         }
       },
       "add_member": {

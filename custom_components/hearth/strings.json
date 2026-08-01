@@ -14,13 +14,14 @@
     "step": {
       "init": {
         "title": "Hearth",
-        "description": "Manage your family board.",
+        "description": "Changes are saved as you make them. You can do several in a row.",
         "menu_options": {
           "add_member": "Add a family member",
           "edit_member": "Edit a family member",
           "remove_member": "Remove a family member",
           "shared": "Shared calendars and lists",
-          "routines": "Edit routines"
+          "routines": "Edit routines",
+          "done": "Done"
         }
       },
       "add_member": {

@@ -106,15 +106,22 @@ class HearthOptionsFlow(OptionsFlow):
             for member in self._members
         ]
 
-    def _save(self, **changes: Any) -> ConfigFlowResult:
-        """Persist options and end the flow."""
+    async def _apply(self, **changes: Any) -> ConfigFlowResult:
+        """Persist the change and return to the menu.
+
+        Deliberately not `async_create_entry`: that ends the flow, which meant a
+        household of five needed sixteen separate trips through Configure. Writing
+        the entry directly keeps one dialog open for the whole session, and every
+        step is saved the moment it is made — closing the dialog loses nothing.
+        """
         options: dict[str, Any] = {
             CONF_MEMBERS: self._members,
             CONF_SHARED: self._shared,
             CONF_ROUTINES: self._routines,
         }
         options.update(changes)
-        return self.async_create_entry(title="", data=options)
+        self.hass.config_entries.async_update_entry(self.config_entry, options=options)
+        return await self.async_step_init()
 
     def _member_schema(self) -> vol.Schema:
         return vol.Schema(
@@ -153,8 +160,14 @@ class HearthOptionsFlow(OptionsFlow):
         options = ["add_member"]
         if self._members:
             options += ["edit_member", "remove_member", "routines"]
-        options.append("shared")
+        options += ["shared", "done"]
         return self.async_show_menu(step_id="init", menu_options=options)
+
+    async def async_step_done(
+        self, _user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Close the dialog. Everything was already saved as it was entered."""
+        return self.async_create_entry(title="", data=dict(self.config_entry.options))
 
     # --- routines -----------------------------------------------------------
 
@@ -208,7 +221,15 @@ class HearthOptionsFlow(OptionsFlow):
                 if (steps := steps_from_text(user_input.get(day)))
             }
             routines[self._member_id] = current
-            return self._save(**{CONF_ROUTINES: routines})
+            options: dict[str, Any] = {
+                CONF_MEMBERS: self._members,
+                CONF_SHARED: self._shared,
+                CONF_ROUTINES: routines,
+            }
+            self.hass.config_entries.async_update_entry(
+                self.config_entry, options=options
+            )
+            return await self.async_step_routines()
 
         stored = current.get(self._block) or {}
         suggested = {day: text_from_steps(stored.get(day)) for day in WEEKDAYS}
@@ -241,7 +262,7 @@ class HearthOptionsFlow(OptionsFlow):
             member = self._from_form(user_input)
             member[CONF_MEMBER_ID] = ulid_now()
             member[CONF_ORDER] = len(members)
-            return self._save(**{CONF_MEMBERS: [*members, member]})
+            return await self._apply(**{CONF_MEMBERS: [*members, member]})
 
         suggested = {
             CONF_COLOR: hex_to_rgb(DEFAULT_COLORS[len(members) % len(DEFAULT_COLORS)])
@@ -289,7 +310,7 @@ class HearthOptionsFlow(OptionsFlow):
             updated = self._from_form(user_input)
             updated[CONF_MEMBER_ID] = current[CONF_MEMBER_ID]
             updated[CONF_ORDER] = current.get(CONF_ORDER, 0)
-            return self._save(
+            return await self._apply(
                 **{
                     CONF_MEMBERS: [
                         updated if item[CONF_MEMBER_ID] == self._member_id else item
@@ -328,7 +349,7 @@ class HearthOptionsFlow(OptionsFlow):
                 for member_id, value in self._routines.items()
                 if member_id not in doomed
             }
-            return self._save(
+            return await self._apply(
                 **{CONF_MEMBERS: remaining, CONF_ROUTINES: routines}
             )
 
@@ -352,7 +373,7 @@ class HearthOptionsFlow(OptionsFlow):
     ) -> ConfigFlowResult:
         """Pick calendars and lists that belong to the whole family."""
         if user_input is not None:
-            return self._save(
+            return await self._apply(
                 **{
                     CONF_SHARED: {
                         key: list(user_input.get(key) or [])

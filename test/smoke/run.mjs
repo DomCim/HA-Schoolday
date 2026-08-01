@@ -294,7 +294,11 @@ await page.evaluate(() => {
 });
 await page.waitForTimeout(250);
 const notice = await page.locator('hearth-calendar-card .notice').textContent();
-check('missing board shows guidance instead of crashing', /No Hearth board found/.test(notice), notice.trim().slice(0, 60));
+check(
+  'missing board shows guidance instead of crashing',
+  /Kein Hearth-Board gefunden/.test(notice),
+  notice.trim().slice(0, 60),
+);
 
 // ------------------------------------------------------------------- lists card
 
@@ -356,7 +360,7 @@ const listWarning = await page
   .catch(() => null);
 check(
   'an unreachable list says so without breaking its neighbours',
-  /Not reachable/.test(listWarning ?? '') &&
+  /Gerade nicht erreichbar/.test(listWarning ?? '') &&
     (await page.locator('hearth-lists-card .list').count()) === 2,
   (listWarning ?? 'no warning').trim(),
 );
@@ -380,7 +384,7 @@ const benChips = await page
   .allTextContents();
 check(
   'presence, open tasks and points are shown',
-  benChips.some((c) => /Home/.test(c)) &&
+  benChips.some((c) => /Zuhause/.test(c)) &&
     benChips.some((c) => /\b1\b/.test(c)) &&
     benChips.some((c) => /42/.test(c)),
   benChips.map((c) => c.trim()).join(' | '),
@@ -525,6 +529,113 @@ const blockCount = await page
   .count();
 check('block "both" shows morning and evening', blockCount === 2, `${blockCount} blocks`);
 await page.screenshot({ path: join(SHOTS, 'routines.png') });
+
+// -------------------------------------------------------------- translations
+
+// The harness hass is German, so every card must speak German without configuration.
+await page.evaluate(() =>
+  window.__mount({ type: 'custom:hearth-people-card' }, 'hearth-people-card'),
+);
+await page.waitForTimeout(300);
+const germanChips = await page.locator('hearth-people-card .chip').allTextContents();
+check(
+  'cards follow the Home Assistant language',
+  germanChips.some((c) => /Zuhause/.test(c)) && germanChips.some((c) => /Unterwegs/.test(c)),
+  germanChips.map((c) => c.trim()).join(' | '),
+);
+
+await page.evaluate(() => {
+  const host = document.getElementById('host');
+  host.innerHTML = '';
+  const card = document.createElement('hearth-agenda-card');
+  card.setConfig({ type: 'custom:hearth-agenda-card' });
+  // Same data, English frontend.
+  card.hass = { ...window.__hass, language: 'en', locale: { ...window.__hass.locale, language: 'en' } };
+  host.appendChild(card);
+});
+await page.waitForTimeout(400);
+const englishAgenda = await page.evaluate(
+  () => document.querySelector('hearth-agenda-card').shadowRoot.textContent,
+);
+check(
+  'switching the Home Assistant language switches the cards',
+  /Nothing planned|All day/.test(englishAgenda) && !/Nichts geplant/.test(englishAgenda),
+  englishAgenda.replace(/\s+/g, ' ').trim().slice(0, 80),
+);
+
+const unknownLang = await page.evaluate(() => {
+  const el = document.createElement('hearth-agenda-card');
+  el.setConfig({ type: 'custom:hearth-agenda-card' });
+  el.hass = { ...window.__hass, language: 'fi', locale: { ...window.__hass.locale, language: 'fi' } };
+  document.getElementById('host').appendChild(el);
+  return new Promise((r) => setTimeout(() => r(el.shadowRoot.textContent), 300));
+});
+check(
+  'an unsupported language falls back to English, not to raw keys',
+  !/^\s*$/.test(unknownLang) && !/board\.|agenda\./.test(unknownLang),
+  unknownLang.replace(/\s+/g, ' ').trim().slice(0, 60),
+);
+
+// ------------------------------------------------------------- card editors
+
+const editors = await page.evaluate(async () => {
+  const types = [
+    'hearth-calendar-card',
+    'hearth-agenda-card',
+    'hearth-people-card',
+    'hearth-lists-card',
+    'hearth-routines-card',
+    'hearth-header-card',
+  ];
+  const out = [];
+  for (const type of types) {
+    const cls = customElements.get(type);
+    const el = await cls.getConfigElement();
+    out.push({
+      type,
+      tag: el.tagName.toLowerCase(),
+      defined: customElements.get(el.tagName.toLowerCase()) !== undefined,
+      stub: typeof cls.getStubConfig === 'function' ? cls.getStubConfig() : null,
+    });
+  }
+  return out;
+});
+check(
+  'every card offers a defined visual editor',
+  editors.length === 6 && editors.every((e) => e.defined && e.tag === `${e.type}-editor`),
+  editors.map((e) => `${e.tag}:${e.defined ? 'ok' : 'MISSING'}`).join(' '),
+);
+check(
+  'every card ships a stub config for the card picker',
+  editors.every((e) => e.stub && typeof e.stub === 'object'),
+  editors.map((e) => JSON.stringify(e.stub)).join(' '),
+);
+
+// The editor publishes config-changed with the merged config, dropping cleared fields.
+const editorEvent = await page.evaluate(async () => {
+  const el = await customElements.get('hearth-agenda-card').getConfigElement();
+  el.hass = window.__hass;
+  el.setConfig({ type: 'custom:hearth-agenda-card', days: 3, max_events: '' });
+  document.getElementById('host').appendChild(el);
+  await new Promise((r) => setTimeout(r, 200));
+  return new Promise((resolve) => {
+    el.addEventListener('config-changed', (ev) => resolve(ev.detail.config));
+    el.shadowRoot
+      .querySelector('ha-form')
+      .dispatchEvent(
+        new CustomEvent('value-changed', {
+          detail: { value: { days: 5 } },
+          bubbles: true,
+          composed: true,
+        }),
+      );
+  });
+});
+check(
+  'the editor merges changes and drops emptied fields',
+  editorEvent?.days === 5 && !('max_events' in editorEvent) && editorEvent.type === 'custom:hearth-agenda-card',
+  JSON.stringify(editorEvent),
+);
 
 // --------------------------------------------------------------- card registry
 

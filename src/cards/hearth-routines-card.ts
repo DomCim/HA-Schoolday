@@ -11,8 +11,14 @@ import { LitElement, css, html, type TemplateResult } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 
 import { findBoard, memberSensor, type HearthMember } from '../lib/board';
+import { t } from '../lib/i18n';
 import { hearthButtons, hearthTokens } from '../lib/styles';
-import type { HomeAssistant, LovelaceCard, LovelaceCardConfig } from '../lib/types';
+import type {
+  HomeAssistant,
+  LovelaceCard,
+  LovelaceCardConfig,
+  LovelaceCardEditor,
+} from '../lib/types';
 
 export type RoutineBlock = 'morning' | 'evening';
 export type BlockSetting = RoutineBlock | 'auto' | 'both';
@@ -49,6 +55,15 @@ export class HearthRoutinesCard extends LitElement implements LovelaceCard {
   @state() private _config: HearthRoutinesCardConfig = { type: '' };
   /** Steps awaiting their service call, so the tap feels instant. */
   @state() private _pending = new Set<string>();
+
+
+  public static async getConfigElement(): Promise<LovelaceCardEditor> {
+    return document.createElement('hearth-routines-card-editor');
+  }
+
+  public static getStubConfig(): Record<string, unknown> {
+    return { block: 'auto', evening_from: 14 };
+  }
 
   public setConfig(config: HearthRoutinesCardConfig): void {
     this._config = { ...config };
@@ -125,7 +140,7 @@ export class HearthRoutinesCard extends LitElement implements LovelaceCard {
         </header>
 
         ${steps.length === 0
-          ? html`<div class="empty">Heute nichts</div>`
+          ? html`<div class="empty">${t(this.hass, 'routines.nothing_today')}</div>`
           : html`
               <div class="bar">
                 <div
@@ -160,7 +175,7 @@ export class HearthRoutinesCard extends LitElement implements LovelaceCard {
     const board = findBoard(this.hass, this._config.board_entity);
     if (!board) {
       return html`<ha-card
-        ><div class="notice">No Hearth board found. Add the Hearth integration.</div></ha-card
+        ><div class="notice">${t(this.hass, 'board.missing')}</div></ha-card
       >`;
     }
 
@@ -180,10 +195,7 @@ export class HearthRoutinesCard extends LitElement implements LovelaceCard {
     if (members.length === 0) {
       return html`
         <ha-card>
-          <div class="notice">
-            Für heute sind keine Routinen hinterlegt. Trage sie in den Hearth-Optionen
-            unter „Routinen bearbeiten“ ein.
-          </div>
+          <div class="notice">${t(this.hass, 'routines.none_configured')}</div>
         </ha-card>
       `;
     }

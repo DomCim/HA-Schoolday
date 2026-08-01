@@ -9,8 +9,15 @@ import { customElement, property, state } from 'lit/decorators.js';
 
 import { findBoard } from '../lib/board';
 import { addItem, fetchLists, setItemStatus, type TodoList } from '../lib/todo';
+import { t } from '../lib/i18n';
 import { hearthButtons, hearthTokens } from '../lib/styles';
-import type { HassTodoItem, HomeAssistant, LovelaceCard, LovelaceCardConfig } from '../lib/types';
+import type {
+  HassTodoItem,
+  HomeAssistant,
+  LovelaceCard,
+  LovelaceCardConfig,
+  LovelaceCardEditor,
+} from '../lib/types';
 
 const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 
@@ -51,6 +58,15 @@ export class HearthListsCard extends LitElement implements LovelaceCard {
   private _loadedSignature = '';
   private _reloadToken = 0;
   private _timer?: number;
+
+
+  public static async getConfigElement(): Promise<LovelaceCardEditor> {
+    return document.createElement('hearth-lists-card-editor');
+  }
+
+  public static getStubConfig(): Record<string, unknown> {
+    return { columns: 3, max_items: 8 };
+  }
 
   public setConfig(config: HearthListsCardConfig): void {
     this._config = { ...config };
@@ -189,13 +205,13 @@ export class HearthListsCard extends LitElement implements LovelaceCard {
 
         ${!list.ok
           ? html`<div class="warning">
-              ${this._icon(ICONS.warning)}<span>Not reachable right now</span>
+              ${this._icon(ICONS.warning)}<span>${t(this.hass, 'lists.unreachable')}</span>
             </div>`
           : nothing}
 
         <div class="items">
           ${shown.length === 0 && list.ok
-            ? html`<div class="empty">Nothing on this list</div>`
+            ? html`<div class="empty">${t(this.hass, 'lists.empty')}</div>`
             : shown.map((item) => this._renderItem(list, item))}
         </div>
 
@@ -206,7 +222,7 @@ export class HearthListsCard extends LitElement implements LovelaceCard {
                 this._expanded = new Set(this._expanded).add(list.entityId);
               }}
             >
-              Show ${hidden} more
+              ${t(this.hass, 'lists.show_more', { count: hidden })}
             </button>`
           : nothing}
         ${this._config.allow_add === false
@@ -223,7 +239,7 @@ export class HearthListsCard extends LitElement implements LovelaceCard {
                   <input
                     type="text"
                     autofocus
-                    placeholder="Add an item"
+                    placeholder=${t(this.hass, 'lists.add_placeholder')}
                     .value=${this._draft}
                     @input=${(e: Event) => {
                       this._draft = (e.target as HTMLInputElement).value;
@@ -241,7 +257,7 @@ export class HearthListsCard extends LitElement implements LovelaceCard {
                   this._adding = list.entityId;
                 }}
               >
-                ${this._icon(ICONS.add)}<span>Add</span>
+                ${this._icon(ICONS.add)}<span>${t(this.hass, 'lists.add')}</span>
               </button>`}
       </section>
     `;
@@ -254,10 +270,7 @@ export class HearthListsCard extends LitElement implements LovelaceCard {
     if (this._entityIds.length === 0) {
       return html`
         <ha-card>
-          <div class="notice">
-            No lists configured. Pick your family lists in the Hearth integration's options,
-            or set <code>entities</code> on this card.
-          </div>
+          <div class="notice">${t(this.hass, 'lists.none_configured')}</div>
         </ha-card>
       `;
     }

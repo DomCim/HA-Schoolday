@@ -89,8 +89,11 @@ integration under **Settings → Devices & Services**.
 2. Under **Shared calendars and lists**, pick the calendars the whole family shares, and list any
    calendar that cannot take new events (holidays, workday, school terms) as **read-only**. Those stay
    visible on the board but are kept out of the create sheet.
-3. Add the cards to a dashboard. They read the setup from `sensor.hearth_board`, so no card needs to
-   be told who your family is.
+3. Add the cards to a dashboard. Every card has a visual editor, and they read the setup from
+   `sensor.hearth_board`, so no card needs to be told who your family is.
+
+The options dialog stays open: each change is saved the moment you make it and you land back on the
+menu, so adding five family members and their routines is one visit rather than sixteen.
 
 `examples/goldammerweg/` contains a complete three-view dashboard and the options it assumes.
 
@@ -131,6 +134,12 @@ private repositories. Beyond that, for a custom repository nothing else is requi
 Submitting to the HACS default store additionally needs a repository description, GitHub topics, and
 a licence detectable on the default branch. Those two checks are in `ignore` in the workflow; drop
 them from the list if you ever go that route.
+
+### Language
+
+The cards follow Home Assistant's own language — currently German and English, with English as the
+fallback for anything else. There is no language option to set; a German frontend gets a German wall
+panel. Strings live in `src/lib/i18n.ts`, and the smoke suite fails if a card renders raw keys.
 
 ### Time zones
 

@@ -11,6 +11,7 @@ import { customElement, property, state } from 'lit/decorators.js';
 import { calendarName, writableCalendars, type HearthBoard } from '../lib/board';
 import { createEvent } from '../lib/calendar';
 import { addDays, fromDateKey, toDateKey, toTimeValue } from '../lib/dates';
+import { t } from '../lib/i18n';
 import { hearthButtons, hearthDialog, hearthTokens } from '../lib/styles';
 import type { HomeAssistant } from '../lib/types';
 
@@ -108,7 +109,7 @@ export class HearthEventDialog extends LitElement {
       this._close();
     } catch (err) {
       this._error =
-        err instanceof Error ? err.message : 'The event could not be created.';
+        err instanceof Error ? err.message : t(this.hass, 'dialog.failed');
     } finally {
       this._saving = false;
     }
@@ -139,18 +140,15 @@ export class HearthEventDialog extends LitElement {
     return html`
       <div class="scrim" @click=${this._onScrimClick}>
         <div class="sheet" role="dialog" aria-modal="true">
-          <h2>New event</h2>
+          <h2>${t(this.hass, 'dialog.title')}</h2>
 
           ${this._error ? html`<p class="error">${this._error}</p>` : nothing}
           ${options.length === 0
-            ? html`<p class="error">
-                No writable calendar is configured. Add calendars to a family member, or
-                remove one from the read-only list.
-              </p>`
+            ? html`<p class="error">${t(this.hass, 'dialog.no_writable')}</p>`
             : nothing}
 
           <div class="field">
-            <label for="summary">Title</label>
+            <label for="summary">${t(this.hass, 'dialog.summary')}</label>
             <input
               id="summary"
               type="text"
@@ -163,7 +161,7 @@ export class HearthEventDialog extends LitElement {
           </div>
 
           <div class="field">
-            <label for="calendar">Calendar</label>
+            <label for="calendar">${t(this.hass, 'dialog.calendar')}</label>
             <select
               id="calendar"
               @change=${(e: Event) => {
@@ -175,7 +173,7 @@ export class HearthEventDialog extends LitElement {
           </div>
 
           <div class="field">
-            <label for="date">Date</label>
+            <label for="date">${t(this.hass, 'dialog.date')}</label>
             <input
               id="date"
               type="date"
@@ -195,7 +193,7 @@ export class HearthEventDialog extends LitElement {
               this._allDay = !this._allDay;
             }}
           >
-            <span>All day</span>
+            <span>${t(this.hass, 'dialog.all_day')}</span>
             <span class="switch"></span>
           </button>
 
@@ -204,7 +202,7 @@ export class HearthEventDialog extends LitElement {
             : html`
                 <div class="row">
                   <div class="field">
-                    <label for="from">From</label>
+                    <label for="from">${t(this.hass, 'dialog.from')}</label>
                     <input
                       id="from"
                       type="time"
@@ -215,7 +213,7 @@ export class HearthEventDialog extends LitElement {
                     />
                   </div>
                   <div class="field">
-                    <label for="to">To</label>
+                    <label for="to">${t(this.hass, 'dialog.to')}</label>
                     <input
                       id="to"
                       type="time"
@@ -229,7 +227,7 @@ export class HearthEventDialog extends LitElement {
               `}
 
           <div class="field">
-            <label for="note">Note</label>
+            <label for="note">${t(this.hass, 'dialog.note')}</label>
             <textarea
               id="note"
               .value=${this._description}
@@ -240,9 +238,9 @@ export class HearthEventDialog extends LitElement {
           </div>
 
           <div class="actions">
-            <button class="ghost" @click=${this._close}>Cancel</button>
+            <button class="ghost" @click=${this._close}>${t(this.hass, 'dialog.cancel')}</button>
             <button class="primary" ?disabled=${!canSave} @click=${this._save}>
-              ${this._saving ? 'Saving…' : 'Save'}
+              ${t(this.hass, this._saving ? 'dialog.saving' : 'dialog.save')}
             </button>
           </div>
         </div>

@@ -12,6 +12,12 @@
   </head>
   <body>
     <div id="host"></div>
+    <script>
+      // ha-form is a Home Assistant frontend element. Outside HA it does not exist,
+      // so the harness registers an inert stand-in — enough to prove the editors
+      // build their schema and forward value-changed as config-changed.
+      customElements.define('ha-form', class extends HTMLElement {});
+    </script>
     <script type="module" src="./hearth-panel.js"></script>
     <script type="module" src="./harness.js"></script>
   </body>

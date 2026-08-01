@@ -8,7 +8,12 @@ import { customElement, property, state } from 'lit/decorators.js';
 
 import { localeOf, prefersHour12 } from '../lib/dates';
 import { hearthTokens } from '../lib/styles';
-import type { HomeAssistant, LovelaceCard, LovelaceCardConfig } from '../lib/types';
+import type {
+  HomeAssistant,
+  LovelaceCard,
+  LovelaceCardConfig,
+  LovelaceCardEditor,
+} from '../lib/types';
 
 export interface HearthHeaderCardConfig extends LovelaceCardConfig {
   /** A `weather.*` entity. Omit to hide the weather block. */
@@ -27,6 +32,15 @@ export class HearthHeaderCard extends LitElement implements LovelaceCard {
   @state() private _now = new Date();
 
   private _timer?: number;
+
+
+  public static async getConfigElement(): Promise<LovelaceCardEditor> {
+    return document.createElement('hearth-header-card-editor');
+  }
+
+  public static getStubConfig(): Record<string, unknown> {
+    return { show_seconds: false };
+  }
 
   public setConfig(config: HearthHeaderCardConfig): void {
     this._config = { ...config };

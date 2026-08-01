@@ -10,8 +10,14 @@ import { customElement, property, state } from 'lit/decorators.js';
 import { calendarStyles, findBoard } from '../lib/board';
 import { daysBetween, fetchEvents, groupByDay, type HearthEvent } from '../lib/calendar';
 import { addDays, isSameDay, localeOf, prefersHour12, startOfDay, toDateKey } from '../lib/dates';
+import { t } from '../lib/i18n';
 import { hearthButtons, hearthTokens } from '../lib/styles';
-import type { HomeAssistant, LovelaceCard, LovelaceCardConfig } from '../lib/types';
+import type {
+  HomeAssistant,
+  LovelaceCard,
+  LovelaceCardConfig,
+  LovelaceCardEditor,
+} from '../lib/types';
 
 const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 
@@ -35,6 +41,15 @@ export class HearthAgendaCard extends LitElement implements LovelaceCard {
   private _loadedSignature = '';
   private _reloadToken = 0;
   private _timer?: number;
+
+
+  public static async getConfigElement(): Promise<LovelaceCardEditor> {
+    return document.createElement('hearth-agenda-card-editor');
+  }
+
+  public static getStubConfig(): Record<string, unknown> {
+    return { days: 3, max_events: 6 };
+  }
 
   public setConfig(config: HearthAgendaCardConfig): void {
     this._config = { ...config };
@@ -142,7 +157,7 @@ export class HearthAgendaCard extends LitElement implements LovelaceCard {
     const board = findBoard(this.hass, this._config.board_entity);
     if (!board) {
       return html`<ha-card
-        ><div class="notice">No Hearth board found. Add the Hearth integration.</div></ha-card
+        ><div class="notice">${t(this.hass, 'board.missing')}</div></ha-card
       >`;
     }
 
@@ -160,19 +175,21 @@ export class HearthAgendaCard extends LitElement implements LovelaceCard {
     return html`
       <ha-card>
         ${visible.length === 0
-          ? html`<div class="notice">Nothing coming up.</div>`
+          ? html`<div class="notice">${t(this.hass, 'agenda.nothing_coming')}</div>`
           : visible.map((day) => {
               const events = (buckets.get(toDateKey(day)) ?? []).slice(0, limit);
               return html`
                 <section class="day">
                   <h3 class="day-label">${this._dayLabel(day)}</h3>
                   ${events.length === 0
-                    ? html`<div class="empty">Nothing planned</div>`
+                    ? html`<div class="empty">${t(this.hass, 'agenda.nothing_planned')}</div>`
                     : events.map(
                         (event) => html`
                           <div class="row" style=${`--event-color:${event.color}`}>
                             <span class="when">
-                              ${event.allDay ? 'All day' : this._formatTime(event.start)}
+                              ${event.allDay
+                                ? t(this.hass, 'agenda.all_day')
+                                : this._formatTime(event.start)}
                             </span>
                             <span class="what">${event.summary}</span>
                             ${event.memberId && names.has(event.memberId)

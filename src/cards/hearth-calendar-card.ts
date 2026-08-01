@@ -28,19 +28,19 @@ import {
   toDateKey,
   type WeekdayIndex,
 } from '../lib/dates';
+import { t } from '../lib/i18n';
 import { hearthButtons, hearthTokens } from '../lib/styles';
-import type { HomeAssistant, LovelaceCard, LovelaceCardConfig } from '../lib/types';
+import type {
+  HomeAssistant,
+  LovelaceCard,
+  LovelaceCardConfig,
+  LovelaceCardEditor,
+} from '../lib/types';
 import './hearth-event-dialog';
 
 export type CalendarView = 'month' | 'week' | 'day';
 
 const VIEWS: CalendarView[] = ['month', 'week', 'day'];
-const VIEW_LABELS: Record<CalendarView, string> = {
-  month: 'Month',
-  week: 'Week',
-  day: 'Day',
-};
-
 /** Backstop refresh, in case no calendar entity changes state for a while. */
 const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 
@@ -86,6 +86,15 @@ export class HearthCalendarCard extends LitElement implements LovelaceCard {
   private _loadedSignature = '';
   private _reloadToken = 0;
   private _timer?: number;
+
+
+  public static async getConfigElement(): Promise<LovelaceCardEditor> {
+    return document.createElement('hearth-calendar-card-editor');
+  }
+
+  public static getStubConfig(): Record<string, unknown> {
+    return { view: 'month', show_legend: true, create: true };
+  }
 
   public setConfig(config: HearthCalendarCardConfig): void {
     this._config = { ...config };
@@ -390,7 +399,7 @@ export class HearthCalendarCard extends LitElement implements LovelaceCard {
       <div class="day-list" @click=${() => this._openCreate(start)}>
         ${events.length === 0
           ? html`<div class="empty-day">
-              Nothing planned.${this._createEnabled ? ' Tap to add something.' : ''}
+              ${t(this.hass, this._createEnabled ? 'calendar.empty_day_tap' : 'calendar.empty_day')}
             </div>`
           : events.map((event) => this._renderEvent(event, false))}
       </div>
@@ -424,10 +433,7 @@ export class HearthCalendarCard extends LitElement implements LovelaceCard {
     if (!board) {
       return html`
         <ha-card>
-          <div class="notice">
-            No Hearth board found. Add the Hearth integration, or set
-            <code>board_entity</code> in this card's configuration.
-          </div>
+          <div class="notice">${t(this.hass, 'board.missing_hint')}</div>
         </ha-card>
       `;
     }
@@ -438,13 +444,13 @@ export class HearthCalendarCard extends LitElement implements LovelaceCard {
     return html`
       <ha-card>
         <div class="toolbar">
-          <button class="icon-button" @click=${() => this._step(-1)} aria-label="Previous">
+          <button class="icon-button" @click=${() => this._step(-1)} aria-label=${t(this.hass, 'calendar.previous')}>
             ${this._icon(ICONS.previous)}
           </button>
-          <button class="icon-button" @click=${this._goToday} aria-label="Today">
+          <button class="icon-button" @click=${this._goToday} aria-label=${t(this.hass, 'calendar.today')}>
             ${this._icon(ICONS.today)}
           </button>
-          <button class="icon-button" @click=${() => this._step(1)} aria-label="Next">
+          <button class="icon-button" @click=${() => this._step(1)} aria-label=${t(this.hass, 'calendar.next')}>
             ${this._icon(ICONS.next)}
           </button>
           <h1 class="title">${this._title()}</h1>
@@ -456,7 +462,7 @@ export class HearthCalendarCard extends LitElement implements LovelaceCard {
                       aria-pressed=${this._view === view}
                       @click=${() => this._setView(view)}
                     >
-                      ${VIEW_LABELS[view]}
+                      ${t(this.hass, `calendar.${view}`)}
                     </button>
                   `,
                 )}
@@ -465,7 +471,7 @@ export class HearthCalendarCard extends LitElement implements LovelaceCard {
           ${this._createEnabled
             ? html`<button
                 class="icon-button"
-                aria-label="New event"
+                aria-label=${t(this.hass, 'calendar.new_event')}
                 @click=${() => this._openCreate(startOfDay(this._anchor))}
               >
                 ${this._icon(ICONS.add)}
@@ -475,15 +481,12 @@ export class HearthCalendarCard extends LitElement implements LovelaceCard {
 
         ${this._renderLegend(board)}
         ${Object.keys(styles).length === 0
-          ? html`<div class="notice">
-              No calendars are assigned yet. Open the Hearth integration's options and give
-              your family members their calendars.
-            </div>`
+          ? html`<div class="notice">${t(this.hass, 'calendar.no_calendars')}</div>`
           : nothing}
         ${this._failed.length > 0
           ? html`<div class="warning">
               ${this._icon(ICONS.warning)}
-              <span>Could not load: ${this._failed.join(', ')}</span>
+              <span>${t(this.hass, 'calendar.load_failed', { items: this._failed.join(', ') })}</span>
             </div>`
           : nothing}
 

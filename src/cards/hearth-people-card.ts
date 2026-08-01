@@ -10,8 +10,14 @@ import { customElement, property, state } from 'lit/decorators.js';
 import { calendarStyles, findBoard, memberSensor, type HearthMember } from '../lib/board';
 import { fetchEvents, occursOn, type HearthEvent } from '../lib/calendar';
 import { addDays, localeOf, prefersHour12, startOfDay } from '../lib/dates';
+import { t } from '../lib/i18n';
 import { hearthButtons, hearthTokens } from '../lib/styles';
-import type { HomeAssistant, LovelaceCard, LovelaceCardConfig } from '../lib/types';
+import type {
+  HomeAssistant,
+  LovelaceCard,
+  LovelaceCardConfig,
+  LovelaceCardEditor,
+} from '../lib/types';
 
 const REFRESH_INTERVAL_MS = 10 * 60 * 1000;
 
@@ -44,6 +50,15 @@ export class HearthPeopleCard extends LitElement implements LovelaceCard {
   private _loadedSignature = '';
   private _reloadToken = 0;
   private _timer?: number;
+
+
+  public static async getConfigElement(): Promise<LovelaceCardEditor> {
+    return document.createElement('hearth-people-card-editor');
+  }
+
+  public static getStubConfig(): Record<string, unknown> {
+    return { show_events: true, max_events: 2 };
+  }
 
   public setConfig(config: HearthPeopleCardConfig): void {
     this._config = { ...config };
@@ -124,10 +139,10 @@ export class HearthPeopleCard extends LitElement implements LovelaceCard {
       return null;
     }
     if (state === 'home') {
-      return { label: 'Home', home: true };
+      return { label: t(this.hass, 'people.home'), home: true };
     }
     if (state === 'not_home') {
-      return { label: 'Out', home: false };
+      return { label: t(this.hass, 'people.away'), home: false };
     }
     return { label: state, home: false };
   }
@@ -202,9 +217,7 @@ export class HearthPeopleCard extends LitElement implements LovelaceCard {
     if (!board || board.members.length === 0) {
       return html`
         <ha-card>
-          <div class="notice">
-            No family members yet. Add them in the Hearth integration's options.
-          </div>
+          <div class="notice">${t(this.hass, 'board.no_members')}</div>
         </ha-card>
       `;
     }

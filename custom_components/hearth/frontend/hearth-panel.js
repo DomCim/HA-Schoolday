@@ -1,0 +1,1 @@
+const o="0.1.0";console.info(`%c HEARTH %c ${o} `,"color:#fff;background:#e0603a;font-weight:700;border-radius:3px 0 0 3px;padding:2px 6px","color:#e0603a;background:#2b2118;font-weight:700;border-radius:0 3px 3px 0;padding:2px 6px");export{o as HEARTH_VERSION};

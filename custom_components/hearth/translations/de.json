@@ -1,0 +1,105 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Hearth einrichten",
+        "description": "Hearth ergänzt deine Dashboards um ein Familien-Board. Lege nach der Einrichtung über „Konfigurieren“ deine Familienmitglieder an und ordne ihnen Kalender und Listen zu."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Hearth ist bereits eingerichtet. Ändere deine Familie über „Konfigurieren“ am vorhandenen Eintrag."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Hearth",
+        "description": "Familien-Board verwalten.",
+        "menu_options": {
+          "add_member": "Familienmitglied hinzufügen",
+          "edit_member": "Familienmitglied bearbeiten",
+          "remove_member": "Familienmitglied entfernen",
+          "shared": "Gemeinsame Kalender und Listen"
+        }
+      },
+      "add_member": {
+        "title": "Familienmitglied hinzufügen",
+        "data": {
+          "name": "Name",
+          "color": "Farbe",
+          "person": "Person",
+          "calendars": "Kalender",
+          "todo_lists": "Aufgabenlisten",
+          "points_entity": "Punkte-Sensor",
+          "avatar": "Avatarbild"
+        },
+        "data_description": {
+          "color": "Kennzeichnet Termine und Hervorhebungen dieser Person auf allen Hearth-Karten.",
+          "person": "Verknüpft die Anwesenheit mit diesem Mitglied. Optional.",
+          "calendars": "Kalender, deren Termine diesem Mitglied gehören.",
+          "todo_lists": "Listen, die als offene Aufgaben dieses Mitglieds gezählt werden.",
+          "points_entity": "Ein Sensor, dessen Zustand ein Punktestand ist, zum Beispiel ein Chores4Kids-Kindersensor. Optional.",
+          "avatar": "Pfad zu einem Bild, zum Beispiel /local/hearth/ben.png. Optional."
+        }
+      },
+      "edit_member": {
+        "title": "Familienmitglied bearbeiten",
+        "data": {
+          "id": "Familienmitglied"
+        }
+      },
+      "edit_member_details": {
+        "title": "{name} bearbeiten",
+        "data": {
+          "name": "Name",
+          "color": "Farbe",
+          "person": "Person",
+          "calendars": "Kalender",
+          "todo_lists": "Aufgabenlisten",
+          "points_entity": "Punkte-Sensor",
+          "avatar": "Avatarbild"
+        },
+        "data_description": {
+          "color": "Kennzeichnet Termine und Hervorhebungen dieser Person auf allen Hearth-Karten.",
+          "person": "Verknüpft die Anwesenheit mit diesem Mitglied. Optional.",
+          "calendars": "Kalender, deren Termine diesem Mitglied gehören.",
+          "todo_lists": "Listen, die als offene Aufgaben dieses Mitglieds gezählt werden.",
+          "points_entity": "Ein Sensor, dessen Zustand ein Punktestand ist, zum Beispiel ein Chores4Kids-Kindersensor. Optional.",
+          "avatar": "Pfad zu einem Bild, zum Beispiel /local/hearth/ben.png. Optional."
+        }
+      },
+      "remove_member": {
+        "title": "Familienmitglieder entfernen",
+        "data": {
+          "members": "Familienmitglieder"
+        },
+        "data_description": {
+          "members": "Die zugehörigen Sensoren werden gelöscht. Die Kalender und Listen selbst bleiben unberührt."
+        }
+      },
+      "shared": {
+        "title": "Gemeinsame Kalender und Listen",
+        "data": {
+          "shared_calendars": "Familienkalender",
+          "shared_todo_lists": "Familienlisten",
+          "readonly_calendars": "Schreibgeschützte Kalender"
+        },
+        "data_description": {
+          "shared_calendars": "Kalender, die allen gehören statt einer einzelnen Person.",
+          "shared_todo_lists": "Einkaufslisten und Checklisten, die die ganze Familie teilt.",
+          "readonly_calendars": "Werden angezeigt, aber nie beschrieben – etwa Feiertags- oder Schulkalender."
+        }
+      }
+    },
+    "abort": {
+      "member_not_found": "Dieses Familienmitglied existiert nicht mehr."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "board": {
+        "name": "Board"
+      }
+    }
+  }
+}

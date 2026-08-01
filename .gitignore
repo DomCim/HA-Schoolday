@@ -1,0 +1,14 @@
+node_modules/
+*.tsbuildinfo
+*.log
+
+__pycache__/
+*.py[cod]
+.venv/
+
+.DS_Store
+.idea/
+.vscode/
+
+# NOTE: custom_components/hearth/frontend/hearth-panel.js is a build artifact but is
+# committed on purpose — HACS installs only custom_components/hearth/ and does not build.

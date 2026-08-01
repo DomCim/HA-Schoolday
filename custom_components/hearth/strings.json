@@ -1,0 +1,105 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up Hearth",
+        "description": "Hearth adds a family board to your dashboards. After setup, use Configure to add your family members and pick the calendars and lists that belong to each of them."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Hearth is already set up. Use Configure on the existing entry to change your family."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Hearth",
+        "description": "Manage your family board.",
+        "menu_options": {
+          "add_member": "Add a family member",
+          "edit_member": "Edit a family member",
+          "remove_member": "Remove a family member",
+          "shared": "Shared calendars and lists"
+        }
+      },
+      "add_member": {
+        "title": "Add a family member",
+        "data": {
+          "name": "Name",
+          "color": "Colour",
+          "person": "Person",
+          "calendars": "Calendars",
+          "todo_lists": "To-do lists",
+          "points_entity": "Points sensor",
+          "avatar": "Avatar image"
+        },
+        "data_description": {
+          "color": "Used for this person's events and highlights across every Hearth card.",
+          "person": "Links presence to this member. Optional.",
+          "calendars": "Calendars whose events belong to this member.",
+          "todo_lists": "Lists counted as this member's open tasks.",
+          "points_entity": "A sensor whose state is a points balance, for example a Chores4Kids child sensor. Optional.",
+          "avatar": "Path to an image, for example /local/hearth/ben.png. Optional."
+        }
+      },
+      "edit_member": {
+        "title": "Edit a family member",
+        "data": {
+          "id": "Family member"
+        }
+      },
+      "edit_member_details": {
+        "title": "Edit {name}",
+        "data": {
+          "name": "Name",
+          "color": "Colour",
+          "person": "Person",
+          "calendars": "Calendars",
+          "todo_lists": "To-do lists",
+          "points_entity": "Points sensor",
+          "avatar": "Avatar image"
+        },
+        "data_description": {
+          "color": "Used for this person's events and highlights across every Hearth card.",
+          "person": "Links presence to this member. Optional.",
+          "calendars": "Calendars whose events belong to this member.",
+          "todo_lists": "Lists counted as this member's open tasks.",
+          "points_entity": "A sensor whose state is a points balance, for example a Chores4Kids child sensor. Optional.",
+          "avatar": "Path to an image, for example /local/hearth/ben.png. Optional."
+        }
+      },
+      "remove_member": {
+        "title": "Remove family members",
+        "data": {
+          "members": "Family members"
+        },
+        "data_description": {
+          "members": "Their sensors are deleted. The calendars and lists themselves are untouched."
+        }
+      },
+      "shared": {
+        "title": "Shared calendars and lists",
+        "data": {
+          "shared_calendars": "Family calendars",
+          "shared_todo_lists": "Family lists",
+          "readonly_calendars": "Read-only calendars"
+        },
+        "data_description": {
+          "shared_calendars": "Calendars that belong to everyone rather than one person.",
+          "shared_todo_lists": "Shopping lists and checklists the whole family shares.",
+          "readonly_calendars": "Shown but never written to, such as holiday or school calendars."
+        }
+      }
+    },
+    "abort": {
+      "member_not_found": "That family member no longer exists."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "board": {
+        "name": "Board"
+      }
+    }
+  }
+}

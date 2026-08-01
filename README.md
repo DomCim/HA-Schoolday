@@ -1,4 +1,4 @@
-# Hearth
+<img src="assets/logo.png" alt="Hearth" width="300">
 
 A family board for Home Assistant — the wall-mounted household command centre, built from the
 calendars, lists and people you already have in Home Assistant.
@@ -150,3 +150,13 @@ will show events shifted to local time.
 ## Licence
 
 MIT — see [LICENSE](LICENSE).
+
+## Logo
+
+`assets/hearth-icon.svg` is the source; `npm run assets` re-renders the PNGs so the README never
+depends on the viewer's fonts.
+
+The icon does **not** appear next to the integration in Home Assistant or HACS. Those images come
+from the [home-assistant/brands](https://github.com/home-assistant/brands) repository, which needs a
+separate pull request adding `custom_integrations/hearth/icon.png`. Until then Home Assistant shows
+its generic placeholder — `assets/icon.png` is already the right size for that submission.

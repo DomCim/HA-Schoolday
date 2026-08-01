@@ -7,7 +7,7 @@ from typing import Final
 DOMAIN: Final = "hearth"
 
 # Keep in sync with manifest.json, package.json and src/lib/const.ts.
-VERSION: Final = "0.3.0"
+VERSION: Final = "0.3.1"
 
 # Where the bundled Lovelace cards are served from.
 FRONTEND_URL_BASE: Final = "/hearth-frontend"

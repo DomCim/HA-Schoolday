@@ -9,7 +9,7 @@
     "watch": "rollup -c --watch",
     "typecheck": "tsc --noEmit",
     "test": "node test/smoke/run.mjs",
-    "assets": "node assets/render.mjs assets/hearth-icon.svg assets/icon.png 256 256 && node assets/render.mjs assets/hearth-logo.svg assets/logo.png 600 144"
+    "assets": "node assets/render.mjs assets/hearth-icon.svg assets/icon.png 256 256 && node assets/render.mjs assets/hearth-icon.svg assets/icon@2x.png 512 512 && node assets/render.mjs assets/hearth-logo.svg assets/logo.png 600 144"
   },
   "devDependencies": {
     "playwright": "^1.62.1",

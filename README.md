@@ -156,7 +156,14 @@ MIT — see [LICENSE](LICENSE).
 `assets/hearth-icon.svg` is the source; `npm run assets` re-renders the PNGs so the README never
 depends on the viewer's fonts.
 
-The icon does **not** appear next to the integration in Home Assistant or HACS. Those images come
-from the [home-assistant/brands](https://github.com/home-assistant/brands) repository, which needs a
-separate pull request adding `custom_integrations/hearth/icon.png`. Until then Home Assistant shows
-its generic placeholder — `assets/icon.png` is already the right size for that submission.
+The icon does **not** appear next to the integration in Home Assistant or HACS, and nothing in this
+repository can change that. Both ask the same CDN:
+
+```
+https://brands.home-assistant.io/hearth/icon.png    → 404
+https://brands.home-assistant.io/_/hearth/icon.png  → 200, the generic placeholder
+```
+
+That CDN is fed by [home-assistant/brands](https://github.com/home-assistant/brands), which needs a
+pull request adding `custom_integrations/hearth/` with `icon.png` (256×256) and `icon@2x.png`
+(512×512). `npm run assets` produces both at exactly those sizes.

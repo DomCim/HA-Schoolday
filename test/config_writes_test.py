@@ -210,6 +210,66 @@ check("kranker Tag hat keine Schritte",
       and routine.steps_for(0, "free") == ["Ausschlafen"],
       str(routine.steps_for(0, "sick")))
 
+# --- the two-week cycle ----------------------------------------------------
+import datetime as _dt  # noqa: E402
+
+CT = _dt.date(2026, 9, 14)
+
+out = W.set_cycle({}, 2, iso_week=37, iso_year=2026, today=CT)
+check("KW wird als Montag gespeichert",
+      out == {"cycle_weeks": 2, "cycle_anchor": "2026-09-07"}, str(out))
+out = W.set_cycle({}, 2, anchor="2026-09-16", today=CT)
+check("ein Datum wird auf seinen Montag zurueckgesetzt",
+      out["cycle_anchor"] == "2026-09-14", str(out))
+out = W.set_cycle({}, 2, today=CT)
+check("Zyklus ohne Angabe faengt in dieser Woche an",
+      out["cycle_anchor"] == "2026-09-14", str(out))
+out = W.set_cycle({"cycle_anchor": "2026-09-07"}, 1, today=CT)
+check("Zyklus aus laesst den Anker stehen",
+      out == {"cycle_weeks": 1}, str(out))
+try:
+    W.set_cycle({}, 3, today=CT)
+    check("mehr als zwei Wochen abgewiesen", False, "keine Ausnahme")
+except SchooldayValueError as e:
+    check("mehr als zwei Wochen abgewiesen", "1 or 2 weeks" in str(e), str(e)[:50])
+try:
+    # 2025 has 52 ISO weeks; 2026 has 53. Exactly why a week number alone is not
+    # something to store.
+    W.set_cycle({}, 2, iso_week=53, iso_year=2025, today=CT)
+    check("KW 53 in einem 52-Wochen-Jahr abgewiesen", False, "keine Ausnahme")
+except SchooldayValueError as e:
+    check("KW 53 in einem 52-Wochen-Jahr abgewiesen", "no calendar week" in str(e), str(e)[:50])
+
+CYCLED = merged({
+    "cycle_weeks": 2, "cycle_anchor": "2026-09-07",
+    "timetable": {"periods": ["08:00-08:45"],
+                  "lessons": {MEMBER: {"0": {"1": {"subject": "Deutsch"}},
+                                       "7": {"1": {"subject": "Mathe"}}}}},
+})
+cyc = Models.SchooldayConfig.from_options(CYCLED)
+check("A- und B-Woche liefern verschiedene Stunden",
+      [l.subject for l in cyc.lessons_on(MEMBER, _dt.date(2026, 9, 7))] == ["Deutsch"]
+      and [l.subject for l in cyc.lessons_on(MEMBER, _dt.date(2026, 9, 14))] == ["Mathe"]
+      and [l.subject for l in cyc.lessons_on(MEMBER, _dt.date(2026, 9, 21))] == ["Deutsch"],
+      "Mo 7.9. / 14.9. / 21.9.")
+
+# Turning the cycle off must not throw week B away — only stop showing it.
+off = Models.SchooldayConfig.from_options({**CYCLED, "cycle_weeks": 1})
+check("Zyklus aus zeigt wieder die A-Woche, B bleibt gespeichert",
+      [l.subject for l in off.lessons_on(MEMBER, _dt.date(2026, 9, 14))] == ["Deutsch"]
+      and off.timetable.uses_second_week,
+      str(off.timetable.uses_second_week))
+
+out = W.set_lesson(CYCLED, MEMBER, 1, 1, "Physik", week=1)
+check("in die B-Woche schreiben landet im Slot 8",
+      out["timetable"]["lessons"][MEMBER]["8"]["1"]["subject"] == "Physik",
+      str(sorted(out["timetable"]["lessons"][MEMBER])))
+try:
+    W.set_lesson(CYCLED, MEMBER, 1, 1, "Physik", week=2)
+    check("dritte Woche abgewiesen", False, "keine Ausnahme")
+except SchooldayValueError as e:
+    check("dritte Woche abgewiesen", "week of the cycle" in str(e), str(e)[:50])
+
 # --- exceptions ------------------------------------------------------------
 import datetime  # noqa: E402
 

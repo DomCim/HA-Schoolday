@@ -40,6 +40,12 @@ export interface AdminConfig {
   subjects: string[];
   /** member id -> "YYYY-MM-DD" -> what that date does differently. */
   exceptions: Record<string, Record<string, AdminException>>;
+  /** How many weeks the timetable takes to repeat: 1, or 2 for an A/B school. */
+  cycleWeeks: number;
+  /** The Monday of a week that is week A, as `YYYY-MM-DD`. */
+  cycleAnchor: string | null;
+  /** Which week the household is in right now: 0 for A, 1 for B. */
+  cycleNow: number;
 }
 
 export interface AdminException {
@@ -59,6 +65,9 @@ const EMPTY: AdminConfig = {
   materials: {},
   subjects: [],
   exceptions: {},
+  cycleWeeks: 1,
+  cycleAnchor: null,
+  cycleNow: 0,
 };
 
 function stringList(raw: unknown): string[] {
@@ -160,7 +169,33 @@ export function parseAdmin(raw: unknown): AdminConfig {
     careKeywords: stringList(data.care_keywords),
     materials,
     subjects: stringList(data.subjects),
+    cycleWeeks: Number(data.cycle_weeks ?? 1) === 2 ? 2 : 1,
+    cycleAnchor: typeof data.cycle_anchor === 'string' ? data.cycle_anchor : null,
+    cycleNow: Number(data.cycle_now ?? 0) === 1 ? 1 : 0,
   };
+}
+
+/**
+ * The ISO calendar week a `YYYY-MM-DD` falls in, and its ISO year.
+ *
+ * The two travel together on purpose: the ISO year is not always the calendar year at
+ * the turn of December, and "week 1" of the wrong year is a fortnight out.
+ */
+export function isoWeek(date: string): { week: number; year: number } | null {
+  const [y, m, d] = date.split('-').map(Number);
+  if (!y || !m || !d) {
+    return null;
+  }
+  // Thursday decides the ISO year — that is the whole rule.
+  const thursday = new Date(Date.UTC(y, m - 1, d));
+  thursday.setUTCDate(thursday.getUTCDate() + 3 - ((thursday.getUTCDay() + 6) % 7));
+  const firstThursday = new Date(Date.UTC(thursday.getUTCFullYear(), 0, 4));
+  firstThursday.setUTCDate(
+    firstThursday.getUTCDate() + 3 - ((firstThursday.getUTCDay() + 6) % 7),
+  );
+  const week =
+    1 + Math.round((thursday.getTime() - firstThursday.getTime()) / (7 * 86400000));
+  return { week, year: thursday.getUTCFullYear() };
 }
 
 /**

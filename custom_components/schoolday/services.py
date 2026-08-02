@@ -28,6 +28,7 @@ from . import config_writes
 from .config_writes import SchooldayValueError
 from .const import (
     ATTR_ABSENT,
+    ATTR_ANCHOR,
     ATTR_BLOCK,
     ATTR_CALENDAR_FIELD,
     ATTR_CANCELLED,
@@ -48,11 +49,14 @@ from .const import (
     ATTR_STEPS,
     ATTR_SUBJECT_FIELD,
     ATTR_UNTIL,
+    ATTR_WEEK,
     ATTR_WEEKDAY_FIELD,
+    ATTR_WEEKS,
     CONF_AVATAR,
     CONF_CALENDAR,
     DATA_ABSENCE,
     DATA_STORE,
+    CYCLE_MAX_WEEKS,
     DOMAIN,
     ROUTINE_BLOCKS,
     SERVICE_CLEAR_EXCEPTION,
@@ -60,6 +64,7 @@ from .const import (
     SERVICE_RESET_ROUTINE,
     SERVICE_SET_ABSENT,
     SERVICE_SET_CALENDARS,
+    SERVICE_SET_CYCLE,
     SERVICE_SET_DAY,
     SERVICE_SET_EXCEPTION,
     SERVICE_SET_LESSON,
@@ -95,6 +100,8 @@ _WEEKDAY = vol.All(vol.Coerce(int), vol.Range(min=0, max=6))
 
 SET_PERIODS_SCHEMA = vol.Schema({vol.Required(ATTR_PERIODS): vol.All(cv.ensure_list, [cv.string])})
 
+_CYCLE_WEEK = vol.All(vol.Coerce(int), vol.Range(min=0, max=CYCLE_MAX_WEEKS - 1))
+
 SET_LESSON_SCHEMA = vol.Schema(
     {
         vol.Required(ATTR_MEMBER): cv.string,
@@ -102,6 +109,16 @@ SET_LESSON_SCHEMA = vol.Schema(
         vol.Required(ATTR_PERIOD): vol.Coerce(int),
         vol.Optional(ATTR_SUBJECT_FIELD): vol.Any(cv.string, None),
         vol.Optional(ATTR_ROOM_FIELD): vol.Any(cv.string, None),
+        vol.Optional(ATTR_WEEK, default=0): _CYCLE_WEEK,
+    }
+)
+
+SET_CYCLE_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_WEEKS): vol.All(vol.Coerce(int), vol.Range(min=1, max=CYCLE_MAX_WEEKS)),
+        vol.Optional(ATTR_ANCHOR): cv.string,
+        vol.Optional("iso_week"): vol.All(vol.Coerce(int), vol.Range(min=1, max=53)),
+        vol.Optional("iso_year"): vol.Coerce(int),
     }
 )
 
@@ -110,6 +127,7 @@ SET_DAY_SCHEMA = vol.Schema(
         vol.Required(ATTR_MEMBER): cv.string,
         vol.Required(ATTR_WEEKDAY_FIELD): _WEEKDAY,
         vol.Required(ATTR_LESSONS): vol.All(cv.ensure_list, [_LESSON]),
+        vol.Optional(ATTR_WEEK, default=0): _CYCLE_WEEK,
     }
 )
 
@@ -315,6 +333,7 @@ def async_register_services(hass: HomeAssistant) -> None:
                 call.data[ATTR_PERIOD],
                 call.data.get(ATTR_SUBJECT_FIELD),
                 call.data.get(ATTR_ROOM_FIELD),
+                call.data[ATTR_WEEK],
             ),
         )
 
@@ -327,6 +346,7 @@ def async_register_services(hass: HomeAssistant) -> None:
                 _resolve_member_id(hass, call.data[ATTR_MEMBER]),
                 call.data[ATTR_WEEKDAY_FIELD],
                 call.data[ATTR_LESSONS],
+                call.data[ATTR_WEEK],
             ),
         )
 
@@ -372,6 +392,19 @@ def async_register_services(hass: HomeAssistant) -> None:
             call,
             config_writes.remove_member(
                 _options(call), _resolve_member_id(hass, call.data[ATTR_MEMBER])
+            ),
+        )
+
+    @_guard
+    def _set_cycle(call: ServiceCall) -> None:
+        _apply(
+            call,
+            config_writes.set_cycle(
+                _options(call),
+                call.data[ATTR_WEEKS],
+                call.data.get(ATTR_ANCHOR),
+                call.data.get("iso_week"),
+                call.data.get("iso_year"),
             ),
         )
 
@@ -432,6 +465,7 @@ def async_register_services(hass: HomeAssistant) -> None:
         (SERVICE_REMOVE_MEMBER, _remove_member, REMOVE_MEMBER_SCHEMA),
         (SERVICE_SET_CALENDARS, _set_calendars, SET_CALENDARS_SCHEMA),
         (SERVICE_SET_MATERIALS, _set_materials, SET_MATERIALS_SCHEMA),
+        (SERVICE_SET_CYCLE, _set_cycle, SET_CYCLE_SCHEMA),
         (SERVICE_SET_EXCEPTION, _set_exception, SET_EXCEPTION_SCHEMA),
         (SERVICE_CLEAR_EXCEPTION, _clear_exception, CLEAR_EXCEPTION_SCHEMA),
     ):

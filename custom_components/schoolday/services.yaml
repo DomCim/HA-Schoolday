@@ -46,6 +46,16 @@ set_periods:
 
 set_lesson:
   fields:
+    week:
+      required: false
+      default: 0
+      example: 0
+      selector:
+        number:
+          min: 0
+          max: 1
+          mode: box
+
     member:
       required: true
       example: Ben
@@ -80,6 +90,16 @@ set_lesson:
 
 set_day:
   fields:
+    week:
+      required: false
+      default: 0
+      example: 0
+      selector:
+        number:
+          min: 0
+          max: 1
+          mode: box
+
     member:
       required: true
       example: Ben
@@ -265,5 +285,37 @@ clear_exception:
     date:
       required: true
       example: "2026-09-18"
+      selector:
+        date:
+
+set_cycle:
+  fields:
+    weeks:
+      required: true
+      example: 2
+      selector:
+        number:
+          min: 1
+          max: 2
+          mode: box
+    iso_week:
+      required: false
+      example: 37
+      selector:
+        number:
+          min: 1
+          max: 53
+          mode: box
+    iso_year:
+      required: false
+      example: 2026
+      selector:
+        number:
+          min: 2000
+          max: 2100
+          mode: box
+    anchor:
+      required: false
+      example: "2026-09-07"
       selector:
         date:

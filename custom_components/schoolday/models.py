@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, timedelta
 from typing import Any
 from zlib import crc32
 
@@ -20,6 +20,9 @@ from .const import (
     CONF_CALENDAR,
     CONF_CARE_KEYWORDS,
     CONF_COLOR,
+    CONF_CYCLE_ANCHOR,
+    CONF_CYCLE_WEEKS,
+    CYCLE_MAX_WEEKS,
     CONF_EXCEPTIONS,
     CONF_LABEL,
     CONF_LESSONS,
@@ -41,6 +44,7 @@ from .const import (
     ROUTINE_BLOCKS,
     ROUTINE_CARE,
     ROUTINE_HOLIDAY,
+    SLOTS_PER_WEEK,
     SUBJECT_COLORS,
 )
 
@@ -416,10 +420,13 @@ class Timetable:
             days: dict[int, list[Lesson]] = {}
             for day_key, slots in (week or {}).items():
                 try:
-                    weekday = int(day_key)
+                    slot = int(day_key)
                 except (TypeError, ValueError):
                     continue
-                if not 0 <= weekday <= 6:
+                # 0..6 is week A, 7..13 is week B. A timetable written before the
+                # cycle existed only ever uses the first seven, so it needs no
+                # migration: it is already a valid two-week one that never uses B.
+                if not 0 <= slot < SLOTS_PER_WEEK * CYCLE_MAX_WEEKS:
                     continue
                 day: list[Lesson] = []
                 for period_key, entry in (slots or {}).items():
@@ -433,7 +440,7 @@ class Timetable:
                     room = str((entry or {}).get("room") or "").strip() or None
                     day.append(Lesson(period=period, subject=subject, room=room))
                 if day:
-                    days[weekday] = sorted(day, key=lambda lesson: lesson.period)
+                    days[slot] = sorted(day, key=lambda lesson: lesson.period)
             if days:
                 lessons[str(member_id)] = days
         return cls(periods=periods, colors=colors, lessons=lessons)
@@ -459,12 +466,28 @@ class Timetable:
         }
 
     def week(self, member_id: str) -> dict[int, list[Lesson]]:
-        """One member's week, empty when they have no timetable."""
+        """One member's cycle, empty when they have no timetable.
+
+        Keyed by slot: 0..6 is week A, 7..13 is week B.
+        """
         return self.lessons.get(member_id, {})
 
-    def day(self, member_id: str, weekday: int) -> list[Lesson]:
-        """One member's lessons on one weekday."""
-        return self.week(member_id).get(weekday, [])
+    def day(self, member_id: str, slot: int) -> list[Lesson]:
+        """One member's lessons in one slot of the cycle."""
+        return self.week(member_id).get(slot, [])
+
+    @property
+    def uses_second_week(self) -> bool:
+        """True when anything is written into week B.
+
+        Asked before offering to turn the cycle off, because that is the moment the
+        household is about to hide work they have done.
+        """
+        return any(
+            slot >= SLOTS_PER_WEEK and lessons
+            for week in self.lessons.values()
+            for slot, lessons in week.items()
+        )
 
     @property
     def subjects(self) -> list[str]:
@@ -552,7 +575,9 @@ class Timetable:
         """True when there is nothing to draw."""
         return not self.periods or not any(self.lessons.values())
 
-    def as_card_dict(self, extra_subjects: Iterable[str] = ()) -> dict[str, Any]:
+    def as_card_dict(
+        self, extra_subjects: Iterable[str] = (), cycle_weeks: int = 1
+    ) -> dict[str, Any]:
         """The grid every timetable card shares: periods, breaks and subject colours.
 
         The lessons themselves ride on the member sensors instead, which keeps both
@@ -568,6 +593,11 @@ class Timetable:
             "periods": [period.as_card_dict() for period in self.periods],
             "breaks": self.breaks,
             "subjects": {subject: self.color(subject) for subject in names},
+            # Published rather than inferred. A card could guess the cycle from whether
+            # the outlook holds two weeks, but the window is sometimes only seven days
+            # long — and on that Monday every A/B household would look like a one-week
+            # one, which is exactly the day the marking matters.
+            "cycle_weeks": cycle_weeks,
         }
 
     def member_card_dict(self, member_id: str) -> dict[str, list[dict[str, Any]]]:
@@ -676,6 +706,10 @@ class SchooldayConfig:
     materials: dict[str, list[str]] = field(default_factory=dict)
     #: member id -> "YYYY-MM-DD" -> what that date does differently.
     exceptions: dict[str, dict[str, DayException]] = field(default_factory=dict)
+    #: How many weeks the timetable takes to repeat: 1, or 2 for an A/B school.
+    cycle_weeks: int = 1
+    #: The Monday of a week that is week A. None means "this week", settled on read.
+    cycle_anchor: date | None = None
 
     @classmethod
     def from_options(cls, options: dict[str, Any]) -> SchooldayConfig:
@@ -699,6 +733,22 @@ class SchooldayConfig:
             if cleaned and (name := str(subject).strip()):
                 materials[name] = cleaned
 
+        try:
+            cycle_weeks = int(options.get(CONF_CYCLE_WEEKS) or 1)
+        except (TypeError, ValueError):
+            cycle_weeks = 1
+        cycle_weeks = min(max(cycle_weeks, 1), CYCLE_MAX_WEEKS)
+
+        anchor: date | None = None
+        if raw_anchor := options.get(CONF_CYCLE_ANCHOR):
+            try:
+                parsed = date.fromisoformat(str(raw_anchor))
+            except ValueError:
+                parsed = None
+            if parsed is not None:
+                # Stored as whatever day somebody picked; only its Monday matters.
+                anchor = parsed - timedelta(days=parsed.weekday())
+
         exceptions: dict[str, dict[str, DayException]] = {}
         for member_id, dates in (options.get(CONF_EXCEPTIONS) or {}).items():
             per_date = {
@@ -721,7 +771,27 @@ class SchooldayConfig:
             timetable=Timetable.from_dict(options.get(CONF_TIMETABLE)),
             materials=materials,
             exceptions=exceptions,
+            cycle_weeks=cycle_weeks,
+            cycle_anchor=anchor,
         )
+
+    def week_index(self, day: date) -> int:
+        """Which week of the cycle a date falls in: 0 for A, 1 for B.
+
+        Counted from the anchor Monday rather than from the ISO week number. Week 53
+        and the turn of the year make ISO parity jump, and a timetable that swaps
+        itself over the Christmas holidays would be a fine bug to explain in February.
+
+        With no cycle, everything is week A — so callers never have to ask first.
+        """
+        if self.cycle_weeks < 2 or self.cycle_anchor is None:
+            return 0
+        monday = day - timedelta(days=day.weekday())
+        return ((monday - self.cycle_anchor).days // SLOTS_PER_WEEK) % self.cycle_weeks
+
+    def slot_for(self, day: date) -> int:
+        """The timetable slot a date lands on: weekday, plus seven for week B."""
+        return day.weekday() + SLOTS_PER_WEEK * self.week_index(day)
 
     @property
     def exception_subjects(self) -> set[str]:
@@ -745,7 +815,7 @@ class SchooldayConfig:
         like; only a date knows whether this Tuesday's third period was cancelled, and
         the two answers must never be worked out in two places.
         """
-        lessons = self.timetable.day(member_id, day.weekday())
+        lessons = self.timetable.day(member_id, self.slot_for(day))
         change = self.exception(member_id, day)
         return change.applied_to(lessons) if change else list(lessons)
 
@@ -799,6 +869,11 @@ class SchooldayConfig:
             "school_calendars": list(self.school_calendars),
             "care_keywords": list(self.care_keywords),
             "materials": {name: list(items) for name, items in self.materials.items()},
+            "cycle_weeks": self.cycle_weeks,
+            "cycle_anchor": self.cycle_anchor.isoformat() if self.cycle_anchor else None,
+            # Which week the household is in right now, so the editor can open on it
+            # rather than making somebody work it out from a date.
+            "cycle_now": self.week_index(date.today()),
             # Every subject in use, so the materials editor can offer them instead of
             # asking the household to type a subject name that has to match exactly.
             "subjects": self.timetable.subjects,

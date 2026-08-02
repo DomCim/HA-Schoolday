@@ -23,6 +23,7 @@ import {
   formatTime,
   hasLessons,
   lessonsOn,
+  SLOTS_PER_WEEK,
   nowMinutes,
   dayFor,
   outlookDate,
@@ -167,9 +168,13 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
     }
     // Monday to Friday, extended only if there really is something at the weekend.
     // A Wednesday off stays a visible gap rather than vanishing from the grid.
+    //
+    // Slots are folded back to weekdays first: with a two-week timetable the map runs
+    // to 13, and taking the maximum of that would draw a fortnight of columns.
     const used = Object.keys(week)
       .map(Number)
-      .filter((day) => (week[day] ?? []).length > 0);
+      .filter((slot) => (week[slot] ?? []).length > 0)
+      .map((slot) => slot % SLOTS_PER_WEEK);
     const last = Math.max(4, ...used);
     return Array.from({ length: last + 1 }, (_, index) => index);
   }
@@ -543,6 +548,11 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
                 <span class="col-day"
                   >${this._weekdayName(weekday, dayView ? 'long' : 'short')}</span
                 >
+                ${grid.cycleWeeks > 1
+                  ? html`<span class="col-week"
+                      >${this._dayFor(outlook, weekday)?.week === 1 ? 'B' : 'A'}</span
+                    >`
+                  : nothing}
                 ${this._columnDate(outlook, weekday)
                   ? html`<span class="col-date">${this._columnDate(outlook, weekday)}</span>`
                   : nothing}
@@ -778,6 +788,16 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
         font-size: 0.8rem;
         font-weight: 700;
         color: var(--schoolday-muted);
+      }
+
+      /* Which week of the cycle this column belongs to. Only drawn by an A/B school,
+         where it is the difference between two entirely different Tuesdays. */
+      .col-week {
+        margin-left: 4px;
+        padding: 0 4px;
+        border-radius: 5px;
+        background: color-mix(in srgb, currentColor 20%, transparent);
+        font-size: 0.65rem;
       }
 
       .col-head.today {

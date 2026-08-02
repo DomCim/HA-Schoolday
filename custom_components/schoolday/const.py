@@ -79,6 +79,26 @@ CONF_PERIODS: Final = "periods"
 CONF_SUBJECT_COLORS: Final = "colors"
 CONF_LESSONS: Final = "lessons"
 
+# How many weeks the timetable takes to repeat: 1 for the usual one, 2 for schools that
+# alternate an A week and a B week.
+#
+# The week is not a second dimension in the stored data. A day is a *slot*: 0..6 is week
+# A's Monday to Sunday and 7..13 is week B's, so a one-week timetable is simply one that
+# never uses a slot above 6 — and every timetable written before this existed is already
+# a valid two-week one. Nothing had to be migrated, and turning the cycle off does not
+# throw week B away.
+CONF_CYCLE_WEEKS: Final = "cycle_weeks"
+
+# The Monday of a week that is week A. Everything else follows by counting.
+#
+# A date rather than "this week is A", because the answer has to keep being right next
+# term: a stored flag would mean whatever it meant on the day somebody pressed it.
+CONF_CYCLE_ANCHOR: Final = "cycle_anchor"
+
+#: Days in one week, and therefore the distance between week A's slots and week B's.
+SLOTS_PER_WEEK: Final = 7
+CYCLE_MAX_WEEKS: Final = 2
+
 # What a subject needs brought along: subject -> list of things. Household-wide rather
 # than per child, because a PE bag is a PE bag whoever carries it.
 #
@@ -263,6 +283,7 @@ SERVICE_REMOVE_MEMBER: Final = "remove_member"
 SERVICE_SET_CALENDARS: Final = "set_calendars"
 SERVICE_SET_MATERIALS: Final = "set_materials"
 SERVICE_SET_EXCEPTION: Final = "set_exception"
+SERVICE_SET_CYCLE: Final = "set_cycle"
 SERVICE_CLEAR_EXCEPTION: Final = "clear_exception"
 
 ATTR_WEEKDAY_FIELD: Final = "weekday"
@@ -284,6 +305,13 @@ ATTR_CANCELLED: Final = "cancelled"
 # for that day. Only present where there is something to say, so the usual week costs
 # nothing: period -> the replacement lesson, or null for a period that is cancelled.
 ATTR_CHANGES: Final = "changes"
+
+# Which week of the cycle a dated day falls in: 0 for A, 1 for B. Always present, and
+# always 0 while the cycle is one week — so a card never has to ask whether it applies.
+ATTR_WEEK: Final = "week"
+
+ATTR_WEEKS: Final = "weeks"
+ATTR_ANCHOR: Final = "anchor"
 
 # The packing list a subject generates, next to the steps somebody typed. Marked as
 # such on the step itself so a card can say where it came from — and so nobody goes

@@ -243,6 +243,28 @@
         }
       }
     },
+    "set_cycle": {
+      "name": "Set the timetable cycle",
+      "description": "Whether the timetable repeats every week or every fortnight, and where week A starts. Give a calendar week — the way a school says it — or a date; either way a Monday is what gets stored, because an ISO year has 52 or 53 weeks and a week number alone would swap itself over some new years.",
+      "fields": {
+        "weeks": {
+          "name": "Weeks",
+          "description": "1 for the usual timetable, 2 for an A/B school."
+        },
+        "iso_week": {
+          "name": "Calendar week",
+          "description": "The week A starts in."
+        },
+        "iso_year": {
+          "name": "Year",
+          "description": "Of that calendar week. Left empty it is this year."
+        },
+        "anchor": {
+          "name": "Date in week A",
+          "description": "An alternative to the week number; any day of that week will do."
+        }
+      }
+    },
     "set_day": {
       "name": "Set a whole day",
       "description": "Replace one member's lessons for one weekday.",
@@ -258,6 +280,10 @@
         "lessons": {
           "name": "Lessons",
           "description": "A list of entries with period, subject and optional room."
+        },
+        "week": {
+          "name": "Week of the cycle",
+          "description": "0 for week A, 1 for week B. Only meaningful with a two-week timetable."
         }
       }
     },
@@ -318,6 +344,10 @@
         "room": {
           "name": "Room",
           "description": "Optional room, shown under the subject."
+        },
+        "week": {
+          "name": "Week of the cycle",
+          "description": "0 for week A, 1 for week B. Only meaningful with a two-week timetable."
         }
       }
     },

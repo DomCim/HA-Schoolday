@@ -15,7 +15,7 @@ and writing the config entry is the caller's job, so nothing here needs a `hass`
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 from typing import Any
 
 from homeassistant.util.ulid import ulid_now
@@ -25,6 +25,8 @@ from .const import (
     CONF_CALENDAR,
     CONF_CARE_KEYWORDS,
     CONF_COLOR,
+    CONF_CYCLE_ANCHOR,
+    CONF_CYCLE_WEEKS,
     CONF_EXCEPTIONS,
     CONF_MATERIALS,
     CONF_MEMBER_ID,
@@ -34,8 +36,10 @@ from .const import (
     CONF_ROUTINES,
     CONF_SCHOOL_CALENDARS,
     CONF_TIMETABLE,
+    CYCLE_MAX_WEEKS,
     ROUTINE_BLOCKS,
     ROUTINE_EXTRA_KEYS,
+    SLOTS_PER_WEEK,
     WEEKDAYS,
 )
 from .models import (
@@ -77,6 +81,21 @@ def set_periods(options: dict[str, Any], periods: list[str]) -> dict[str, Any]:
     return {CONF_TIMETABLE: timetable.as_options()}
 
 
+def _slot(weekday: int, week: int) -> int:
+    """The stored slot for a weekday in a week of the cycle.
+
+    Raises rather than clamping: a card that sends week 3 has a bug, and writing it
+    into week B would hide that behind a timetable nobody can explain.
+    """
+    if not 0 <= weekday <= 6:
+        raise SchooldayValueError(f"{weekday} is not a weekday. Use 0 for Monday to 6 for Sunday.")
+    if not 0 <= week < CYCLE_MAX_WEEKS:
+        raise SchooldayValueError(
+            f"{week} is not a week of the cycle. Use 0 for week A or 1 for week B."
+        )
+    return weekday + SLOTS_PER_WEEK * week
+
+
 def set_lesson(
     options: dict[str, Any],
     member_id: str,
@@ -84,37 +103,41 @@ def set_lesson(
     period: int,
     subject: str | None,
     room: str | None = None,
+    week: int = 0,
 ) -> dict[str, Any]:
     """Put one lesson in one period of one day, or clear it.
 
     One cell at a time, because that is what tapping a cell means. An empty subject
     clears it rather than writing a nameless lesson.
+
+    `week` is 0 for week A and 1 for week B, and is accepted whether or not the
+    two-week cycle is switched on — so turning it off and on again does not lose the
+    B week somebody already typed.
     """
     timetable = _timetable(options)
-    if not 0 <= weekday <= 6:
-        raise SchooldayValueError(f"{weekday} is not a weekday. Use 0 for Monday to 6 for Sunday.")
+    slot = _slot(weekday, week)
     if not any(item.index == period for item in timetable.periods):
         known = ", ".join(str(item.index) for item in timetable.periods) or "none configured"
         raise SchooldayValueError(
             f"There is no period {period}. Configured periods: {known}."
         )
 
-    week = {day: list(lessons) for day, lessons in timetable.week(member_id).items()}
-    day = [lesson for lesson in week.get(weekday, []) if lesson.period != period]
+    cycle = {existing: list(lessons) for existing, lessons in timetable.week(member_id).items()}
+    day = [lesson for lesson in cycle.get(slot, []) if lesson.period != period]
     if subject := (subject or "").strip():
         day.append(Lesson(period=period, subject=subject, room=(room or "").strip() or None))
     day.sort(key=lambda lesson: lesson.period)
 
     if day:
-        week[weekday] = day
+        cycle[slot] = day
     else:
-        week.pop(weekday, None)
+        cycle.pop(slot, None)
 
     # The same rule the options flow applies when a week is saved: one spelling per
     # subject, so "Sport" and "sport" do not become two subjects with two colours.
-    unify_subjects(week)
-    if week:
-        timetable.lessons[member_id] = week
+    unify_subjects(cycle)
+    if cycle:
+        timetable.lessons[member_id] = cycle
     else:
         timetable.lessons.pop(member_id, None)
     return {CONF_TIMETABLE: timetable.as_options()}
@@ -125,6 +148,7 @@ def set_day(
     member_id: str,
     weekday: int,
     lessons: list[dict[str, Any]],
+    week: int = 0,
 ) -> dict[str, Any]:
     """Replace a whole weekday for one member.
 
@@ -132,8 +156,7 @@ def set_day(
     without a subject is a free period and is simply left out.
     """
     timetable = _timetable(options)
-    if not 0 <= weekday <= 6:
-        raise SchooldayValueError(f"{weekday} is not a weekday. Use 0 for Monday to 6 for Sunday.")
+    slot = _slot(weekday, week)
     known = {item.index for item in timetable.periods}
 
     day: list[Lesson] = []
@@ -161,14 +184,14 @@ def set_day(
         )
     day.sort(key=lambda lesson: lesson.period)
 
-    week = {existing: list(items) for existing, items in timetable.week(member_id).items()}
+    cycle = {existing: list(items) for existing, items in timetable.week(member_id).items()}
     if day:
-        week[weekday] = day
+        cycle[slot] = day
     else:
-        week.pop(weekday, None)
-    unify_subjects(week)
-    if week:
-        timetable.lessons[member_id] = week
+        cycle.pop(slot, None)
+    unify_subjects(cycle)
+    if cycle:
+        timetable.lessons[member_id] = cycle
     else:
         timetable.lessons.pop(member_id, None)
     return {CONF_TIMETABLE: timetable.as_options()}
@@ -301,6 +324,62 @@ def remove_member(options: dict[str, Any], member_id: str) -> dict[str, Any]:
         CONF_ROUTINES: routines,
         CONF_TIMETABLE: timetable.as_options(),
     }
+
+
+def set_cycle(
+    options: dict[str, Any],
+    weeks: int,
+    anchor: str | None = None,
+    iso_week: int | None = None,
+    iso_year: int | None = None,
+    today: date | None = None,
+) -> dict[str, Any]:
+    """Say how many weeks the timetable takes to repeat, and where week A starts.
+
+    Where week A starts can be given as a calendar week — which is how a school says
+    it, and how the card asks — or as a date, for anything writing this from a script.
+
+    It is *stored* as a date either way, and that is deliberate rather than pedantic.
+    A calendar week is only half an answer: ISO years have 52 or 53 weeks, so "A is
+    the odd weeks" swaps itself over some new years and not others, and the household
+    would find out in February. A Monday is an answer that keeps meaning the same
+    thing, and the card turns it back into a week number to show.
+    """
+    if not 1 <= weeks <= CYCLE_MAX_WEEKS:
+        raise SchooldayValueError(
+            f"A timetable repeats over 1 or {CYCLE_MAX_WEEKS} weeks, not {weeks}."
+        )
+
+    changes: dict[str, Any] = {CONF_CYCLE_WEEKS: weeks}
+
+    if iso_week is not None:
+        year = iso_year or (today or date.today()).isocalendar().year
+        try:
+            monday = date.fromisocalendar(year, iso_week, 1)
+        except ValueError as err:
+            raise SchooldayValueError(
+                f"{year} has no calendar week {iso_week}."
+            ) from err
+        changes[CONF_CYCLE_ANCHOR] = monday.isoformat()
+    elif anchor:
+        try:
+            picked = date.fromisoformat(str(anchor).strip())
+        except ValueError as err:
+            raise SchooldayValueError(
+                f"'{anchor}' is not a date. Write it as YYYY-MM-DD."
+            ) from err
+        changes[CONF_CYCLE_ANCHOR] = (
+            picked - timedelta(days=picked.weekday())
+        ).isoformat()
+    elif weeks > 1 and not options.get(CONF_CYCLE_ANCHOR):
+        # Switching the cycle on without saying where it starts: this week is A, which
+        # is the only guess that cannot be wrong today and is one tap to correct.
+        start = today or date.today()
+        changes[CONF_CYCLE_ANCHOR] = (
+            start - timedelta(days=start.weekday())
+        ).isoformat()
+
+    return changes
 
 
 def _exceptions(options: dict[str, Any], today: date) -> dict[str, dict[str, Any]]:

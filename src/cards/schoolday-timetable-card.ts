@@ -215,9 +215,14 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
     if (!day || day.mode === 'school') {
       return null;
     }
+    // An illness has no label of its own — there is no event behind it — so it always
+    // falls through to the word, which is the whole of what there is to say.
+    const fallback = { care: 'timetable.care', sick: 'timetable.sick', free: 'timetable.free' }[
+      day.mode
+    ];
     return {
       mode: day.mode,
-      label: day.label ?? t(this.hass, day.mode === 'care' ? 'timetable.care' : 'timetable.free'),
+      label: (day.mode === 'sick' ? null : day.label) ?? t(this.hass, fallback ?? 'timetable.free'),
     };
   }
 
@@ -419,6 +424,14 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
           : weekdays[0];
     const columns = dayView ? [day] : weekdays;
 
+    /*
+     * Whether today is happening for *this* member, which is not the same question as
+     * whether the school is open. A holiday closes it for everybody; holiday care and
+     * an illness close it for one child, and the board sensor cannot know either. Read
+     * from their own outlook, so the running-lesson line falls silent for the child who
+     * is in bed without falling silent for their brother.
+     */
+    const closedToday = this._closure(outlook, today);
     const openColumns = columns.filter((weekday) => this._closure(outlook, weekday) === null);
     const closures = openColumns.length < columns.length;
     const rows = buildRows(grid, (period) => {
@@ -428,7 +441,7 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
       return openColumns.some((weekday) => lessonAt(week, weekday, period.index) !== undefined);
     });
 
-    const running = highlight && board.schoolToday ? currentPeriod(grid) : undefined;
+    const running = highlight && !closedToday ? currentPeriod(grid) : undefined;
     const showTimes = this._config.show_times !== false;
     const showBreaks = this._config.show_breaks !== false;
     // Every item is placed explicitly below, so the rows have to be settled first:
@@ -446,8 +459,8 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
           </div>
           ${this._renderChips(candidates, member)}
         </div>
-        ${highlight && !board.schoolToday
-          ? this._renderNoSchool(board.noSchoolReason)
+        ${highlight && closedToday
+          ? this._renderNoSchool(closedToday.label)
           : highlight && weekdays.includes(today)
             ? this._renderStatus(grid, week, today)
             : nothing}
@@ -768,6 +781,10 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
 
       .closure.care {
         --closure: var(--schoolday-care);
+      }
+
+      .closure.sick {
+        --closure: var(--schoolday-sick);
       }
 
       .time {

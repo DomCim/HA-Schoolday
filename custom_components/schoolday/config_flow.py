@@ -26,6 +26,7 @@ from .const import (
     CONF_CALENDAR,
     CONF_CARE_KEYWORDS,
     CONF_COLOR,
+    CONF_MATERIALS,
     CONF_MEMBER_ID,
     CONF_MEMBERS,
     CONF_NAME,
@@ -189,7 +190,7 @@ class SchooldayOptionsFlow(OptionsFlow):
         if self._members and timetable.periods:
             options.append("timetable_lessons")
         if timetable.subjects:
-            options.append("timetable_colors")
+            options += ["timetable_colors", "timetable_materials"]
         options += ["timetable_calendars", "done"]
         return self.async_show_menu(step_id="init", menu_options=options)
 
@@ -481,6 +482,51 @@ class SchooldayOptionsFlow(OptionsFlow):
         }
         return self.async_show_form(
             step_id="timetable_colors",
+            data_schema=self.add_suggested_values_to_schema(schema, suggested),
+        )
+
+    async def async_step_timetable_materials(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Say what each subject needs brought along, one thing per line.
+
+        This is the one place the timetable and the routines meet. Typing "pack the PE
+        kit" into Monday evening states the same fact as Tuesday's timetable, and the
+        copy is the one nobody updates when the timetable changes — so it is stated
+        once, here, and the evening routine works out the rest.
+        """
+        subjects = self._timetable.subjects
+        if not subjects:
+            return await self.async_step_init()
+
+        if user_input is not None:
+            self._persist(
+                **{
+                    CONF_MATERIALS: {
+                        subject: items
+                        for subject in subjects
+                        if (items := steps_from_text(user_input.get(subject)))
+                    }
+                }
+            )
+            return await self.async_step_init()
+
+        stored = self.config_entry.options.get(CONF_MATERIALS) or {}
+        by_name = {str(key).casefold(): value for key, value in stored.items()}
+        schema = vol.Schema(
+            {
+                vol.Optional(subject): selector.TextSelector(
+                    selector.TextSelectorConfig(multiline=True)
+                )
+                for subject in subjects
+            }
+        )
+        suggested = {
+            subject: text_from_steps(by_name.get(subject.casefold()))
+            for subject in subjects
+        }
+        return self.async_show_form(
+            step_id="timetable_materials",
             data_schema=self.add_suggested_values_to_schema(schema, suggested),
         )
 

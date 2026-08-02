@@ -22,6 +22,9 @@ export const schooldayTokens = css`
        is a holiday or somebody's Art lesson. */
     --schoolday-holiday: #b08d57;
     --schoolday-care: #2f7f8f;
+    /* A third kind of closed day, and the only one that is nobody's good news. Muted
+       rather than alarming: the board says what is, it does not fuss. */
+    --schoolday-sick: #8a8f98;
   }
 `;
 

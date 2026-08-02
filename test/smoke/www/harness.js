@@ -10,7 +10,12 @@ const ROUTINES = {
       { step: 'Zähne putzen', done: false },
       { step: 'Sportsachen einpacken', done: false },
     ],
-    evening: [{ step: 'Ranzen packen', done: false }],
+    // The last one is generated from tomorrow's Sport lesson rather than typed, which
+    // is what the `subject` tag on a step means.
+    evening: [
+      { step: 'Ranzen packen', done: false },
+      { step: 'Sportbeutel', done: false, subject: 'Sport' },
+    ],
   },
   m2: { morning: [], evening: [] },
   m3: {
@@ -116,6 +121,8 @@ function memberState(entityId, name, memberId, color) {
       member_id: memberId,
       color,
       avatar: null,
+      day_mode: 'school',
+      sick_until: null,
       routine_morning: ROUTINES[memberId]?.morning ?? [],
       routine_evening: ROUTINES[memberId]?.evening ?? [],
       timetable: WEEKS[memberId] ?? {},
@@ -171,6 +178,8 @@ const hass = {
           colors: { Deutsch: '#ff4015' },
           school_calendars: ['calendar.ferien'],
           care_keywords: ['Ferienbetreuung'],
+          materials: { Sport: ['Sportbeutel', 'Turnschuhe'] },
+          subjects: Object.keys(TIMETABLE.subjects),
         },
         version: '0.5.0',
       },
@@ -253,6 +262,33 @@ window.__pushHass = () => {
   for (const card of document.getElementById('host').children) {
     card.hass = next;
   }
+};
+
+// Mark a member ill the way the integration does: their own outlook closes from today
+// onwards, and their day mode says why. Nothing else about the board changes — that is
+// the whole point of an illness as against a holiday.
+window.__setSick = (memberId, on) => {
+  const sensorId = Object.keys(hass.states).find(
+    (id) => hass.states[id].attributes?.member_id === memberId,
+  );
+  if (!sensorId) return;
+  const today = '2026-08-05';
+  const outlook = JSON.parse(JSON.stringify(OUTLOOK)).map((day) =>
+    on && day.date === today ? { ...day, mode: 'sick', label: null } : day,
+  );
+  hass.states[sensorId] = {
+    ...hass.states[sensorId],
+    attributes: {
+      ...hass.states[sensorId].attributes,
+      day_mode: on ? 'sick' : 'school',
+      sick_until: on ? today : null,
+      outlook,
+      routine_morning: on ? [] : [...(ROUTINES[memberId]?.morning ?? [])],
+      routine_evening: on ? [] : [...(ROUTINES[memberId]?.evening ?? [])],
+    },
+    last_updated: new Date().toISOString(),
+  };
+  window.__pushHass();
 };
 
 window.__mount = (config, tag) => {

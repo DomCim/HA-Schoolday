@@ -21,6 +21,7 @@ version.
 | `schoolday-timetable-card` | The week per child, colour-coded by subject, with the running lesson marked |
 | `schoolday-routines-card` | Daily routines per child and weekday, ticked off by the kids |
 | `schoolday-header-card` | Clock, date and weather — the strip along the top of a wall panel |
+| `schoolday-admin-card` | Everything the options dialog can change, on the dashboard |
 
 The cards read `sensor.schoolday_board` and the per-member sensors, so no card has to be told who
 your family is. **Adding a card with no options at all is the normal case.**
@@ -151,7 +152,21 @@ is why the days off get their own fields rather than a rule about which steps to
 routine at all.
 
 Routines are deliberately independent of the timetable: "pack the PE kit" belongs to the evening
-before, not to the lesson. Put it on the days that have PE and be done with it.
+before, not to the lesson.
+
+With one exception, and it is the exception that stops the two drifting apart. Under **What each
+subject needs** you say once what a subject needs brought along:
+
+```
+Sport      →  Sportbeutel, Turnschuhe
+Schwimmen  →  Badesachen, Handtuch
+```
+
+Those appear in the **evening** routine on the day before that subject, for whoever has it, and tick
+off exactly like any other step. Typed into Monday evening by hand, "pack the PE kit" states the
+same fact as Tuesday's timetable — and the copy is the one nobody updates when the timetable
+changes. A tomorrow that is a holiday, a care day or a sick day asks for nothing, which is also why
+Friday evening is quiet and Sunday evening is not.
 
 Ticks reset overnight on their own. Nothing has to run at midnight for that to be correct — a stored
 day that is not today reads as "nothing done yet" — the scheduled reset exists only so a wall panel
@@ -163,6 +178,30 @@ Two services drive it, for automations and for the card:
 |---|---|
 | `schoolday.set_routine_step` | Tick a step off, or put it back. Takes a member name or id. |
 | `schoolday.reset_routine` | Clear today's ticks, for one member or everyone. |
+
+## Off ill
+
+Each child gets a switch:
+
+```
+switch.schoolday_ben_ist_krank
+```
+
+Switching it on closes the day for that child and nobody else. Their timetable column says so, their
+routine falls silent, and `sensor.schoolday_ben` goes to `free` — so a morning announcement skips
+them without a single extra condition anywhere.
+
+It is stored as a **last day, not a flag**, and defaults to today. That is deliberate: a flag has to
+be switched off by somebody remembering to, and the one thing worse than a board that does not know
+a child is ill is a board that still thinks so on Thursday. Two days of flu is one more tap, or one
+call with a date:
+
+```yaml
+action: schoolday.set_absent
+data:
+  member: Ben
+  until: "2026-09-18"
+```
 
 ## Automations
 

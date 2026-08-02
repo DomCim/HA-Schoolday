@@ -8,6 +8,7 @@ This module is the only place that knows their raw shape; everything else works 
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import Any
 from zlib import crc32
@@ -30,8 +31,10 @@ from .const import (
     CONF_TIMETABLE,
     DEFAULT_COLORS,
     FREE_MARKERS,
+    CONF_MATERIALS,
     MODE_CARE,
     MODE_FREE,
+    MODE_SICK,
     ROUTINE_BLOCKS,
     ROUTINE_CARE,
     ROUTINE_HOLIDAY,
@@ -166,7 +169,12 @@ class Routine:
 
         A care day with no list of its own falls back to the holiday list: being in
         care is a holiday first, so that is the better wrong answer of the two.
+
+        A child at home ill has no list at all, and deliberately no fallback either:
+        a holiday list says "swimming things" and a sick day is not a holiday.
         """
+        if mode == MODE_SICK:
+            return []
         if mode == MODE_CARE:
             return self.care or self.holiday
         if mode == MODE_FREE:
@@ -574,6 +582,8 @@ class SchooldayConfig:
     #: member id -> block -> Routine
     routines: dict[str, dict[str, Routine]] = field(default_factory=dict)
     timetable: Timetable = field(default_factory=Timetable)
+    #: subject -> what it needs brought along, in the order it should be packed.
+    materials: dict[str, list[str]] = field(default_factory=dict)
 
     @classmethod
     def from_options(cls, options: dict[str, Any]) -> SchooldayConfig:
@@ -591,6 +601,12 @@ class SchooldayConfig:
             for member in members
         }
 
+        materials: dict[str, list[str]] = {}
+        for subject, items in (options.get(CONF_MATERIALS) or {}).items():
+            cleaned = [item for raw in (items or []) if (item := str(raw).strip())]
+            if cleaned and (name := str(subject).strip()):
+                materials[name] = cleaned
+
         return cls(
             members=members,
             school_calendars=list(options.get(CONF_SCHOOL_CALENDARS) or []),
@@ -601,7 +617,29 @@ class SchooldayConfig:
             ],
             routines=routines,
             timetable=Timetable.from_dict(options.get(CONF_TIMETABLE)),
+            materials=materials,
         )
+
+    def packing_list(self, subjects: Iterable[str]) -> list[tuple[str, str]]:
+        """What a day of these subjects needs packed, as (item, subject) pairs.
+
+        Matched case-insensitively, because the subject spelling is only settled
+        within one member's week — the materials are typed somewhere else entirely and
+        should not have to match keystroke for keystroke.
+
+        An item asked for by two subjects is listed once, under the first: a swimming
+        day that also has PE needs one towel, not two, and a child ticking it off twice
+        would rightly stop trusting the list.
+        """
+        by_name = {name.casefold(): items for name, items in self.materials.items()}
+        packing: list[tuple[str, str]] = []
+        seen: set[str] = set()
+        for subject in subjects:
+            for item in by_name.get(subject.casefold(), []):
+                if (key := item.casefold()) not in seen:
+                    seen.add(key)
+                    packing.append((item, subject))
+        return packing
 
     def routine(self, member_id: str, block: str) -> Routine:
         """A member's routine for a block, empty when never configured."""
@@ -631,6 +669,10 @@ class SchooldayConfig:
             "colors": dict(self.timetable.colors),
             "school_calendars": list(self.school_calendars),
             "care_keywords": list(self.care_keywords),
+            "materials": {name: list(items) for name, items in self.materials.items()},
+            # Every subject in use, so the materials editor can offer them instead of
+            # asking the household to type a subject name that has to match exactly.
+            "subjects": self.timetable.subjects,
         }
 
     def member_by_name(self, name: str) -> Member | None:

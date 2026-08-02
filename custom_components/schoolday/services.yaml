@@ -184,3 +184,33 @@ set_calendars:
       example: ["Ferienbetreuung", "Hort"]
       selector:
         object:
+
+set_materials:
+  fields:
+    subject:
+      required: true
+      example: Sport
+      selector:
+        text:
+    items:
+      required: true
+      example: ["Sportbeutel", "Turnschuhe"]
+      selector:
+        object:
+
+set_absent:
+  fields:
+    member:
+      required: true
+      example: Ben
+      selector:
+        text:
+    absent:
+      required: false
+      default: true
+      selector:
+        boolean:
+    until:
+      required: false
+      selector:
+        date:

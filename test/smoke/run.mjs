@@ -278,7 +278,15 @@ check(
 // A day the child is not at school says so in its own column, and shows no lessons:
 // during the summer holidays the grid must not still promise Monday's German. Marked
 // by date, because with rolling on, the Monday column is next Monday's.
-const closeDays = async (config) =>
+const HOLIDAY_WEEK = {
+  // Next Monday and this Thursday — the two the rolling view actually shows.
+  '2026-08-10': { mode: 'free', label: 'Sommerferien Bayern' },
+  '2026-08-06': { mode: 'care', label: 'Ben Ferienbetreuung' },
+  // This Monday, which only the non-rolling view shows.
+  '2026-08-03': { mode: 'free', label: 'Beweglicher Ferientag' },
+};
+
+const closeDays = async (config, closures = HOLIDAY_WEEK) =>
   page.evaluate(
     ({ config, closures }) => {
       const host = document.getElementById('host');
@@ -300,16 +308,7 @@ const closeDays = async (config) =>
       };
       host.appendChild(card);
     },
-    {
-      config,
-      closures: {
-        // Next Monday and this Thursday — the two the rolling view actually shows.
-        '2026-08-10': { mode: 'free', label: 'Sommerferien Bayern' },
-        '2026-08-06': { mode: 'care', label: 'Ben Ferienbetreuung' },
-        // This Monday, which only the non-rolling view shows.
-        '2026-08-03': { mode: 'free', label: 'Beweglicher Ferientag' },
-      },
-    },
+    { config, closures },
   );
 
 await closeDays({ type: 'custom:schoolday-timetable-card', member: 'Ben', layout: 'week' });
@@ -362,27 +361,11 @@ check(
 );
 
 // A holiday keeps the week on screen — it is still the plan — but nothing is running.
-await page.evaluate(() => {
-  const host = document.getElementById('host');
-  host.innerHTML = '';
-  const card = document.createElement('schoolday-timetable-card');
-  card.setConfig({ type: 'custom:schoolday-timetable-card', member: 'Ben' });
-  const board = window.__hass.states['sensor.schoolday_board'];
-  card.hass = {
-    ...window.__hass,
-    states: {
-      ...window.__hass.states,
-      'sensor.schoolday_board': {
-        ...board,
-        attributes: {
-          ...board.attributes,
-          school_today: false,
-          no_school_reason: 'Sommerferien',
-        },
-      },
-    },
-  };
-  host.appendChild(card);
+// Read from this member's own outlook rather than from the board: a holiday closes the
+// day for everybody, holiday care and an illness close it for one child, and only the
+// member's outlook can tell those apart.
+await closeDays({ type: 'custom:schoolday-timetable-card', member: 'Ben' }, {
+  '2026-08-05': { mode: 'free', label: 'Sommerferien' },
 });
 await page.waitForTimeout(300);
 const holiday = await page.evaluate(() => {
@@ -400,6 +383,26 @@ check(
     holiday.marked === 0 &&
     holiday.lessons > 0,
   JSON.stringify(holiday),
+);
+
+// An illness closes today for one child and says so in their own colour. The word is
+// Schoolday's own: there is no calendar event behind it to borrow a name from.
+await closeDays({ type: 'custom:schoolday-timetable-card', member: 'Ben' }, {
+  '2026-08-05': { mode: 'sick', label: null },
+});
+await page.waitForTimeout(300);
+const ill = await page.evaluate(() => {
+  const root = document.querySelector('schoolday-timetable-card').shadowRoot;
+  return {
+    status: root.querySelector('.status')?.textContent.replace(/\s+/g, ' ').trim(),
+    closure: root.querySelector('.closure.sick')?.textContent.trim() ?? null,
+    marked: root.querySelectorAll('.cell.now').length,
+  };
+});
+check(
+  'an ill day is drawn as its own kind of closed day',
+  ill.closure === 'Krank' && /Schulfrei/.test(ill.status) && ill.marked === 0,
+  JSON.stringify(ill),
 );
 
 // ---------------------------------------------------------------- routines card
@@ -512,6 +515,72 @@ check(
   onlyNik.map((n) => n.trim()).join(',') === 'Nik',
   onlyNik.map((n) => n.trim()).join(','),
 );
+
+// A step the timetable generated carries the subject that put it there. It is not a
+// second kind of step: it ticks off through the same service as any other.
+await page.evaluate(() =>
+  window.__mount(
+    { type: 'custom:schoolday-routines-card', block: 'evening' },
+    'schoolday-routines-card',
+  ),
+);
+await page.waitForTimeout(300);
+const packed = await page.evaluate(() => {
+  const root = document.querySelector('schoolday-routines-card').shadowRoot;
+  return [...root.querySelectorAll('.step')].map((step) => ({
+    label: step.querySelector('.label')?.textContent.trim(),
+    from: step.querySelector('.from')?.textContent.trim() ?? null,
+  }));
+});
+check(
+  "a packed-for-tomorrow step names the subject it came from",
+  JSON.stringify(packed) ===
+    JSON.stringify([
+      { label: 'Ranzen packen', from: null },
+      { label: 'Sportbeutel', from: 'Sport' },
+    ]),
+  JSON.stringify(packed),
+);
+
+await page.locator('schoolday-routines-card .step', { hasText: 'Sportbeutel' }).click();
+await page.waitForTimeout(300);
+const packedCall = await page.evaluate(() =>
+  window.__calls.services.filter((c) => c.service === 'set_routine_step').at(-1),
+);
+check(
+  'a generated step ticks off like any other',
+  packedCall?.data?.step === 'Sportbeutel' &&
+    packedCall?.data?.block === 'evening' &&
+    packedCall?.data?.done === true,
+  JSON.stringify(packedCall?.data ?? null),
+);
+
+// An ill child keeps their place on the board. Dropping them would answer the wrong
+// question: the reader wants to know why the list is gone.
+await page.evaluate(() => {
+  window.__mount(
+    { type: 'custom:schoolday-routines-card', block: 'morning' },
+    'schoolday-routines-card',
+  );
+  window.__setSick('m3', true);
+});
+await page.waitForTimeout(300);
+const whenIll = await page.evaluate(() => {
+  const root = document.querySelector('schoolday-routines-card').shadowRoot;
+  return {
+    people: [...root.querySelectorAll('.person-name')].map((n) => n.textContent.trim()),
+    note: root.querySelector('.person.sick .sick-note')?.textContent.trim() ?? null,
+    steps: root.querySelectorAll('.person.sick .step').length,
+  };
+});
+check(
+  'an ill child stays on the board, with the reason instead of a list',
+  whenIll.people.join(',') === 'Ben,Nik' &&
+    whenIll.note === 'Krank zu Hause' &&
+    whenIll.steps === 0,
+  JSON.stringify(whenIll),
+);
+await page.evaluate(() => window.__setSick('m3', false));
 
 // By name as well as by id, so a hand-written card does not have to know the ids.
 await page.evaluate(() =>
@@ -726,7 +795,7 @@ const adminTabs = await page.locator('schoolday-admin-card .tab').allTextContent
 check(
   'the admin card offers every part of the options dialog',
   adminTabs.map((tab) => tab.trim()).join(',') ===
-    'Stundenplan,Routinen,Familie,Fächer,Freie Tage',
+    'Stundenplan,Routinen,Familie,Fächer,Material,Freie Tage',
   adminTabs.map((tab) => tab.trim()).join(','),
 );
 
@@ -914,6 +983,46 @@ check(
   'a calendar chosen in the picker is the one saved',
   adminMemberCall?.data.calendar === 'calendar.ferien' && adminMemberCall?.data.name === 'Ben',
   JSON.stringify(adminMemberCall?.data ?? null),
+);
+
+// Materials are listed per subject, because the subject is the key the evening routine
+// looks them up by — a typed subject name that does not match is a packing list that
+// silently never appears.
+await page.locator('schoolday-admin-card .tab', { hasText: 'Material' }).click();
+await page.waitForTimeout(300);
+const materialFields = await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  return [...root.querySelectorAll('.field')].map((field) => ({
+    subject: field.querySelector('.label')?.textContent.trim(),
+    items: field.querySelector('textarea')?.value ?? null,
+  }));
+});
+check(
+  'every subject gets a materials box, filled with what is stored',
+  materialFields.length === 10 &&
+    materialFields.find((f) => f.subject === 'Sport')?.items === 'Sportbeutel\nTurnschuhe' &&
+    materialFields.find((f) => f.subject === 'Mathe')?.items === '',
+  JSON.stringify(materialFields.filter((f) => f.items).concat(materialFields.length)),
+);
+
+await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  const field = [...root.querySelectorAll('.field')].find(
+    (item) => item.querySelector('.label')?.textContent.trim() === 'Sport',
+  );
+  field.querySelector('textarea').value = 'Sportbeutel\n \nTrinkflasche';
+  field.querySelector('.apply').click();
+});
+await page.waitForTimeout(300);
+const materialCall = await page.evaluate(
+  () => window.__calls.services.filter((c) => c.service === 'set_materials').pop() ?? null,
+);
+check(
+  'saving materials calls set_materials for that subject',
+  materialCall?.data.subject === 'Sport' &&
+    JSON.stringify(materialCall?.data.items) ===
+      JSON.stringify(['Sportbeutel', 'Trinkflasche']),
+  JSON.stringify(materialCall?.data ?? null),
 );
 
 // Days off: the calendars are entities and get the multi-picker; the keywords are the

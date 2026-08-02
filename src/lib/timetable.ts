@@ -42,7 +42,10 @@ export interface TimetableLesson {
 export type TimetableWeek = Record<number, TimetableLesson[]>;
 
 /** What kind of day a member is having. Mirrors MODE_* in the integration. */
-export type DayMode = 'school' | 'care' | 'free';
+export type DayMode = 'school' | 'care' | 'free' | 'sick';
+
+/** The modes that are not a school day, so a new one cannot be forgotten anywhere. */
+const CLOSED_MODES: readonly DayMode[] = ['care', 'free', 'sick'];
 
 /** One dated day: which day it is, and what it actually holds. */
 export interface OutlookDay {
@@ -192,7 +195,9 @@ export function parseOutlook(raw: unknown): Outlook {
     .map((entry) => ({
       date: String(entry.date),
       weekday: Number(entry.weekday ?? 0),
-      mode: (entry.mode === 'care' || entry.mode === 'free' ? entry.mode : 'school') as DayMode,
+      mode: (CLOSED_MODES as readonly unknown[]).includes(entry.mode)
+        ? (entry.mode as DayMode)
+        : 'school',
       label: typeof entry.label === 'string' && entry.label ? entry.label : null,
     }))
     .sort((a, b) => a.date.localeCompare(b.date));

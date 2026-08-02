@@ -27,6 +27,12 @@ export type BlockSetting = RoutineBlock | 'auto' | 'both';
 interface RoutineStep {
   step: string;
   done: boolean;
+  /**
+   * Set when the step came from a subject's materials rather than from the routine.
+   * Worth showing: "for PE" is the reason the thing is on the list, and it is also
+   * what tells the reader why they cannot find this step in the routine editor.
+   */
+  subject?: string;
 }
 
 const ICONS = {
@@ -100,7 +106,18 @@ export class SchooldayRoutinesCard extends LitElement implements LovelaceCard {
     }
     return raw
       .filter((item): item is RoutineStep => Boolean(item) && typeof item === 'object')
-      .map((item) => ({ step: String(item.step ?? ''), done: Boolean(item.done) }));
+      .map((item) => ({
+        step: String(item.step ?? ''),
+        done: Boolean(item.done),
+        ...(typeof item.subject === 'string' && item.subject
+          ? { subject: item.subject }
+          : {}),
+      }));
+  }
+
+  /** Whether this member is at home ill, which is a different kind of empty. */
+  private _isSick(member: SchooldayMember): boolean {
+    return memberSensor(this.hass!, member.id)?.attributes?.day_mode === 'sick';
   }
 
   private async _toggle(
@@ -163,6 +180,15 @@ export class SchooldayRoutinesCard extends LitElement implements LovelaceCard {
                   >
                     ${this._icon(done ? ICONS.checked : ICONS.unchecked, 'tick')}
                     <span class="label">${entry.step}</span>
+                    ${entry.subject
+                      ? html`<span
+                          class="from"
+                          title=${t(this.hass, 'routines.packed_for', {
+                            subject: entry.subject,
+                          })}
+                          >${entry.subject}</span
+                        >`
+                      : nothing}
                   </button>
                 `;
               })}
@@ -200,6 +226,12 @@ export class SchooldayRoutinesCard extends LitElement implements LovelaceCard {
       if (this._config.show_empty === true) {
         return true;
       }
+      // A child at home ill has no steps, and dropping them off the board would
+      // answer the wrong question: the reader wants to know why the list is gone,
+      // not to be shown a family that is one child smaller today.
+      if (this._isSick(member)) {
+        return true;
+      }
       return blocks.some((block) => this._steps(member, block).length > 0);
     });
 
@@ -216,14 +248,19 @@ export class SchooldayRoutinesCard extends LitElement implements LovelaceCard {
         <div class="grid">
           ${members.map(
             (member) => html`
-              <div class="person" style=${`--member-color:${member.color}`}>
+              <div
+                class="person ${this._isSick(member) ? 'sick' : ''}"
+                style=${`--member-color:${member.color}`}
+              >
                 <div class="person-name">
                   ${avatarUrl(this.hass!, member.avatar)
                     ? html`<img class="avatar" src=${avatarUrl(this.hass!, member.avatar)!} alt="" />`
                     : nothing}
                   <span>${member.name}</span>
                 </div>
-                ${blocks.map((block) => this._renderBlock(member, block))}
+                ${this._isSick(member)
+                  ? html`<div class="sick-note">${t(this.hass, 'routines.sick')}</div>`
+                  : blocks.map((block) => this._renderBlock(member, block))}
               </div>
             `,
           )}
@@ -353,6 +390,44 @@ export class SchooldayRoutinesCard extends LitElement implements LovelaceCard {
       .label {
         overflow: hidden;
         text-overflow: ellipsis;
+      }
+
+      /* The subject that put this step on the list. Quiet on purpose: it is the
+         reason, not the instruction, and the instruction is what gets read. */
+      .from {
+        flex: none;
+        margin-left: auto;
+        padding: 2px 8px;
+        border-radius: 10px;
+        background: color-mix(in srgb, var(--member-color) 26%, transparent);
+        color: var(--schoolday-muted);
+        font-size: 0.7rem;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+
+      /* Ill is drawn as a day that is not happening rather than as an empty list:
+         a child in bed still has a place on the board. */
+      .person.sick {
+        background: var(--schoolday-surface-alt);
+        border-top-color: var(--schoolday-line);
+      }
+
+      .person.sick .person-name {
+        color: var(--schoolday-muted);
+      }
+
+      .sick-note {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: var(--schoolday-touch);
+        border-radius: 10px;
+        border-left: 3px solid var(--schoolday-sick);
+        background: color-mix(in srgb, var(--schoolday-sick) 22%, transparent);
+        color: var(--primary-text-color);
+        font-size: 0.85rem;
+        font-weight: 700;
       }
 
       .empty,

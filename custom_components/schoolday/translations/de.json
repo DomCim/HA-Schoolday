@@ -243,6 +243,28 @@
         }
       }
     },
+    "set_cycle": {
+      "name": "Stundenplan-Zyklus festlegen",
+      "description": "Ob sich der Stundenplan jede Woche oder alle zwei Wochen wiederholt, und wo die A-Woche beginnt. Als Kalenderwoche — so wie es die Schule sagt — oder als Datum; gespeichert wird in beiden Fällen ein Montag, denn ein ISO-Jahr hat 52 oder 53 Wochen und eine Wochennummer allein würde sich über manche Jahreswechsel selbst vertauschen.",
+      "fields": {
+        "weeks": {
+          "name": "Wochen",
+          "description": "1 für den üblichen Stundenplan, 2 für A/B-Wochen."
+        },
+        "iso_week": {
+          "name": "Kalenderwoche",
+          "description": "Die KW, in der die A-Woche beginnt."
+        },
+        "iso_year": {
+          "name": "Jahr",
+          "description": "Zu dieser KW. Leer bedeutet dieses Jahr."
+        },
+        "anchor": {
+          "name": "Datum in der A-Woche",
+          "description": "Alternative zur KW; irgendein Tag dieser Woche genügt."
+        }
+      }
+    },
     "set_day": {
       "name": "Ganzen Tag setzen",
       "description": "Ersetzt die Stunden eines Kindes an einem Wochentag.",
@@ -258,6 +280,10 @@
         "lessons": {
           "name": "Stunden",
           "description": "Eine Liste aus Einträgen mit Stunde, Fach und optionalem Raum."
+        },
+        "week": {
+          "name": "Woche des Zyklus",
+          "description": "0 für die A-Woche, 1 für die B-Woche. Nur bei einem Zwei-Wochen-Plan von Bedeutung."
         }
       }
     },
@@ -318,6 +344,10 @@
         "room": {
           "name": "Raum",
           "description": "Optionaler Raum, erscheint unter dem Fach."
+        },
+        "week": {
+          "name": "Woche des Zyklus",
+          "description": "0 für die A-Woche, 1 für die B-Woche. Nur bei einem Zwei-Wochen-Plan von Bedeutung."
         }
       }
     },

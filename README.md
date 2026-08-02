@@ -199,6 +199,19 @@ homework list, and reading dates at seven in the morning is work while "today" i
 Finished work stays for a fortnight and is then swept: not for the child's benefit, but
 so that *"did you do the maths?"* on Thursday still has an answer on Friday.
 
+## Two-week timetables
+
+Some schools alternate an **A week** and a **B week**. Under **Timetable** on the admin
+card, switch the cycle to two weeks and say which **calendar week** week A starts in —
+the way a school says it. The editor then has an A/B switch above the grid, and the
+display card marks every column with the week it belongs to.
+
+What gets stored is the **Monday** that week begins on, not the week number, and that is
+deliberate: an ISO year has 52 or 53 weeks, so "A is the odd weeks" swaps itself over
+some new years and not others, and you would find out in February.
+
+Turning the cycle back off does not throw week B away. It stops showing it.
+
 ## When one date is not like its weekday
 
 A timetable is worth typing in once because it repeats. That is also what makes it lie

@@ -45,6 +45,9 @@ const TIMETABLE = {
     { after: 4, start: '11:20', end: '11:30', minutes: 10 },
     { after: 6, start: '13:00', end: '13:15', minutes: 15 },
   ],
+  // One week by default. __setCycle switches the household to A/B weeks, exactly as
+  // the board sensor would after the option changed.
+  cycle_weeks: 1,
   subjects: {
     Chor: '#476d80',
     Deutsch: '#4f9d69',
@@ -108,7 +111,7 @@ const OUTLOOK = (() => {
     const iso = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(
       day.getDate(),
     ).padStart(2, '0')}`;
-    days.push({ date: iso, weekday: (day.getDay() + 6) % 7, mode: 'school', label: null });
+    days.push({ date: iso, weekday: (day.getDay() + 6) % 7, mode: 'school', label: null, week: 0 });
   }
   return days;
 })();
@@ -330,6 +333,41 @@ window.__pushHass = () => {
 // Mark a member ill the way the integration does: their own outlook closes from today
 // onwards, and their day mode says why. Nothing else about the board changes — that is
 // the whole point of an illness as against a holiday.
+window.__setCycle = (weeks) => {
+  const board = hass.states['sensor.schoolday_board'];
+  hass.states['sensor.schoolday_board'] = {
+    ...board,
+    attributes: {
+      ...board.attributes,
+      timetable: { ...board.attributes.timetable, cycle_weeks: weeks },
+      admin: {
+        ...board.attributes.admin,
+        cycle_weeks: weeks,
+        cycle_anchor: '2026-08-03',
+        cycle_now: 0,
+      },
+    },
+  };
+  // Ben gets a B week that is nothing like his A week, so telling them apart is a
+  // fact the test can check rather than a shade of grey.
+  const sensorId = 'sensor.schoolday_ben';
+  const timetable = { ...WEEKS.m1 };
+  if (weeks === 2) {
+    timetable[7] = [lesson(1, 'Physik'), lesson(2, 'Chemie')];
+    timetable[8] = [lesson(1, 'Latein')];
+  }
+  const outlook = JSON.parse(JSON.stringify(OUTLOOK)).map((day) => ({
+    ...day,
+    // Monday 3 August is week A, so the following Monday is week B.
+    week: weeks === 2 && day.date >= '2026-08-10' ? 1 : 0,
+  }));
+  hass.states[sensorId] = {
+    ...hass.states[sensorId],
+    attributes: { ...hass.states[sensorId].attributes, timetable, outlook },
+  };
+  window.__pushHass();
+};
+
 window.__setSick = (memberId, on) => {
   const sensorId = Object.keys(hass.states).find(
     (id) => hass.states[id].attributes?.member_id === memberId,

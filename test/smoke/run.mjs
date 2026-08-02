@@ -385,6 +385,64 @@ check(
   JSON.stringify(holiday),
 );
 
+// A two-week timetable: the same weekday column holds different lessons depending on
+// which week the date it points at falls in. Nothing about the card configuration
+// changes — a column is a date, so the week follows from the date.
+await page.evaluate(() => {
+  window.__setCycle(2);
+  window.__mount(
+    { type: 'custom:schoolday-timetable-card', member: 'Ben', layout: 'week' },
+    'schoolday-timetable-card',
+  );
+});
+await page.waitForTimeout(400);
+const cycled = await page.evaluate(() => {
+  const root = document.querySelector('schoolday-timetable-card').shadowRoot;
+  return [...root.querySelectorAll('.col-head')].map((head) => ({
+    day: head.querySelector('.col-day')?.textContent.trim(),
+    date: head.querySelector('.col-date')?.textContent.trim(),
+    week: head.querySelector('.col-week')?.textContent.trim() ?? null,
+  }));
+});
+const cycledMonday = await page.evaluate(() => {
+  const root = document.querySelector('schoolday-timetable-card').shadowRoot;
+  return [...root.querySelectorAll('.cell .subject')]
+    .filter((node) => (node.closest('.cell').getAttribute('style') ?? '').includes('grid-column:2;'))
+    .map((node) => node.textContent.trim());
+});
+check(
+  'a two-week timetable marks each column with the week it belongs to',
+  cycled.length === 5 &&
+    cycled[0].date === '10.8.' &&
+    cycled[0].week === 'B' &&
+    cycled[2].date === '5.8.' &&
+    cycled[2].week === 'A',
+  JSON.stringify(cycled),
+);
+check(
+  "and the Monday column, which points at next week, shows week B's lessons",
+  JSON.stringify(cycledMonday) === JSON.stringify(['Physik', 'Chemie']),
+  JSON.stringify(cycledMonday),
+);
+
+// Switching the cycle off puts every column back on the one week there is.
+await page.evaluate(() => window.__setCycle(1));
+await page.waitForTimeout(300);
+const uncycled = await page.evaluate(() => {
+  const root = document.querySelector('schoolday-timetable-card').shadowRoot;
+  return {
+    marks: root.querySelectorAll('.col-week').length,
+    monday: [...root.querySelectorAll('.cell .subject')]
+      .filter((n) => (n.closest('.cell').getAttribute('style') ?? '').includes('grid-column:2;'))
+      .map((n) => n.textContent.trim()),
+  };
+});
+check(
+  'one week again: no A/B marks, and Monday is Monday',
+  uncycled.marks === 0 && uncycled.monday[0] === 'Deutsch',
+  JSON.stringify(uncycled),
+);
+
 // A date may do something other than what its weekday says. Thursday the 6th is a
 // normal school day whose second period is covered and whose third is off.
 await closeDays({ type: 'custom:schoolday-timetable-card', member: 'Ben', layout: 'week' }, {
@@ -1174,6 +1232,74 @@ check(
       JSON.stringify(['Sportbeutel', 'Trinkflasche']),
   JSON.stringify(materialCall?.data ?? null),
 );
+
+// The editor offers the cycle, and a way to say which calendar week A starts in.
+await page.evaluate(() => window.__setCycle(2));
+await page.locator('schoolday-admin-card .tab', { hasText: 'Stundenplan' }).click();
+await page.waitForTimeout(300);
+const cycleUi = await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  return {
+    modes: [...root.querySelectorAll('.cycle .segmented button')].map((b) => ({
+      label: b.textContent.trim(),
+      on: b.getAttribute('aria-pressed') === 'true',
+    })),
+    kw: root.querySelector('#cycle-week')?.value ?? null,
+    weeks: [...root.querySelectorAll('.week-pick button')].map((b) => b.textContent.trim()),
+  };
+});
+check(
+  'the cycle is set as a calendar week, shown from the stored Monday',
+  cycleUi.modes[1]?.on === true &&
+    cycleUi.kw === '32' &&
+    cycleUi.weeks.join(',') === 'A-Woche,B-Woche',
+  JSON.stringify(cycleUi),
+);
+
+await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  const field = root.querySelector('#cycle-week');
+  field.value = '37';
+  field.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+});
+await page.waitForTimeout(300);
+const cycleCall = await page.evaluate(
+  () => window.__calls.services.filter((c) => c.service === 'set_cycle').pop() ?? null,
+);
+check(
+  'changing the calendar week sends it with its year',
+  cycleCall?.data.weeks === 2 && cycleCall?.data.iso_week === 37 && cycleCall?.data.iso_year === 2026,
+  JSON.stringify(cycleCall?.data ?? null),
+);
+
+// Editing week B writes into week B, not over week A.
+await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  [...root.querySelectorAll('.week-pick button')][1].click();
+});
+await page.waitForTimeout(200);
+await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  root.querySelectorAll('.week .slot')[0].click();
+});
+await page.waitForTimeout(200);
+await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  const editor = root.querySelector('.editor');
+  editor.querySelector('input').value = 'Erdkunde';
+  editor.querySelector('input').dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+  editor.querySelector('.apply').click();
+});
+await page.waitForTimeout(300);
+const bWeekCall = await page.evaluate(
+  () => window.__calls.services.filter((c) => c.service === 'set_lesson').pop() ?? null,
+);
+check(
+  'a cell tapped in week B is saved into week B',
+  bWeekCall?.data.week === 1 && bWeekCall?.data.weekday === 0 && bWeekCall?.data.subject === 'Erdkunde',
+  JSON.stringify(bWeekCall?.data ?? null),
+);
+await page.evaluate(() => window.__setCycle(1));
 
 // Exceptions are edited a date at a time, never a week at a time: the timetable is
 // worth typing in once because it repeats, and a per-week editor would end that.

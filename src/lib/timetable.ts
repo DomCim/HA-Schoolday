@@ -30,6 +30,8 @@ export interface TimetableGrid {
   breaks: TimetableBreak[];
   /** subject -> colour, already resolved by the integration. */
   subjects: Record<string, string>;
+  /** How many weeks the timetable takes to repeat: 1, or 2 for an A/B school. */
+  cycleWeeks: number;
 }
 
 export interface TimetableLesson {
@@ -38,8 +40,17 @@ export interface TimetableLesson {
   room: string | null;
 }
 
-/** weekday (0 = Monday) -> that day's lessons, in period order. */
+/**
+ * Cycle slot -> that day's lessons, in period order.
+ *
+ * A slot is the weekday for a one-week timetable, and weekday + 7 for week B of a
+ * two-week one. One integer rather than a week/day pair, so a timetable written
+ * before the cycle existed is already a valid entry in this map.
+ */
 export type TimetableWeek = Record<number, TimetableLesson[]>;
+
+/** Days in a week, and therefore the distance from week A's slots to week B's. */
+export const SLOTS_PER_WEEK = 7;
 
 /** What kind of day a member is having. Mirrors MODE_* in the integration. */
 export type DayMode = 'school' | 'care' | 'free' | 'sick' | 'event';
@@ -62,6 +73,11 @@ export interface OutlookDay {
    * day, which is almost every day — so the usual day costs nothing to publish.
    */
   changes?: Record<string, TimetableLesson | null>;
+  /**
+   * Which week of the cycle this date falls in: 0 for A, 1 for B. Always 0 unless the
+   * household runs a two-week timetable, so nothing has to ask whether it applies.
+   */
+  week: number;
 }
 
 /**
@@ -155,7 +171,7 @@ export function parseGrid(raw: unknown): TimetableGrid | null {
     }
   }
 
-  return { periods, breaks, subjects };
+  return { periods, breaks, subjects, cycleWeeks: Number(data.cycle_weeks ?? 1) === 2 ? 2 : 1 };
 }
 
 /** Parse the `timetable` attribute of a member sensor. */
@@ -165,8 +181,15 @@ export function parseWeek(raw: unknown): TimetableWeek {
     return week;
   }
   for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
-    const weekday = Number(key);
-    if (!Number.isInteger(weekday) || weekday < 0 || weekday > 6 || !Array.isArray(value)) {
+    // A slot, not a weekday: 0..6 is week A and 7..13 is week B. Capping this at 6
+    // would silently swallow the second week of an A/B timetable.
+    const slot = Number(key);
+    if (
+      !Number.isInteger(slot) ||
+      slot < 0 ||
+      slot >= SLOTS_PER_WEEK * 2 ||
+      !Array.isArray(value)
+    ) {
       continue;
     }
     const lessons = value
@@ -179,7 +202,7 @@ export function parseWeek(raw: unknown): TimetableWeek {
       }))
       .sort((a, b) => a.period - b.period);
     if (lessons.length) {
-      week[weekday] = lessons;
+      week[slot] = lessons;
     }
   }
   return week;
@@ -205,6 +228,7 @@ export function parseOutlook(raw: unknown): Outlook {
         ? (entry.mode as DayMode)
         : 'school',
       label: typeof entry.label === 'string' && entry.label ? entry.label : null,
+      week: Number(entry.week ?? 0) === 1 ? 1 : 0,
       ...(entry.changes && typeof entry.changes === 'object'
         ? { changes: parseChanges(entry.changes) }
         : {}),
@@ -248,8 +272,10 @@ export function lessonsOn(
 ): { lesson: TimetableLesson; changed: boolean }[] {
   // The weekday is passed rather than read off the day, because there may be no day:
   // an outlook is only as long as its window, and a column outside it still has a
-  // week to fall back on. Blanking it would be the worse wrong answer by far.
-  const base = week[weekday] ?? [];
+  // week to fall back on. Blanking it would be the worse wrong answer by far. With no
+  // day there is also no way to know which week of the cycle it is, and week A is the
+  // only answer that is right for every one-week household — which is most of them.
+  const base = week[weekday + SLOTS_PER_WEEK * (day?.week ?? 0)] ?? [];
   const changes = day?.changes;
   if (!changes) {
     return base.map((lesson) => ({ lesson, changed: false }));

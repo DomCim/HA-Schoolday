@@ -58,6 +58,7 @@ from .const import (
     ATTR_TODAY_SUBJECTS,
     ATTR_TODAY_SUMMARY,
     ATTR_VERSION,
+    ATTR_WEEK,
     ATTR_WEEKDAY,
     BLOCK_EVENING,
     BLOCK_MORNING,
@@ -281,7 +282,7 @@ class SchooldayBoardSensor(SchooldayBaseSensor):
             # The lesson grid only: each member's own week rides on their sensor, so
             # neither attribute set grows with the size of the family.
             ATTR_TIMETABLE: self._config.timetable.as_card_dict(
-                self._config.exception_subjects
+                self._config.exception_subjects, self._config.cycle_weeks
             ),
             ATTR_SCHOOL_TODAY: reason is None,
             ATTR_NO_SCHOOL: reason,
@@ -422,6 +423,7 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
                 ATTR_WEEKDAY: day.weekday(),
                 ATTR_MODE: MODE_SCHOOL,
                 ATTR_LABEL: None,
+                ATTR_WEEK: self._config.week_index(day),
             }
             for day in days
         }
@@ -649,7 +651,7 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         tomorrow = dt_util.now().date() + timedelta(days=1)
         if self._mode_on(tomorrow) != MODE_SCHOOL:
             return []
-        lessons = self._config.timetable.day(self._member.id, tomorrow.weekday())
+        lessons = self._config.lessons_on(self._member.id, tomorrow)
         subjects = list(dict.fromkeys(lesson.subject for lesson in lessons))
         return self._config.packing_list(subjects)
 

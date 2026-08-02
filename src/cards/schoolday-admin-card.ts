@@ -16,6 +16,7 @@ import {
   adminOf,
   calendarEntities,
   callSchoolday,
+  isoWeek,
   materialsFor,
   messageOf,
   personEntities,
@@ -26,7 +27,7 @@ import {
 import { localeOf } from '../lib/dates';
 import { t } from '../lib/i18n';
 import { schooldayButtons, schooldayTokens } from '../lib/styles';
-import { lessonAt, weekOf, type TimetableWeek } from '../lib/timetable';
+import { lessonAt, SLOTS_PER_WEEK, weekOf, type TimetableWeek } from '../lib/timetable';
 import { findBoard, memberSensor } from '../lib/board';
 import type {
   HomeAssistant,
@@ -76,6 +77,8 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
   @state() private _routineDay = '0';
   /** Which date the exceptions section is showing; unset means today. */
   @state() private _exceptionDate = '';
+  /** Which week of the cycle the timetable editor is showing; unset means "now". */
+  @state() private _week?: number;
   /** The cell being edited, as `weekday:period`. */
   @state() private _cell?: string;
   @state() private _draftSubject = '';
@@ -305,17 +308,82 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
 
   // --- timetable ----------------------------------------------------------
 
+  /**
+   * The two-week cycle: whether there is one, and where week A starts.
+   *
+   * Asked as a calendar week, because that is how a school says it — "A-Wochen sind
+   * die geraden KW" — even though what gets stored is the Monday that week begins on.
+   * A week number alone would not survive the turn of the year: an ISO year has 52 or
+   * 53 weeks, so "the odd weeks" swaps itself over some new years and not others.
+   */
+  private _renderCycle(config: AdminConfig): TemplateResult {
+    const anchorWeek = config.cycleAnchor ? isoWeek(config.cycleAnchor) : null;
+    return html`
+      <div class="cycle">
+        <div class="segmented">
+          ${[1, 2].map(
+            (weeks) => html`
+              <button
+                aria-pressed=${config.cycleWeeks === weeks}
+                ?disabled=${this._busy}
+                @click=${() => this._call('set_cycle', { weeks })}
+              >
+                ${t(this.hass, weeks === 1 ? 'admin.cycle_one' : 'admin.cycle_two')}
+              </button>
+            `,
+          )}
+        </div>
+        ${config.cycleWeeks > 1
+          ? html`
+              <label class="field">
+                <span class="label">${t(this.hass, 'admin.cycle_start')}</span>
+                <input
+                  id="cycle-week"
+                  type="number"
+                  min="1"
+                  max="53"
+                  .value=${anchorWeek ? String(anchorWeek.week) : ''}
+                  @change=${(event: Event) => {
+                    const value = Number((event.target as HTMLInputElement).value);
+                    if (value >= 1 && value <= 53) {
+                      this._call('set_cycle', {
+                        weeks: 2,
+                        iso_week: value,
+                        iso_year: anchorWeek?.year,
+                      });
+                    }
+                  }}
+                />
+              </label>
+              <div class="notice quiet">
+                ${t(this.hass, 'admin.cycle_now', {
+                  week: config.cycleNow === 1 ? 'B' : 'A',
+                })}
+              </div>
+            `
+          : nothing}
+      </div>
+    `;
+  }
+
   private _renderTimetable(config: AdminConfig): TemplateResult {
     const member = this._selected(config);
     const grid = this._board?.timetable;
     const week: TimetableWeek = member
       ? weekOf(memberSensor(this.hass!, member.id))
       : {};
+    // Which week is being edited. Opens on the one the household is in, because that
+    // is the one somebody standing at the board is thinking about.
+    const cycleWeek = config.cycleWeeks > 1 ? (this._week ?? config.cycleNow) : 0;
     const weekdays = [0, 1, 2, 3, 4, 5, 6].filter(
-      (day) => day <= 4 || (week[day] ?? []).length > 0,
+      (day) =>
+        day <= 4 ||
+        (week[day] ?? []).length > 0 ||
+        (week[day + SLOTS_PER_WEEK] ?? []).length > 0,
     );
 
     return html`
+      ${this._renderCycle(config)}
       ${this._lines(
         t(this.hass, 'admin.periods'),
         config.periods,
@@ -328,6 +396,23 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
           ? html`<div class="notice">${t(this.hass, 'admin.no_members')}</div>`
           : html`
               ${this._memberChips(config, member)}
+              ${config.cycleWeeks > 1
+                ? html`<div class="segmented week-pick">
+                    ${[0, 1].map(
+                      (index) => html`
+                        <button
+                          aria-pressed=${cycleWeek === index}
+                          @click=${() => {
+                            this._week = index;
+                            this._cell = undefined;
+                          }}
+                        >
+                          ${t(this.hass, index === 0 ? 'admin.week_a' : 'admin.week_b')}
+                        </button>
+                      `,
+                    )}
+                  </div>`
+                : nothing}
               <div
                 class="week"
                 style=${`grid-template-columns:max-content repeat(${weekdays.length}, minmax(0, 1fr))`}
@@ -340,8 +425,9 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
                   (period) => html`
                     <div class="no">${period.index}</div>
                     ${weekdays.map((day) => {
-                      const key = `${day}:${period.index}`;
-                      const lesson = lessonAt(week, day, period.index);
+                      const slot = day + SLOTS_PER_WEEK * cycleWeek;
+                      const key = `${slot}:${period.index}`;
+                      const lesson = lessonAt(week, slot, period.index);
                       return html`
                         <button
                           class="slot ${lesson ? 'filled' : ''} ${this._cell === key ? 'open' : ''}"
@@ -368,12 +454,19 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
   }
 
   private _renderCellEditor(member: AdminMember): TemplateResult {
-    const [weekday, period] = this._cell!.split(':').map(Number);
+    // The cell is keyed by slot, so the weekday and the week of the cycle both fall
+    // out of it — one number to carry around rather than two to keep in step.
+    const [slot, period] = this._cell!.split(':').map(Number);
+    const weekday = slot % SLOTS_PER_WEEK;
+    const week = Math.floor(slot / SLOTS_PER_WEEK);
+    const cycled = (this._board?.timetable?.cycleWeeks ?? 1) > 1;
     const known = Object.keys(this._board?.timetable?.subjects ?? {}).sort();
     return html`
       <div class="editor">
         <div class="editor-head">
-          ${member.name} · ${this._weekdayName(weekday, 'long')} · ${period}.
+          ${member.name} · ${this._weekdayName(weekday, 'long')}${cycled
+            ? ` ${t(this.hass, week === 1 ? 'admin.week_b' : 'admin.week_a')}`
+            : ''} · ${period}.
         </div>
         <div class="row">
           <label class="field grow">
@@ -407,6 +500,7 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
               await this._call('set_lesson', {
                 member: member.id,
                 weekday,
+                week,
                 period,
                 subject: this._draftSubject,
                 room: this._draftRoom,
@@ -420,7 +514,13 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
             class="danger"
             ?disabled=${this._busy}
             @click=${async () => {
-              await this._call('set_lesson', { member: member.id, weekday, period, subject: '' });
+              await this._call('set_lesson', {
+                member: member.id,
+                weekday,
+                week,
+                period,
+                subject: '',
+              });
               this._cell = undefined;
             }}
           >
@@ -975,6 +1075,22 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
       textarea {
         resize: vertical;
         line-height: 1.5;
+      }
+
+      .cycle {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        gap: 12px;
+        margin-bottom: 10px;
+      }
+
+      .cycle .field {
+        max-width: 160px;
+      }
+
+      .week-pick {
+        margin-bottom: 8px;
       }
 
       .row {

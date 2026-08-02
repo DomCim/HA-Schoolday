@@ -1,0 +1,33 @@
+# Category form for the "Q&A" discussion category.
+title: "Question: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before asking: the [documentation](https://domcim.github.io/HA-Schoolday/)
+        covers setting up the timetable, routines, homework, days off and the cards.
+
+        If something is **broken** rather than unclear, it belongs in an
+        [issue](https://github.com/DomCim/HA-Schoolday/issues/new/choose) instead —
+        the bug form asks for the log, which is what makes it answerable.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: What are you trying to do
+      description: What you want the board to show or do, and where you got stuck.
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Schoolday version
+      placeholder: "0.10.0"
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Card configuration
+      description: If a card is involved, its YAML. Leave blank if not.
+      render: yaml

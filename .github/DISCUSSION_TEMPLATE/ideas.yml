@@ -1,6 +1,6 @@
-name: Feature request
-description: Something Schoolday should be able to do and cannot.
-labels: ["enhancement"]
+# Category form for the "Ideas" discussion category. The file name is the category
+# slug; the category's own name and description live on GitHub, not here.
+title: "Idea: "
 body:
   - type: markdown
     attributes:
@@ -9,12 +9,14 @@ body:
         purpose. The most useful thing you can write here is not the feature but the
         **situation** — what happens in your week that the board gets wrong.
 
+        An idea that turns into something to build gets converted into an issue from
+        here, so nothing is lost by starting in the wrong place.
+
   - type: textarea
     id: problem
     attributes:
       label: What is the situation
-      description: >
-        The morning, the child, the thing that goes wrong. Concrete beats general.
+      description: The morning, the child, the thing that goes wrong. Concrete beats general.
     validations:
       required: true
 
@@ -29,5 +31,5 @@ body:
     attributes:
       label: What you do instead today
       description: >
-        Including "nothing". If you already solve it with an automation or a
-        second card, that is worth knowing — it may be the answer.
+        Including "nothing". If you already solve it with an automation or a second
+        card, that is worth knowing — it may turn out to be the answer.

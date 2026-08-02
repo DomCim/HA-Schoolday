@@ -1,6 +1,6 @@
 {
   "name": "schoolday",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "private": true,
   "description": "Schoolday \u2014 a family board for Home Assistant",
   "type": "module",

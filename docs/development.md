@@ -28,12 +28,33 @@ does not match the sources.
 
 ## CI
 
-`hassfest` validates the integration the way Home Assistant does, and the frontend job typechecks,
-builds, verifies the committed bundle matches the sources, and runs the smoke suite.
+Four jobs:
 
-The HACS job only runs on the default branch. `hacs/action` reads the repository through the GitHub
-API against the default branch, so on a feature branch it sees none of the files and fails on every
-push regardless of what changed.
+| Job | What it does |
+|---|---|
+| `hassfest` | Validates the integration the way Home Assistant does |
+| `Python` | `ruff`, and the configuration-writes and model tests |
+| `Frontend build` | Typecheck, build, the committed bundle must match the sources, then the smoke suite |
+| `HACS` | Publication readiness |
+
+**The HACS job only runs on the default branch**, so it must never be a required status
+check: `hacs/action` reads the repository through the GitHub API against the default
+branch, sees none of a feature branch's files, and would fail on every push regardless of
+what changed. Required on a pull request, it would never report at all and the pull
+request would wait forever.
+
+The other three are the ones worth requiring.
+
+## Branch rules
+
+`main` is protected by a repository ruleset: no deletions, no force pushes, and changes
+arrive through a pull request whose checks have passed. Required approvals are **zero** —
+a single maintainer cannot approve their own pull request, and requiring one would lock
+the repository rather than protect it. The gate is the checks, not a second pair of eyes
+that does not exist.
+
+Tags are protected against deletion and force-pushing, but **not** against creation: the
+release workflow creates them itself.
 
 ## Publishing later
 

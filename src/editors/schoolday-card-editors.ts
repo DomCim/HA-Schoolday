@@ -88,10 +88,23 @@ abstract class SchooldayCardEditor extends LitElement implements LovelaceCardEdi
   }
 }
 
+/** The board's members as dropdown options, for the cards that show one child at a time. */
+function memberOptions(hass: HomeAssistant | undefined): { value: string; label: string }[] {
+  return (findBoard(hass!)?.members ?? []).map((member) => ({
+    value: member.id,
+    label: member.name,
+  }));
+}
+
 @customElement('schoolday-routines-card-editor')
 export class SchooldayRoutinesCardEditor extends SchooldayCardEditor {
   protected schema(): FormItem[] {
+    // Left empty the card shows the whole family, which is the usual wall-panel case;
+    // the dropdown clears back to that, so picking one child is not a one-way door.
+    const members = memberOptions(this.hass);
+
     return [
+      ...(members.length > 1 ? [select('member', members)] : []),
       select('block', [
         { value: 'auto', label: t(this.hass, 'routines.auto') },
         { value: 'morning', label: t(this.hass, 'routines.morning') },
@@ -109,10 +122,7 @@ export class SchooldayTimetableCardEditor extends SchooldayCardEditor {
   protected schema(): FormItem[] {
     // The members come from the board, so this is a name to pick rather than an id to
     // look up. Everything else about the timetable lives in the integration.
-    const members = (findBoard(this.hass!)?.members ?? []).map((member) => ({
-      value: member.id,
-      label: member.name,
-    }));
+    const members = memberOptions(this.hass);
 
     return [
       ...(members.length > 1 ? [select('member', members)] : []),

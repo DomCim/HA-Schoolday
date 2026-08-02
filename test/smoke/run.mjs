@@ -484,6 +484,50 @@ const blockCount = await page
 check('block "both" shows morning and evening', blockCount === 2, `${blockCount} blocks`);
 await page.screenshot({ path: join(SHOTS, 'routines.png') });
 
+// No member picked is the whole family; picking one narrows the card to that child.
+await page.evaluate(() =>
+  window.__mount(
+    { type: 'custom:schoolday-routines-card', block: 'morning', show_empty: true },
+    'schoolday-routines-card',
+  ),
+);
+await page.waitForTimeout(300);
+const everyone = await page.locator('schoolday-routines-card .person-name').allTextContents();
+check(
+  'no member configured shows the whole family',
+  everyone.map((n) => n.trim()).join(',') === 'Ben,Jan,Nik',
+  everyone.map((n) => n.trim()).join(','),
+);
+
+await page.evaluate(() =>
+  window.__mount(
+    { type: 'custom:schoolday-routines-card', block: 'morning', show_empty: true, member: 'm3' },
+    'schoolday-routines-card',
+  ),
+);
+await page.waitForTimeout(300);
+const onlyNik = await page.locator('schoolday-routines-card .person-name').allTextContents();
+check(
+  'a configured member shows that child alone',
+  onlyNik.map((n) => n.trim()).join(',') === 'Nik',
+  onlyNik.map((n) => n.trim()).join(','),
+);
+
+// By name as well as by id, so a hand-written card does not have to know the ids.
+await page.evaluate(() =>
+  window.__mount(
+    { type: 'custom:schoolday-routines-card', block: 'morning', show_empty: true, member: 'Jan' },
+    'schoolday-routines-card',
+  ),
+);
+await page.waitForTimeout(300);
+const byName = await page.locator('schoolday-routines-card .person-name').allTextContents();
+check(
+  'the member may be given by name',
+  byName.map((n) => n.trim()).join(',') === 'Jan',
+  byName.map((n) => n.trim()).join(','),
+);
+
 // ------------------------------------------------------------------ header card
 
 await page.evaluate(() =>
@@ -617,6 +661,11 @@ check(
   'the timetable editor offers a member picker when there is a choice',
   editorFields['schoolday-timetable-card']?.[0] === 'member',
   (editorFields['schoolday-timetable-card'] ?? []).join(','),
+);
+check(
+  'the routines editor offers the same member picker',
+  editorFields['schoolday-routines-card']?.[0] === 'member',
+  (editorFields['schoolday-routines-card'] ?? []).join(','),
 );
 
 // The editor publishes config-changed with the merged config, dropping cleared fields.

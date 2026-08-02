@@ -179,6 +179,34 @@ Two services drive it, for automations and for the card:
 | `schoolday.set_routine_step` | Tick a step off, or put it back. Takes a member name or id. |
 | `schoolday.reset_routine` | Clear today's ticks, for one member or everyone. |
 
+## When one date is not like its weekday
+
+A timetable is worth typing in once because it repeats. That is also what makes it lie
+the moment a lesson is cancelled — so there is a thin layer that says otherwise, under
+**Exceptions** on the admin card.
+
+Two things it can say, per child and per date:
+
+- **a name for the day** — "Wandertag", "Sportfest". That takes the whole day over: the
+  column says so in its own colour and shows no lessons. There is no separate "closed"
+  switch, because a name and *"the timetable still applies"* is not a combination
+  anybody means.
+- **something about one period** — it is cancelled, or somebody else is covering it with
+  another subject. A covered lesson is drawn but **marked**: a substitution the reader
+  cannot see is worse than no substitution layer at all.
+
+Dates, not rules — and everything before today is dropped on every write, so this can
+never quietly become a second timetable nobody maintains.
+
+```yaml
+action: schoolday.set_exception
+data:
+  member: Jan
+  date: "2026-09-18"
+  period: 3
+  cancelled: true
+```
+
 ## Off ill
 
 Each child gets a switch:

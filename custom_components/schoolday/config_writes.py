@@ -15,6 +15,7 @@ and writing the config entry is the caller's job, so nothing here needs a `hass`
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Any
 
 from homeassistant.util.ulid import ulid_now
@@ -24,6 +25,7 @@ from .const import (
     CONF_CALENDAR,
     CONF_CARE_KEYWORDS,
     CONF_COLOR,
+    CONF_EXCEPTIONS,
     CONF_MATERIALS,
     CONF_MEMBER_ID,
     CONF_MEMBERS,
@@ -37,6 +39,7 @@ from .const import (
     WEEKDAYS,
 )
 from .models import (
+    DayException,
     InvalidPeriod,
     Lesson,
     Timetable,
@@ -298,6 +301,112 @@ def remove_member(options: dict[str, Any], member_id: str) -> dict[str, Any]:
         CONF_ROUTINES: routines,
         CONF_TIMETABLE: timetable.as_options(),
     }
+
+
+def _exceptions(options: dict[str, Any], today: date) -> dict[str, dict[str, Any]]:
+    """The stored exceptions, with everything before today dropped.
+
+    Pruned on every write rather than by a scheduled job, because a write is the only
+    moment anybody is looking. Without it the options would accumulate every cancelled
+    lesson of the school year and become the second timetable this layer exists to
+    avoid.
+    """
+    cutoff = today.isoformat()
+    pruned: dict[str, dict[str, Any]] = {}
+    for member_id, dates in (options.get(CONF_EXCEPTIONS) or {}).items():
+        kept = {
+            str(day): dict(entry)
+            for day, entry in (dates or {}).items()
+            if str(day) >= cutoff
+        }
+        if kept:
+            pruned[str(member_id)] = kept
+    return pruned
+
+
+def _parse_date(value: str) -> date:
+    try:
+        return date.fromisoformat(str(value).strip())
+    except ValueError as err:
+        raise SchooldayValueError(
+            f"'{value}' is not a date. Write it as YYYY-MM-DD, for example 2026-09-18."
+        ) from err
+
+
+def set_exception(
+    options: dict[str, Any],
+    member_id: str,
+    day: str,
+    period: int | None = None,
+    subject: str | None = None,
+    room: str | None = None,
+    cancelled: bool = False,
+    label: str | None = None,
+    today: date | None = None,
+) -> dict[str, Any]:
+    """Say what one date does differently from the week it belongs to.
+
+    With a period, this is about that period alone: `cancelled` drops it, a subject
+    replaces it, and neither hands it back to the timetable. Without one, it is about
+    the whole day: a label takes the day over — "Wandertag" — and an empty one hands
+    it back.
+
+    Deliberately not "edit the timetable for that week". A timetable is worth typing
+    in once because it repeats; the moment it can be edited per week it stops repeating
+    and becomes fifty-two timetables.
+    """
+    when = _parse_date(day)
+    if when < (today or date.today()):
+        raise SchooldayValueError(
+            f"{when.isoformat()} has already been. Exceptions are only kept from today onwards."
+        )
+
+    stored = _exceptions(options, today or date.today())
+    per_member = stored.setdefault(member_id, {})
+    entry = DayException.from_dict(per_member.get(when.isoformat()))
+
+    if period is None:
+        entry.label = (label or "").strip() or None
+    else:
+        timetable = _timetable(options)
+        if not any(item.index == period for item in timetable.periods):
+            known = ", ".join(str(item.index) for item in timetable.periods) or "none configured"
+            raise SchooldayValueError(
+                f"There is no period {period}. Configured periods: {known}."
+            )
+        name = (subject or "").strip()
+        if cancelled:
+            entry.periods[period] = None
+        elif name:
+            entry.periods[period] = Lesson(
+                period=period, subject=name, room=(room or "").strip() or None
+            )
+        else:
+            # Neither cancelled nor replaced: this period goes back to the timetable.
+            entry.periods.pop(period, None)
+
+    if entry.is_empty:
+        per_member.pop(when.isoformat(), None)
+    else:
+        per_member[when.isoformat()] = entry.as_options()
+    if not per_member:
+        stored.pop(member_id, None)
+    return {CONF_EXCEPTIONS: stored}
+
+
+def clear_exception(
+    options: dict[str, Any], member_id: str, day: str, today: date | None = None
+) -> dict[str, Any]:
+    """Drop everything one date said differently, putting the timetable back."""
+    when = _parse_date(day)
+    stored = _exceptions(options, today or date.today())
+    per_member = stored.get(member_id) or {}
+    per_member.pop(when.isoformat(), None)
+    if per_member:
+        stored[member_id] = per_member
+    else:
+        stored.pop(member_id, None)
+    return {CONF_EXCEPTIONS: stored}
 
 
 def set_materials(

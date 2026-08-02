@@ -385,6 +385,65 @@ check(
   JSON.stringify(holiday),
 );
 
+// A date may do something other than what its weekday says. Thursday the 6th is a
+// normal school day whose second period is covered and whose third is off.
+await closeDays({ type: 'custom:schoolday-timetable-card', member: 'Ben', layout: 'week' }, {
+  '2026-08-06': {
+    changes: { 2: { subject: 'Vertretung', room: 'R2' }, 3: null },
+  },
+});
+await page.waitForTimeout(300);
+const changed = await page.evaluate(() => {
+  const root = document.querySelector('schoolday-timetable-card').shadowRoot;
+  const heads = [...root.querySelectorAll('.col-head')].map((h) =>
+    h.querySelector('.col-date')?.textContent.trim(),
+  );
+  const column = heads.indexOf('6.8.') + 2;
+  const cells = [...root.querySelectorAll('.cell')].filter((cell) =>
+    (cell.getAttribute('style') ?? '').includes(`grid-column:${column};`),
+  );
+  return cells.map((cell) => ({
+    subject: cell.querySelector('.subject')?.textContent.trim() ?? null,
+    changed: cell.classList.contains('changed'),
+    free: cell.classList.contains('free'),
+  }));
+});
+const coveredColor = await page.evaluate(() => {
+  const root = document.querySelector('schoolday-timetable-card').shadowRoot;
+  const cell = [...root.querySelectorAll('.cell')].find(
+    (node) => node.querySelector('.subject')?.textContent.trim() === 'Vertretung',
+  );
+  return getComputedStyle(cell).getPropertyValue('--subject').trim();
+});
+check(
+  'a subject that only ever covers still gets a colour',
+  /^#|rgb/.test(coveredColor),
+  coveredColor || '(keine)',
+);
+check(
+  'a covered period shows the replacement, and a cancelled one is simply gone',
+  changed.some((c) => c.subject === 'Vertretung' && c.changed) &&
+    !changed.some((c) => c.subject === 'WG' && !c.changed) &&
+    changed.filter((c) => c.changed).length === 1,
+  JSON.stringify(changed),
+);
+
+// The whole day taken over: a trip is neither a holiday nor care, and gets said so.
+await closeDays({ type: 'custom:schoolday-timetable-card', member: 'Ben', layout: 'week' }, {
+  '2026-08-06': { mode: 'event', label: 'Wandertag' },
+});
+await page.waitForTimeout(300);
+const trip = await page.evaluate(() => {
+  const root = document.querySelector('schoolday-timetable-card').shadowRoot;
+  const node = root.querySelector('.closure.event');
+  return { label: node?.textContent.trim() ?? null, holiday: !!root.querySelector('.closure.free') };
+});
+check(
+  'a day the school took over is its own kind of closed day',
+  trip.label === 'Wandertag' && !trip.holiday,
+  JSON.stringify(trip),
+);
+
 // An illness closes today for one child and says so in their own colour. The word is
 // Schoolday's own: there is no calendar event behind it to borrow a name from.
 await closeDays({ type: 'custom:schoolday-timetable-card', member: 'Ben' }, {
@@ -795,7 +854,7 @@ const adminTabs = await page.locator('schoolday-admin-card .tab').allTextContent
 check(
   'the admin card offers every part of the options dialog',
   adminTabs.map((tab) => tab.trim()).join(',') ===
-    'Stundenplan,Routinen,Familie,Fächer,Material,Freie Tage',
+    'Stundenplan,Routinen,Familie,Fächer,Material,Ausnahmen,Freie Tage',
   adminTabs.map((tab) => tab.trim()).join(','),
 );
 
@@ -999,7 +1058,7 @@ const materialFields = await page.evaluate(() => {
 });
 check(
   'every subject gets a materials box, filled with what is stored',
-  materialFields.length === 10 &&
+  materialFields.length === 11 &&
     materialFields.find((f) => f.subject === 'Sport')?.items === 'Sportbeutel\nTurnschuhe' &&
     materialFields.find((f) => f.subject === 'Mathe')?.items === '',
   JSON.stringify(materialFields.filter((f) => f.items).concat(materialFields.length)),
@@ -1023,6 +1082,74 @@ check(
     JSON.stringify(materialCall?.data.items) ===
       JSON.stringify(['Sportbeutel', 'Trinkflasche']),
   JSON.stringify(materialCall?.data ?? null),
+);
+
+// Exceptions are edited a date at a time, never a week at a time: the timetable is
+// worth typing in once because it repeats, and a per-week editor would end that.
+await page.locator('schoolday-admin-card .tab', { hasText: 'Ausnahmen' }).click();
+await page.waitForTimeout(300);
+await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  const field = root.querySelector('input[type="date"]');
+  field.value = '2026-08-06';
+  field.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+});
+await page.waitForTimeout(300);
+const exceptionRows = await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  return [...root.querySelectorAll('.exception-row')].map((row) => ({
+    period: row.querySelector('.no')?.textContent.trim(),
+    planned: row.querySelector('.planned')?.textContent.trim(),
+    gone: row.querySelector('.planned')?.classList.contains('gone') ?? false,
+    replacement: row.querySelector('.replacement')?.value ?? '',
+  }));
+});
+check(
+  'the stored exception is shown against what the timetable planned',
+  exceptionRows.length === 7 &&
+    exceptionRows[1].planned === 'Vertretung' &&
+    exceptionRows[1].replacement === 'Vertretung' &&
+    exceptionRows[2].gone === true,
+  JSON.stringify(exceptionRows.slice(0, 4)),
+);
+
+await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  // Period 1, the one that is planned and not yet touched: the cancel button is
+  // deliberately dead on a period the timetable leaves free.
+  const rows = root.querySelectorAll('.exception-row');
+  rows[0].querySelector('.link').click();
+});
+await page.waitForTimeout(300);
+const cancelCall = await page.evaluate(
+  () => window.__calls.services.filter((c) => c.service === 'set_exception').pop() ?? null,
+);
+check(
+  'cancelling a period calls set_exception for that date and period',
+  cancelCall?.data.date === '2026-08-06' &&
+    cancelCall?.data.period === 1 &&
+    cancelCall?.data.cancelled === true,
+  JSON.stringify(cancelCall?.data ?? null),
+);
+
+await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  const field = [...root.querySelectorAll('.field')].find((item) =>
+    item.querySelector('#exception-label'),
+  );
+  field.querySelector('input').value = 'Wandertag';
+  field.querySelector('.apply').click();
+});
+await page.waitForTimeout(300);
+const labelCall = await page.evaluate(
+  () => window.__calls.services.filter((c) => c.service === 'set_exception').pop() ?? null,
+);
+check(
+  'naming the day sends it without a period, which is what takes the day over',
+  labelCall?.data.label === 'Wandertag' &&
+    labelCall?.data.date === '2026-08-06' &&
+    labelCall?.data.period === undefined,
+  JSON.stringify(labelCall?.data ?? null),
 );
 
 // Days off: the calendars are entities and get the multi-picker; the keywords are the

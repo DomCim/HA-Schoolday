@@ -42,10 +42,10 @@ export interface TimetableLesson {
 export type TimetableWeek = Record<number, TimetableLesson[]>;
 
 /** What kind of day a member is having. Mirrors MODE_* in the integration. */
-export type DayMode = 'school' | 'care' | 'free' | 'sick';
+export type DayMode = 'school' | 'care' | 'free' | 'sick' | 'event';
 
 /** The modes that are not a school day, so a new one cannot be forgotten anywhere. */
-const CLOSED_MODES: readonly DayMode[] = ['care', 'free', 'sick'];
+const CLOSED_MODES: readonly DayMode[] = ['care', 'free', 'sick', 'event'];
 
 /** One dated day: which day it is, and what it actually holds. */
 export interface OutlookDay {
@@ -56,6 +56,12 @@ export interface OutlookDay {
   mode: DayMode;
   /** The holiday's name or the care event's title; null on a school day. */
   label: string | null;
+  /**
+   * What this date does differently from the week it belongs to: period -> the
+   * replacement lesson, or null for a period that is cancelled. Absent on the usual
+   * day, which is almost every day — so the usual day costs nothing to publish.
+   */
+  changes?: Record<string, TimetableLesson | null>;
 }
 
 /**
@@ -199,8 +205,67 @@ export function parseOutlook(raw: unknown): Outlook {
         ? (entry.mode as DayMode)
         : 'school',
       label: typeof entry.label === 'string' && entry.label ? entry.label : null,
+      ...(entry.changes && typeof entry.changes === 'object'
+        ? { changes: parseChanges(entry.changes) }
+        : {}),
     }))
     .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/** Parse an outlook entry's `changes`: period -> replacement, or null for cancelled. */
+function parseChanges(raw: unknown): Record<string, TimetableLesson | null> {
+  const changes: Record<string, TimetableLesson | null> = {};
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (!value || typeof value !== 'object') {
+      changes[key] = null;
+      continue;
+    }
+    const entry = value as Record<string, unknown>;
+    if (typeof entry.subject !== 'string' || !entry.subject) {
+      changes[key] = null;
+      continue;
+    }
+    changes[key] = {
+      period: Number(entry.period ?? key),
+      subject: entry.subject,
+      room: typeof entry.room === 'string' && entry.room ? entry.room : null,
+    };
+  }
+  return changes;
+}
+
+/**
+ * One dated day's lessons: the week it belongs to, with that date's changes applied.
+ *
+ * Returned with a flag rather than as a plain list, because "Maths, replaced" and
+ * "Maths" are the same lesson and must not look the same — a substitution the reader
+ * cannot see is worse than no substitution layer at all.
+ */
+export function lessonsOn(
+  week: TimetableWeek,
+  weekday: number,
+  day: OutlookDay | undefined,
+): { lesson: TimetableLesson; changed: boolean }[] {
+  // The weekday is passed rather than read off the day, because there may be no day:
+  // an outlook is only as long as its window, and a column outside it still has a
+  // week to fall back on. Blanking it would be the worse wrong answer by far.
+  const base = week[weekday] ?? [];
+  const changes = day?.changes;
+  if (!changes) {
+    return base.map((lesson) => ({ lesson, changed: false }));
+  }
+  const byPeriod = new Map<number, { lesson: TimetableLesson; changed: boolean }>(
+    base.map((lesson) => [lesson.period, { lesson, changed: false }]),
+  );
+  for (const [key, replacement] of Object.entries(changes)) {
+    const period = Number(key);
+    if (!replacement) {
+      byPeriod.delete(period);
+    } else {
+      byPeriod.set(period, { lesson: { ...replacement, period }, changed: true });
+    }
+  }
+  return [...byPeriod.entries()].sort((a, b) => a[0] - b[0]).map(([, entry]) => entry);
 }
 
 /** What the outlook holds for the member whose sensor this is. */
@@ -310,21 +375,9 @@ export function currentPeriod(
   );
 }
 
-/** The next lesson of a day after a point in time, ignoring free periods. */
-export function nextLesson(
-  grid: TimetableGrid,
-  week: TimetableWeek,
-  weekday: number,
-  minutes: number = nowMinutes(),
-): { lesson: TimetableLesson; period: TimetablePeriod } | null {
-  for (const period of grid.periods) {
-    if (period.startMinutes <= minutes) {
-      continue;
-    }
-    const lesson = lessonAt(week, weekday, period.index);
-    if (lesson) {
-      return { lesson, period };
-    }
-  }
-  return null;
-}
+/*
+ * There was a `nextLesson(grid, week, weekday, …)` here. It answered by weekday, which
+ * is a question the card no longer asks: a column is a date, and only the date knows
+ * whether the lesson it is about to promise was cancelled. The card walks the periods
+ * against `lessonsOn` instead, so there is one answer rather than two.
+ */

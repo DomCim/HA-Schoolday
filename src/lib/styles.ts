@@ -25,6 +25,9 @@ export const schooldayTokens = css`
     /* A third kind of closed day, and the only one that is nobody's good news. Muted
        rather than alarming: the board says what is, it does not fuss. */
     --schoolday-sick: #8a8f98;
+    /* A day the school took over — a trip, a sports day. The child is at school, just
+       not at their timetable, so it reads as an occasion rather than as a day off. */
+    --schoolday-event: #7a5ea8;
   }
 `;
 

@@ -24,6 +24,8 @@ const EN: Dict = {
   'routines.sick': 'At home ill',
   'routines.packed_for': 'for {subject}',
   'timetable.sick': 'Ill',
+  'timetable.event': 'No normal lessons',
+  'timetable.changed': 'Changed',
 
   // timetable
   'timetable.no_periods':
@@ -67,6 +69,16 @@ const EN: Dict = {
   'admin.tab_subjects': 'Subjects',
   'admin.tab_holidays': 'Days off',
   'admin.tab_materials': 'Material',
+  'admin.tab_exceptions': 'Exceptions',
+  'admin.exceptions_hint':
+    'What one date does differently. A label takes the whole day over; tap a period to cancel it or say what runs instead. Dates in the past are dropped by themselves.',
+  'admin.exception_date': 'Date',
+  'admin.exception_label': 'What the day is',
+  'admin.exception_label_hint': 'School trip, sports day — leave empty for a normal day',
+  'admin.exception_cancel': 'Cancelled',
+  'admin.exception_reset': 'Back to the timetable',
+  'admin.exception_none': 'Nothing is different on this date.',
+  'admin.exception_add': 'Add a date',
   'admin.materials_hint': 'What each subject needs brought along. These show up in the evening routine on the day before, for whoever has that subject.',
   'admin.materials_items': 'One thing per line',
   'admin.save': 'Save',
@@ -117,6 +129,8 @@ const DE: Dict = {
   'routines.sick': 'Krank zu Hause',
   'routines.packed_for': 'für {subject}',
   'timetable.sick': 'Krank',
+  'timetable.event': 'Kein regulärer Unterricht',
+  'timetable.changed': 'Geändert',
 
   'timetable.no_periods':
     'Noch keine Stundenzeiten. Trage sie in der Schoolday-Integration unter „Konfigurieren → Stundenplan“ ein.',
@@ -158,6 +172,16 @@ const DE: Dict = {
   'admin.tab_subjects': 'Fächer',
   'admin.tab_holidays': 'Freie Tage',
   'admin.tab_materials': 'Material',
+  'admin.tab_exceptions': 'Ausnahmen',
+  'admin.exceptions_hint':
+    'Was ein einzelnes Datum anders macht. Eine Bezeichnung nimmt den ganzen Tag ein; auf eine Stunde tippen, um sie entfallen zu lassen oder zu sagen, was stattdessen läuft. Vergangene Daten fallen von selbst weg.',
+  'admin.exception_date': 'Datum',
+  'admin.exception_label': 'Was der Tag ist',
+  'admin.exception_label_hint': 'Wandertag, Sportfest — leer lassen für einen normalen Tag',
+  'admin.exception_cancel': 'Entfällt',
+  'admin.exception_reset': 'Zurück zum Stundenplan',
+  'admin.exception_none': 'An diesem Datum ist nichts anders.',
+  'admin.exception_add': 'Datum hinzufügen',
   'admin.materials_hint': 'Was ein Fach an Sachen braucht. Es erscheint am Abend davor in der Abendroutine, bei jedem Kind, das dieses Fach hat.',
   'admin.materials_items': 'Eine Sache pro Zeile',
   'admin.save': 'Speichern',

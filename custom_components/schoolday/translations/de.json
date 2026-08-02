@@ -172,6 +172,20 @@
     }
   },
   "services": {
+    "clear_exception": {
+      "name": "Datum zurücksetzen",
+      "description": "Alles verwerfen, was ein Datum anders gemacht hat, damit wieder der Stundenplan gilt.",
+      "fields": {
+        "member": {
+          "name": "Familienmitglied",
+          "description": "Name oder ID."
+        },
+        "date": {
+          "name": "Datum",
+          "description": "Der Tag, der wieder dem Stundenplan folgen soll."
+        }
+      }
+    },
     "remove_member": {
       "name": "Familienmitglied entfernen",
       "description": "Entfernt ein Mitglied samt Stundenplan und Routinen.",
@@ -239,6 +253,40 @@
         "lessons": {
           "name": "Stunden",
           "description": "Eine Liste aus Einträgen mit Stunde, Fach und optionalem Raum."
+        }
+      }
+    },
+    "set_exception": {
+      "name": "Ausnahme für ein Datum",
+      "description": "Der Stundenplan wiederholt sich, ein einzelnes Datum vielleicht nicht. Mit Stunde betrifft es nur diese Stunde; ohne nimmt eine Bezeichnung den ganzen Tag ein. Vergangene Daten fallen weg.",
+      "fields": {
+        "member": {
+          "name": "Familienmitglied",
+          "description": "Name oder ID."
+        },
+        "date": {
+          "name": "Datum",
+          "description": "Der eine Tag, um den es geht."
+        },
+        "period": {
+          "name": "Stunde",
+          "description": "Leer lassen, um etwas über den ganzen Tag zu sagen."
+        },
+        "subject": {
+          "name": "Fach",
+          "description": "Was stattdessen läuft. Leer und nicht entfallen gibt die Stunde an den Stundenplan zurück."
+        },
+        "room": {
+          "name": "Raum",
+          "description": "Wo die Vertretung ist."
+        },
+        "cancelled": {
+          "name": "Entfällt",
+          "description": "Die Stunde findet gar nicht statt."
+        },
+        "label": {
+          "name": "Was der Tag ist",
+          "description": "„Wandertag\", „Sportfest\". Eine Bezeichnung nimmt den Tag ein; sie zu löschen gibt ihn zurück."
         }
       }
     },

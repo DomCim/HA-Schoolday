@@ -156,6 +156,7 @@ export class SchooldayAdminCardEditor extends SchooldayCardEditor {
         { value: 'family', label: t(this.hass, 'admin.tab_family') },
         { value: 'subjects', label: t(this.hass, 'admin.tab_subjects') },
         { value: 'materials', label: t(this.hass, 'admin.tab_materials') },
+        { value: 'exceptions', label: t(this.hass, 'admin.tab_exceptions') },
         { value: 'holidays', label: t(this.hass, 'admin.tab_holidays') },
       ]),
     ];

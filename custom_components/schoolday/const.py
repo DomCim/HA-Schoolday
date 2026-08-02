@@ -59,6 +59,11 @@ MODE_FREE: Final = "free"
 # holiday — and it is what makes the morning announcement skip them with no second
 # condition to maintain.
 MODE_SICK: Final = "sick"
+
+# A day the school has taken over: a trip, a sports day, a parents' evening. Its own
+# mode rather than a holiday, because it is neither free nor care — the child is at
+# school, just not at their timetable.
+MODE_EVENT: Final = "event"
 #: Routine keys for the two non-school days, alongside the weekday keys "0".."6".
 ROUTINE_HOLIDAY: Final = MODE_FREE
 ROUTINE_CARE: Final = MODE_CARE
@@ -82,6 +87,17 @@ CONF_LESSONS: Final = "lessons"
 # there is PE on Tuesday — and the second copy is the one nobody updates when the
 # timetable changes.
 CONF_MATERIALS: Final = "materials"
+
+# What one particular date does differently: member id -> "YYYY-MM-DD" -> the change.
+#
+# A timetable repeats forever, which is what makes it worth typing in once and also
+# what makes it lie the moment a lesson is cancelled. This is the layer that says
+# otherwise, and it is deliberately thin: dates, not rules. Past dates are dropped on
+# every write, so it can never grow into a second timetable nobody maintains.
+CONF_EXCEPTIONS: Final = "exceptions"
+
+# Inside one exception.
+CONF_LABEL: Final = "label"
 
 # A gap this long between two periods is a break, and is drawn as one. Deriving
 # breaks from the lesson times means there is nothing extra to configure.
@@ -225,6 +241,8 @@ SERVICE_SET_MEMBER: Final = "set_member"
 SERVICE_REMOVE_MEMBER: Final = "remove_member"
 SERVICE_SET_CALENDARS: Final = "set_calendars"
 SERVICE_SET_MATERIALS: Final = "set_materials"
+SERVICE_SET_EXCEPTION: Final = "set_exception"
+SERVICE_CLEAR_EXCEPTION: Final = "clear_exception"
 
 ATTR_WEEKDAY_FIELD: Final = "weekday"
 ATTR_SUBJECT_FIELD: Final = "subject"
@@ -237,6 +255,14 @@ ATTR_NAME: Final = "name"
 ATTR_KEYWORDS: Final = "care_keywords"
 ATTR_CALENDAR_FIELD: Final = "school_calendars"
 ATTR_ITEMS: Final = "items"
+ATTR_DATE_FIELD: Final = "date"
+ATTR_LABEL_FIELD: Final = "label"
+ATTR_CANCELLED: Final = "cancelled"
+
+# What a dated day does differently from the week it belongs to, on the outlook entry
+# for that day. Only present where there is something to say, so the usual week costs
+# nothing: period -> the replacement lesson, or null for a period that is cancelled.
+ATTR_CHANGES: Final = "changes"
 
 # The packing list a subject generates, next to the steps somebody typed. Marked as
 # such on the step itself so a card can say where it came from — and so nobody goes

@@ -139,6 +139,38 @@ export function personEntities(hass: HomeAssistant): string[] {
 }
 
 /**
+ * The readable part of whatever a failed service call threw.
+ *
+ * Home Assistant rejects with a plain object, not an Error, so `String(err)` gives
+ * "[object Object]" — which is the one thing an error message must never be. The
+ * message a refused value carries is the whole point of showing it.
+ */
+export function messageOf(err: unknown): string {
+  if (typeof err === 'string') {
+    return err;
+  }
+  if (err && typeof err === 'object') {
+    const record = err as Record<string, unknown>;
+    for (const key of ['message', 'error']) {
+      const value = record[key];
+      if (typeof value === 'string' && value) {
+        return value;
+      }
+    }
+    const body = record.body as Record<string, unknown> | undefined;
+    if (body && typeof body.message === 'string' && body.message) {
+      return body.message;
+    }
+    try {
+      return JSON.stringify(err);
+    } catch {
+      return 'Unknown error';
+    }
+  }
+  return String(err);
+}
+
+/**
  * Call one of Schoolday's services.
  *
  * Errors are left to bubble: Home Assistant already shows a service failure, and the

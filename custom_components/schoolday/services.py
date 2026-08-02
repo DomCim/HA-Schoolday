@@ -219,9 +219,18 @@ def async_register_services(hass: HomeAssistant) -> None:
         """
         _write(call.hass, changes)
 
-    @callback
     def _guard(handler):
-        def wrapped(call: ServiceCall) -> None:
+        """Run a write on the event loop, and turn a refused value into a message.
+
+        `async def` is not decoration here: Home Assistant runs a synchronous service
+        handler in a worker thread, and `async_update_entry` may only be touched from
+        the event loop. A plain `def` writes the configuration from the wrong thread.
+
+        SchooldayValueError means the household typed something impossible, which is a
+        ServiceValidationError — the caller's problem to fix, not a Schoolday bug.
+        """
+
+        async def wrapped(call: ServiceCall) -> None:
             try:
                 handler(call)
             except SchooldayValueError as err:

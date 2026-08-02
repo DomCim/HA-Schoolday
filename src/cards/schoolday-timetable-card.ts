@@ -203,13 +203,53 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
     }).format(date);
   }
 
-  /** What closes this day, or null when lessons are happening. */
-  private _closure(outlook: Outlook, weekday: number): string | null {
+  /**
+   * What closes this day and in what way, or null when lessons are happening.
+   *
+   * The kind travels with the words because the two read differently: a holiday is
+   * the absence of something, holiday care is a thing the child is actually doing.
+   * Drawn alike, a week of both says nothing about which day is which.
+   */
+  private _closure(outlook: Outlook, weekday: number): { mode: string; label: string } | null {
     const day = this._dayFor(outlook, weekday);
     if (!day || day.mode === 'school') {
       return null;
     }
-    return day.label ?? t(this.hass, day.mode === 'care' ? 'timetable.care' : 'timetable.free');
+    return {
+      mode: day.mode,
+      label: day.label ?? t(this.hass, day.mode === 'care' ? 'timetable.care' : 'timetable.free'),
+    };
+  }
+
+  /**
+   * The columns grouped into stretches that close the same way.
+   *
+   * Six weeks of summer holidays wrote the same words into every column, which says
+   * no more than writing them once and reads like a stutter. Neighbouring days that
+   * are shut for the same reason become one block; a day that differs — a day in
+   * care in the middle of the holidays — is exactly what stands out then.
+   */
+  private _closureRuns(
+    outlook: Outlook,
+    columns: number[],
+  ): { start: number; span: number; closed: { mode: string; label: string } | null }[] {
+    const runs: { start: number; span: number; closed: { mode: string; label: string } | null }[] =
+      [];
+    columns.forEach((weekday, index) => {
+      const closed = this._closure(outlook, weekday);
+      const last = runs[runs.length - 1];
+      if (
+        last &&
+        last.closed?.mode === closed?.mode &&
+        last.closed?.label === closed?.label &&
+        (last.closed === null) === (closed === null)
+      ) {
+        last.span += 1;
+        return;
+      }
+      runs.push({ start: index, span: 1, closed });
+    });
+    return runs;
   }
 
   private _color(grid: TimetableGrid, subject: string): string {
@@ -380,6 +420,7 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
     const columns = dayView ? [day] : weekdays;
 
     const openColumns = columns.filter((weekday) => this._closure(outlook, weekday) === null);
+    const closures = openColumns.length < columns.length;
     const rows = buildRows(grid, (period) => {
       if (this._config.hide_empty_periods === false) {
         return true;
@@ -446,13 +487,10 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
               html`<div class="day-panel" style=${`grid-column:${index + 2};grid-row:1 / -1`}></div>`,
           )}
           <div class="corner" style="grid-column:1;grid-row:1"></div>
-          ${columns.map((weekday, index) => {
-            const closed = this._closure(outlook, weekday);
-            return html`
+          ${columns.map(
+            (weekday, index) => html`
               <div
-                class="col-head ${highlight && weekday === today ? 'today' : ''} ${closed !== null
-                  ? 'closed'
-                  : ''}"
+                class="col-head ${highlight && weekday === today ? 'today' : ''}"
                 style=${`grid-column:${index + 2};grid-row:1`}
               >
                 <span class="col-day"
@@ -461,12 +499,30 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
                 ${this._columnDate(outlook, weekday)
                   ? html`<span class="col-date">${this._columnDate(outlook, weekday)}</span>`
                   : nothing}
-                ${closed ? html`<span class="col-closed" title=${closed}>${closed}</span>` : nothing}
               </div>
-            `;
-          })}
+            `,
+          )}
+          ${closures
+            ? this._closureRuns(outlook, columns).map((run) =>
+                run.closed
+                  ? html`
+                      <div
+                        class="closure ${run.closed.mode}"
+                        style=${`grid-column:${run.start + 2} / span ${run.span};grid-row:2`}
+                        title=${run.closed.label}
+                      >
+                        ${run.closed.label}
+                      </div>
+                    `
+                  : html`
+                      <div
+                        style=${`grid-column:${run.start + 2} / span ${run.span};grid-row:2`}
+                      ></div>
+                    `,
+              )
+            : nothing}
           ${visibleRows.map((row, rowIndex) => {
-            const line = rowIndex + 2;
+            const line = rowIndex + (closures ? 3 : 2);
             if (row.kind === 'break') {
               const span = `${formatTime(this.hass, row.gap.start)}\u2013${formatTime(
                 this.hass,
@@ -683,6 +739,35 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
         color: var(--text-primary-color, #fff);
         background: var(--schoolday-today);
         border-radius: 8px;
+      }
+
+      /* Sits under the date rather than beside it: the two are different questions —
+         which day, and whether it is happening. */
+      .closure {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: var(--schoolday-touch);
+        padding: 6px 8px;
+        margin-bottom: 2px;
+        box-sizing: border-box;
+        overflow: hidden;
+        border-radius: 10px;
+        border-left: 3px solid var(--closure);
+        background: color-mix(in srgb, var(--closure) 22%, transparent);
+        color: var(--primary-text-color);
+        font-size: 0.78rem;
+        font-weight: 700;
+        line-height: 1.2;
+        text-align: center;
+      }
+
+      .closure.free {
+        --closure: var(--schoolday-holiday);
+      }
+
+      .closure.care {
+        --closure: var(--schoolday-care);
       }
 
       .time {

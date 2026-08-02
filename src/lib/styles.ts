@@ -16,6 +16,12 @@ export const schooldayTokens = css`
     --schoolday-surface: var(--card-background-color, #fff);
     --schoolday-surface-alt: rgba(127, 127, 127, 0.08);
     --schoolday-today: var(--primary-color, #03a9f4);
+    /* A day off and a day in care are both "no lessons" and nothing alike otherwise,
+       so each gets its own colour. Neither is drawn from the subject palette: they are
+       not subjects, and a household should not have to wonder whether the sand block
+       is a holiday or somebody's Art lesson. */
+    --schoolday-holiday: #b08d57;
+    --schoolday-care: #2f7f8f;
   }
 `;
 

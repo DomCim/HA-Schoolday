@@ -316,7 +316,7 @@ await closeDays({ type: 'custom:schoolday-timetable-card', member: 'Ben', layout
 await page.waitForTimeout(400);
 
 const closedLabels = await page
-  .locator('schoolday-timetable-card .col-head .col-closed')
+  .locator('schoolday-timetable-card .closure')
   .allTextContents();
 check(
   'a closed day is named in its own column, by whatever the calendar called it',
@@ -349,7 +349,7 @@ const staticDates = await page
   .locator('schoolday-timetable-card .col-head .col-date')
   .allTextContents();
 const staticClosed = await page
-  .locator('schoolday-timetable-card .col-head .col-closed')
+  .locator('schoolday-timetable-card .closure')
   .allTextContents();
 check(
   'rolling off shows the week as it stands, past days included',

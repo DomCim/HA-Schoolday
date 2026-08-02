@@ -793,16 +793,99 @@ check(
   `${adminMemberForms} forms, Ben: ${adminBenCalendar}`,
 );
 
-// Days off: the calendars and the keywords, each saved on its own.
+// Home Assistant's own entity picker when the frontend has it, the plain input with a
+// suggestion list when it does not. A custom card cannot assume another element
+// exists — rendering an undefined one leaves a hole where a field should be — so both
+// paths are checked, the fallback above and the picker here.
+await page.evaluate(() => {
+  class Picker extends HTMLElement {
+    set value(v) {
+      this._value = v;
+    }
+    get value() {
+      return this._value;
+    }
+  }
+  customElements.define('ha-entity-picker', Picker);
+  customElements.define('ha-entities-picker', class extends Picker {});
+});
+await page.evaluate(() =>
+  window.__mount({ type: 'custom:schoolday-admin-card', section: 'family' }, 'schoolday-admin-card'),
+);
+await page.waitForTimeout(400);
+
+const adminPicker = await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  const picker = root.querySelector('ha-entity-picker#calendar-m1');
+  return picker
+    ? { value: picker.value, domains: picker.includeDomains, hasHass: Boolean(picker.hass) }
+    : null;
+});
+check(
+  "the calendar field uses Home Assistant's entity picker when it exists",
+  adminPicker?.value === 'calendar.ben' &&
+    adminPicker?.domains?.join(',') === 'calendar' &&
+    adminPicker?.hasHass === true,
+  JSON.stringify(adminPicker),
+);
+
+const adminAvatarPicker = await page.evaluate(() => {
+  const picker = document
+    .querySelector('schoolday-admin-card')
+    .shadowRoot.querySelector('ha-entity-picker#avatar-m1');
+  return picker
+    ? { domains: picker.includeDomains, custom: picker.allowCustomEntity }
+    : null;
+});
+check(
+  'the picture field picks a person, but still takes a URL',
+  adminAvatarPicker?.domains?.join(',') === 'person' && adminAvatarPicker?.custom === true,
+  JSON.stringify(adminAvatarPicker),
+);
+
+// What the picker publishes is what gets saved — it owns no input to read back.
+await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  root
+    .querySelector('ha-entity-picker#calendar-m1')
+    .dispatchEvent(
+      new CustomEvent('value-changed', { detail: { value: 'calendar.ferien' }, bubbles: true }),
+    );
+});
+await page.waitForTimeout(200);
+await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  root.querySelectorAll('.member')[0].querySelector('.apply').click();
+});
+await page.waitForTimeout(300);
+const adminMemberCall = await page.evaluate(
+  () => window.__calls.services.filter((c) => c.service === 'set_member').pop() ?? null,
+);
+check(
+  'a calendar chosen in the picker is the one saved',
+  adminMemberCall?.data.calendar === 'calendar.ferien' && adminMemberCall?.data.name === 'Ben',
+  JSON.stringify(adminMemberCall?.data ?? null),
+);
+
+// Days off: the calendars are entities and get the multi-picker; the keywords are the
+// household's own words and stay free text, one per line.
 await page.locator('schoolday-admin-card .tab', { hasText: 'Freie Tage' }).click();
 await page.waitForTimeout(300);
-const adminHolidayBoxes = await page.locator('schoolday-admin-card textarea').all();
-const adminCalendarText = await adminHolidayBoxes[0].inputValue();
-const adminKeywordText = await adminHolidayBoxes[1].inputValue();
+const adminHolidayFields = await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  const picker = root.querySelector('ha-entities-picker');
+  return {
+    calendars: picker?.value ?? null,
+    domains: picker?.includeDomains ?? null,
+    keywords: root.querySelector('textarea')?.value ?? null,
+  };
+});
 check(
-  'days off show the calendars and the care keywords separately',
-  adminCalendarText.trim() === 'calendar.ferien' && adminKeywordText.trim() === 'Ferienbetreuung',
-  `${adminCalendarText.trim()} / ${adminKeywordText.trim()}`,
+  'days off pick calendars as entities and keep the keywords as words',
+  adminHolidayFields.calendars?.join(',') === 'calendar.ferien' &&
+    adminHolidayFields.domains?.join(',') === 'calendar' &&
+    adminHolidayFields.keywords?.trim() === 'Ferienbetreuung',
+  JSON.stringify(adminHolidayFields),
 );
 
 // A refused value has to say why. Home Assistant rejects with a plain object rather

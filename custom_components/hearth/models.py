@@ -7,17 +7,22 @@ This module is the only place that knows their raw shape; everything else works 
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from typing import Any
+from zlib import crc32
 
 from .const import (
+    BREAK_MIN_MINUTES,
     CONF_AVATAR,
     CONF_CALENDARS,
     CONF_COLOR,
+    CONF_LESSONS,
     CONF_MEMBER_ID,
     CONF_MEMBERS,
     CONF_NAME,
     CONF_ORDER,
+    CONF_PERIODS,
     CONF_PERSON,
     CONF_POINTS_ENTITY,
     CONF_READONLY_CALENDARS,
@@ -25,9 +30,13 @@ from .const import (
     CONF_SHARED,
     CONF_SHARED_CALENDARS,
     CONF_SHARED_TODO_LISTS,
+    CONF_SUBJECT_COLORS,
+    CONF_TIMETABLE,
     CONF_TODO_LISTS,
     DEFAULT_COLORS,
+    FREE_MARKERS,
     ROUTINE_BLOCKS,
+    SUBJECT_COLORS,
 )
 
 
@@ -158,6 +167,310 @@ class Routine:
         return not any(self.by_weekday.values())
 
 
+# --- Timetable ---------------------------------------------------------------
+
+#: "08:00-08:45", tolerating "8.00 – 8:45" and the like.
+_PERIOD_RE = re.compile(r"^(\d{1,2})[:.h](\d{2})\s*[-–—]+\s*(\d{1,2})[:.h](\d{2})$")
+#: "3. Mathe" — an explicit period number, so a day that starts late needs no filler.
+_INDEX_RE = re.compile(r"^(\d{1,2})\s*[.):]\s*(.*)$")
+#: The room is whatever follows the separator: "Mathe | 1.OG 5" or "Mathe @ Turnhalle".
+_ROOM_SPLIT_RE = re.compile(r"\s*[|@]\s*")
+
+
+class InvalidPeriod(ValueError):
+    """A lesson-time line that is not ``HH:MM-HH:MM``."""
+
+    def __init__(self, line: str) -> None:
+        """Remember the offending line so the options flow can quote it."""
+        super().__init__(line)
+        self.line = line
+
+
+def subject_color(subject: str) -> str:
+    """The colour a subject gets when nobody picked one.
+
+    Derived from the name rather than from the order it was typed in, so Maths is the
+    same colour on every child's card and stays that colour when the week is rewritten.
+    """
+    digest = crc32(subject.strip().casefold().encode("utf-8"))
+    return SUBJECT_COLORS[digest % len(SUBJECT_COLORS)]
+
+
+@dataclass(slots=True)
+class Period:
+    """One lesson slot of the day, shared by the whole household."""
+
+    index: int
+    start: str
+    end: str
+
+    @property
+    def start_minutes(self) -> int:
+        """Minutes since midnight the period starts at."""
+        hour, minute = self.start.split(":")
+        return int(hour) * 60 + int(minute)
+
+    @property
+    def end_minutes(self) -> int:
+        """Minutes since midnight the period ends at."""
+        hour, minute = self.end.split(":")
+        return int(hour) * 60 + int(minute)
+
+    def as_card_dict(self) -> dict[str, Any]:
+        """Shape handed to the cards."""
+        return {"index": self.index, "start": self.start, "end": self.end}
+
+
+@dataclass(slots=True)
+class Lesson:
+    """One subject in one period, on one weekday."""
+
+    period: int
+    subject: str
+    room: str | None = None
+
+    def as_card_dict(self) -> dict[str, Any]:
+        """Shape handed to the cards."""
+        return {"period": self.period, "subject": self.subject, "room": self.room}
+
+
+def periods_from_text(text: str | None) -> list[Period]:
+    """Parse the lesson-times field, one ``HH:MM-HH:MM`` per line.
+
+    Raises :class:`InvalidPeriod` on the first line that is not a time range, so the
+    options flow can point at it instead of silently dropping a lesson.
+    """
+    periods: list[Period] = []
+    for line in (text or "").splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        match = _PERIOD_RE.match(stripped)
+        if not match:
+            raise InvalidPeriod(stripped)
+        start_h, start_m, end_h, end_m = (int(value) for value in match.groups())
+        if not (0 <= start_h < 24 and 0 <= end_h < 24 and start_m < 60 and end_m < 60):
+            raise InvalidPeriod(stripped)
+        periods.append(
+            Period(
+                index=len(periods) + 1,
+                start=f"{start_h:02d}:{start_m:02d}",
+                end=f"{end_h:02d}:{end_m:02d}",
+            )
+        )
+    periods.sort(key=lambda period: period.start_minutes)
+    for index, period in enumerate(periods, start=1):
+        period.index = index
+    return periods
+
+
+def text_from_periods(periods: list[Period]) -> str:
+    """Render the periods back into the field they were typed in."""
+    return "\n".join(f"{period.start}-{period.end}" for period in periods)
+
+
+def lessons_from_text(text: str | None, period_count: int) -> list[Lesson]:
+    """Parse one weekday's lessons, one per line, in period order.
+
+    ``Mathe | 1.OG 5`` puts the room next to the subject, ``-`` leaves a period free,
+    and a line may name its period explicitly (``5. Sport``) so a day that starts at
+    the third period does not need two placeholder lines first.
+    """
+    lessons: list[Lesson] = []
+    slot = 1
+    for line in (text or "").splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+
+        if match := _INDEX_RE.match(stripped):
+            slot = int(match.group(1))
+            stripped = match.group(2).strip()
+            # "3." on its own skips to that period without filling it.
+            if not stripped:
+                continue
+
+        if slot > period_count:
+            break
+
+        parts = _ROOM_SPLIT_RE.split(stripped, maxsplit=1)
+        subject = parts[0].strip()
+        room = parts[1].strip() if len(parts) > 1 else ""
+        if subject and subject.casefold() not in FREE_MARKERS:
+            lessons.append(Lesson(period=slot, subject=subject, room=room or None))
+        slot += 1
+
+    lessons.sort(key=lambda lesson: lesson.period)
+    return lessons
+
+
+def text_from_lessons(lessons: list[Lesson]) -> str:
+    """Render one weekday back into the field it was typed in.
+
+    Free periods come back as ``-`` so the lines keep lining up with the times.
+    """
+    if not lessons:
+        return ""
+    by_period = {lesson.period: lesson for lesson in lessons}
+    lines: list[str] = []
+    for slot in range(1, max(by_period) + 1):
+        lesson = by_period.get(slot)
+        if lesson is None:
+            lines.append("-")
+        elif lesson.room:
+            lines.append(f"{lesson.subject} | {lesson.room}")
+        else:
+            lines.append(lesson.subject)
+    return "\n".join(lines)
+
+
+@dataclass(slots=True)
+class Timetable:
+    """The school timetable: one grid of periods, one week per member.
+
+    Like the routines, this is typed in once — a timetable is fixed for a school
+    year — rather than read from a calendar that would have to hold 40 events a week.
+    """
+
+    periods: list[Period] = field(default_factory=list)
+    #: subject -> "#rrggbb", only where somebody picked a colour
+    colors: dict[str, str] = field(default_factory=dict)
+    #: member id -> weekday (0 = Monday) -> lessons
+    lessons: dict[str, dict[int, list[Lesson]]] = field(default_factory=dict)
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any] | None) -> Timetable:
+        """Build from the stored options."""
+        raw = data or {}
+        try:
+            periods = periods_from_text("\n".join(raw.get(CONF_PERIODS) or []))
+        except InvalidPeriod:
+            # Hand-edited options should not take the whole integration down.
+            periods = []
+
+        colors = {
+            str(subject): hex_value
+            for subject, value in (raw.get(CONF_SUBJECT_COLORS) or {}).items()
+            if (hex_value := color_to_hex(value))
+        }
+
+        lessons: dict[str, dict[int, list[Lesson]]] = {}
+        for member_id, week in (raw.get(CONF_LESSONS) or {}).items():
+            days: dict[int, list[Lesson]] = {}
+            for day_key, slots in (week or {}).items():
+                try:
+                    weekday = int(day_key)
+                except (TypeError, ValueError):
+                    continue
+                if not 0 <= weekday <= 6:
+                    continue
+                day: list[Lesson] = []
+                for period_key, entry in (slots or {}).items():
+                    try:
+                        period = int(period_key)
+                    except (TypeError, ValueError):
+                        continue
+                    subject = str((entry or {}).get("subject") or "").strip()
+                    if not subject:
+                        continue
+                    room = str((entry or {}).get("room") or "").strip() or None
+                    day.append(Lesson(period=period, subject=subject, room=room))
+                if day:
+                    days[weekday] = sorted(day, key=lambda lesson: lesson.period)
+            if days:
+                lessons[str(member_id)] = days
+        return cls(periods=periods, colors=colors, lessons=lessons)
+
+    def as_options(self) -> dict[str, Any]:
+        """The stored shape, ready to be written back into the config entry."""
+        return {
+            CONF_PERIODS: [f"{p.start}-{p.end}" for p in self.periods],
+            CONF_SUBJECT_COLORS: dict(self.colors),
+            CONF_LESSONS: {
+                member_id: {
+                    str(weekday): {
+                        str(lesson.period): {
+                            "subject": lesson.subject,
+                            "room": lesson.room,
+                        }
+                        for lesson in day
+                    }
+                    for weekday, day in sorted(week.items())
+                }
+                for member_id, week in self.lessons.items()
+            },
+        }
+
+    def week(self, member_id: str) -> dict[int, list[Lesson]]:
+        """One member's week, empty when they have no timetable."""
+        return self.lessons.get(member_id, {})
+
+    def day(self, member_id: str, weekday: int) -> list[Lesson]:
+        """One member's lessons on one weekday."""
+        return self.week(member_id).get(weekday, [])
+
+    @property
+    def subjects(self) -> list[str]:
+        """Every subject in use, plus any that were given a colour, sorted."""
+        names = {
+            lesson.subject
+            for week in self.lessons.values()
+            for day in week.values()
+            for lesson in day
+        }
+        names.update(self.colors)
+        return sorted(names, key=str.casefold)
+
+    def color(self, subject: str) -> str:
+        """The colour of a subject: the one that was picked, or a stable default."""
+        return self.colors.get(subject) or subject_color(subject)
+
+    @property
+    def breaks(self) -> list[dict[str, Any]]:
+        """The gaps between periods, so breaks never have to be configured.
+
+        Anything from :data:`BREAK_MIN_MINUTES` upwards counts — which is exactly the
+        five-, ten- and sixty-minute gaps a school day already has in its times.
+        """
+        gaps: list[dict[str, Any]] = []
+        for before, after in zip(self.periods, self.periods[1:]):
+            minutes = after.start_minutes - before.end_minutes
+            if minutes >= BREAK_MIN_MINUTES:
+                gaps.append(
+                    {
+                        "after": before.index,
+                        "start": before.end,
+                        "end": after.start,
+                        "minutes": minutes,
+                    }
+                )
+        return gaps
+
+    @property
+    def is_empty(self) -> bool:
+        """True when there is nothing to draw."""
+        return not self.periods or not any(self.lessons.values())
+
+    def as_card_dict(self) -> dict[str, Any]:
+        """The grid every timetable card shares: periods, breaks and subject colours.
+
+        The lessons themselves ride on the member sensors instead, which keeps both
+        sets of attributes small no matter how big the family gets.
+        """
+        return {
+            "periods": [period.as_card_dict() for period in self.periods],
+            "breaks": self.breaks,
+            "subjects": {subject: self.color(subject) for subject in self.subjects},
+        }
+
+    def member_card_dict(self, member_id: str) -> dict[str, list[dict[str, Any]]]:
+        """One member's week, in the shape their sensor publishes."""
+        return {
+            str(weekday): [lesson.as_card_dict() for lesson in day]
+            for weekday, day in sorted(self.week(member_id).items())
+        }
+
+
 @dataclass(slots=True)
 class HearthConfig:
     """The full Hearth configuration."""
@@ -168,6 +481,7 @@ class HearthConfig:
     readonly_calendars: list[str] = field(default_factory=list)
     #: member id -> block -> Routine
     routines: dict[str, dict[str, Routine]] = field(default_factory=dict)
+    timetable: Timetable = field(default_factory=Timetable)
 
     @classmethod
     def from_options(cls, options: dict[str, Any]) -> HearthConfig:
@@ -192,6 +506,7 @@ class HearthConfig:
             shared_todo_lists=list(shared.get(CONF_SHARED_TODO_LISTS) or []),
             readonly_calendars=list(shared.get(CONF_READONLY_CALENDARS) or []),
             routines=routines,
+            timetable=Timetable.from_dict(options.get(CONF_TIMETABLE)),
         )
 
     def routine(self, member_id: str, block: str) -> Routine:
@@ -206,6 +521,11 @@ class HearthConfig:
         """Look up a member by name, case-insensitively."""
         wanted = name.strip().casefold()
         return next((m for m in self.members if m.name.casefold() == wanted), None)
+
+    @property
+    def has_timetable(self) -> bool:
+        """True when there is a lesson grid with at least one lesson in it."""
+        return not self.timetable.is_empty
 
     @property
     def has_routines(self) -> bool:

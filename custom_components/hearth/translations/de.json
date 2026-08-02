@@ -21,6 +21,7 @@
           "remove_member": "Familienmitglied entfernen",
           "shared": "Gemeinsame Kalender und Listen",
           "routines": "Routinen bearbeiten",
+          "timetable": "Stundenplan",
           "done": "Fertig"
         }
       },
@@ -112,7 +113,54 @@
           "5": "Samstag",
           "6": "Sonntag"
         }
+      },
+      "timetable": {
+        "title": "Stundenplan",
+        "description": "Die Stundenzeiten gelten für den ganzen Haushalt. Die Stunden selbst gehören zu einem Familienmitglied und erscheinen in dessen Farbe auf der Karte „Hearth Stundenplan“.",
+        "menu_options": {
+          "timetable_times": "Stundenzeiten",
+          "timetable_lessons": "Stundenplan eines Kindes bearbeiten",
+          "timetable_colors": "Fächerfarben",
+          "init": "Zurück"
+        }
+      },
+      "timetable_times": {
+        "title": "Stundenzeiten",
+        "description": "Eine Stunde pro Zeile, als HH:MM-HH:MM:\n\n08:00-08:45\n08:45-09:30\n09:50-10:35\n\nPausen trägst du nirgends ein: Jede Lücke von fünf Minuten oder mehr zwischen zwei Stunden wird von selbst als Pause gezeichnet.",
+        "data": {
+          "periods": "Stunden"
+        },
+        "data_description": {
+          "periods": "Die Reihenfolge ist egal, sortiert wird nach der Anfangszeit. Ein leeres Feld blendet die Stundenplan-Karte aus."
+        }
+      },
+      "timetable_lessons": {
+        "title": "Wessen Stundenplan?",
+        "description": "Wähle das Familienmitglied. Im nächsten Schritt trägst du die ganze Woche ein.",
+        "data": {
+          "id": "Familienmitglied"
+        }
+      },
+      "timetable_week": {
+        "title": "{name} – Stundenplan",
+        "description": "Ein Fach pro Zeile, in der Reihenfolge der Stunden:\n\n{periods}\n\nDer Raum kommt hinter einen senkrechten Strich, ein Bindestrich lässt eine Stunde frei, und eine Zeile darf ihre Stunde selbst benennen – dann braucht ein später Start keine Platzhalter:\n\nDeutsch\nMathe | 1.OG 5\n-\n6. Sport | Turnhalle\n\nDie Farbe sucht sich jedes Fach selbst. Tage, die du leer lässt, haben einfach keine Schule.",
+        "data": {
+          "0": "Montag",
+          "1": "Dienstag",
+          "2": "Mittwoch",
+          "3": "Donnerstag",
+          "4": "Freitag",
+          "5": "Samstag",
+          "6": "Sonntag"
+        }
+      },
+      "timetable_colors": {
+        "title": "Fächerfarben",
+        "description": "Jedes Fach hat schon eine Farbe, abgeleitet aus seinem Namen – und zwar bei jedem Kind dieselbe. Ändere die, die dir nicht gefallen."
       }
+    },
+    "error": {
+      "invalid_period": "„{line}“ ist keine Zeitspanne. Schreibe jede Zeile als HH:MM-HH:MM, zum Beispiel 08:00-08:45."
     },
     "abort": {
       "member_not_found": "Dieses Familienmitglied existiert nicht mehr."

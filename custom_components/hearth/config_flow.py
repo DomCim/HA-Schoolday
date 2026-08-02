@@ -29,6 +29,7 @@ from .const import (
     CONF_MEMBERS,
     CONF_NAME,
     CONF_ORDER,
+    CONF_PERIODS,
     CONF_PERSON,
     CONF_POINTS_ENTITY,
     CONF_READONLY_CALENDARS,
@@ -36,13 +37,26 @@ from .const import (
     CONF_SHARED,
     CONF_SHARED_CALENDARS,
     CONF_SHARED_TODO_LISTS,
+    CONF_TIMETABLE,
     CONF_TODO_LISTS,
     DEFAULT_COLORS,
     DOMAIN,
     ROUTINE_BLOCKS,
     WEEKDAYS,
 )
-from .models import color_to_hex, hex_to_rgb, steps_from_text, text_from_steps
+from .models import (
+    InvalidPeriod,
+    Lesson,
+    Timetable,
+    color_to_hex,
+    hex_to_rgb,
+    lessons_from_text,
+    periods_from_text,
+    steps_from_text,
+    text_from_lessons,
+    text_from_periods,
+    text_from_steps,
+)
 
 CALENDAR_SELECTOR = selector.EntitySelector(
     selector.EntitySelectorConfig(domain="calendar", multiple=True)
@@ -98,6 +112,10 @@ class HearthOptionsFlow(OptionsFlow):
     def _routines(self) -> dict[str, Any]:
         return dict(self.config_entry.options.get(CONF_ROUTINES) or {})
 
+    @property
+    def _timetable(self) -> Timetable:
+        return Timetable.from_dict(self.config_entry.options.get(CONF_TIMETABLE))
+
     def _member_labels(self) -> list[selector.SelectOptionDict]:
         return [
             selector.SelectOptionDict(
@@ -105,6 +123,21 @@ class HearthOptionsFlow(OptionsFlow):
             )
             for member in self._members
         ]
+
+    def _persist(self, **changes: Any) -> None:
+        """Write the options back, carrying every section that is not being changed.
+
+        Every section has to be listed: `async_update_entry` replaces the options
+        wholesale, so anything left out here would be silently dropped.
+        """
+        options: dict[str, Any] = {
+            CONF_MEMBERS: self._members,
+            CONF_SHARED: self._shared,
+            CONF_ROUTINES: self._routines,
+            CONF_TIMETABLE: self._timetable.as_options(),
+        }
+        options.update(changes)
+        self.hass.config_entries.async_update_entry(self.config_entry, options=options)
 
     async def _apply(self, **changes: Any) -> ConfigFlowResult:
         """Persist the change and return to the menu.
@@ -114,13 +147,7 @@ class HearthOptionsFlow(OptionsFlow):
         the entry directly keeps one dialog open for the whole session, and every
         step is saved the moment it is made — closing the dialog loses nothing.
         """
-        options: dict[str, Any] = {
-            CONF_MEMBERS: self._members,
-            CONF_SHARED: self._shared,
-            CONF_ROUTINES: self._routines,
-        }
-        options.update(changes)
-        self.hass.config_entries.async_update_entry(self.config_entry, options=options)
+        self._persist(**changes)
         return await self.async_step_init()
 
     def _member_schema(self) -> vol.Schema:
@@ -159,7 +186,7 @@ class HearthOptionsFlow(OptionsFlow):
         """Show the main menu."""
         options = ["add_member"]
         if self._members:
-            options += ["edit_member", "remove_member", "routines"]
+            options += ["edit_member", "remove_member", "routines", "timetable"]
         options += ["shared", "done"]
         return self.async_show_menu(step_id="init", menu_options=options)
 
@@ -221,14 +248,7 @@ class HearthOptionsFlow(OptionsFlow):
                 if (steps := steps_from_text(user_input.get(day)))
             }
             routines[self._member_id] = current
-            options: dict[str, Any] = {
-                CONF_MEMBERS: self._members,
-                CONF_SHARED: self._shared,
-                CONF_ROUTINES: routines,
-            }
-            self.hass.config_entries.async_update_entry(
-                self.config_entry, options=options
-            )
+            self._persist(**{CONF_ROUTINES: routines})
             return await self.async_step_routines()
 
         stored = current.get(self._block) or {}
@@ -249,6 +269,177 @@ class HearthOptionsFlow(OptionsFlow):
                 "name": member[CONF_NAME],
                 "block": self._block,
             },
+        )
+
+    # --- timetable ----------------------------------------------------------
+
+    async def async_step_timetable(
+        self, _user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """The timetable menu.
+
+        Lessons only become editable once the times exist, which is also the order
+        the household thinks in: first when a period is, then what is in it.
+        """
+        timetable = self._timetable
+        options = ["timetable_times"]
+        if timetable.periods:
+            options.append("timetable_lessons")
+        if timetable.subjects:
+            options.append("timetable_colors")
+        options.append("init")
+        return self.async_show_menu(step_id="timetable", menu_options=options)
+
+    async def async_step_timetable_times(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Edit the lesson times, one ``HH:MM-HH:MM`` per line.
+
+        Breaks are not asked for: they are the gaps between these times, and the
+        cards draw them from there.
+        """
+        timetable = self._timetable
+
+        if user_input is not None:
+            try:
+                periods = periods_from_text(user_input.get(CONF_PERIODS))
+            except InvalidPeriod as err:
+                return self.async_show_form(
+                    step_id="timetable_times",
+                    data_schema=self.add_suggested_values_to_schema(
+                        self._times_schema(), {CONF_PERIODS: user_input.get(CONF_PERIODS)}
+                    ),
+                    errors={CONF_PERIODS: "invalid_period"},
+                    description_placeholders={"line": err.line},
+                )
+            timetable.periods = periods
+            self._persist(**{CONF_TIMETABLE: timetable.as_options()})
+            return await self.async_step_timetable()
+
+        return self.async_show_form(
+            step_id="timetable_times",
+            data_schema=self.add_suggested_values_to_schema(
+                self._times_schema(),
+                {CONF_PERIODS: text_from_periods(timetable.periods)},
+            ),
+        )
+
+    @staticmethod
+    def _times_schema() -> vol.Schema:
+        return vol.Schema(
+            {
+                vol.Optional(CONF_PERIODS): selector.TextSelector(
+                    selector.TextSelectorConfig(multiline=True)
+                )
+            }
+        )
+
+    async def async_step_timetable_lessons(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Pick whose timetable to edit."""
+        if user_input is not None:
+            self._member_id = user_input[CONF_MEMBER_ID]
+            return await self.async_step_timetable_week()
+
+        return self.async_show_form(
+            step_id="timetable_lessons",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_MEMBER_ID): selector.SelectSelector(
+                        selector.SelectSelectorConfig(options=self._member_labels())
+                    )
+                }
+            ),
+        )
+
+    async def async_step_timetable_week(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Edit one member's whole week, one field per weekday.
+
+        One lesson per line, in period order — the same shape as the routine steps,
+        because it is the least fiddly thing to type on the phone in your hand.
+        """
+        member = next(
+            (m for m in self._members if m[CONF_MEMBER_ID] == self._member_id), None
+        )
+        if member is None:
+            return self.async_abort(reason="member_not_found")
+
+        timetable = self._timetable
+
+        if user_input is not None:
+            week: dict[int, list[Lesson]] = {}
+            for day in WEEKDAYS:
+                lessons = lessons_from_text(user_input.get(day), len(timetable.periods))
+                if lessons:
+                    week[int(day)] = lessons
+            if week:
+                timetable.lessons[self._member_id] = week
+            else:
+                timetable.lessons.pop(self._member_id, None)
+            self._persist(**{CONF_TIMETABLE: timetable.as_options()})
+            return await self.async_step_timetable()
+
+        stored = timetable.week(self._member_id)
+        suggested = {day: text_from_lessons(stored.get(int(day), [])) for day in WEEKDAYS}
+
+        schema = vol.Schema(
+            {
+                vol.Optional(day): selector.TextSelector(
+                    selector.TextSelectorConfig(multiline=True)
+                )
+                for day in WEEKDAYS
+            }
+        )
+        return self.async_show_form(
+            step_id="timetable_week",
+            data_schema=self.add_suggested_values_to_schema(schema, suggested),
+            description_placeholders={
+                "name": member[CONF_NAME],
+                "periods": "\n".join(
+                    f"{period.index}. {period.start}–{period.end}"
+                    for period in timetable.periods
+                ),
+            },
+        )
+
+    async def async_step_timetable_colors(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Recolour the subjects.
+
+        Every subject already has a colour, derived from its name, so this step is
+        only ever a correction — which is why it offers the current colour as the
+        suggested value rather than an empty field.
+        """
+        timetable = self._timetable
+        subjects = timetable.subjects
+        if not subjects:
+            return await self.async_step_timetable()
+
+        if user_input is not None:
+            timetable.colors = {
+                subject: hex_value
+                for subject in subjects
+                if (hex_value := color_to_hex(user_input.get(subject)))
+            }
+            self._persist(**{CONF_TIMETABLE: timetable.as_options()})
+            return await self.async_step_timetable()
+
+        schema = vol.Schema(
+            {
+                vol.Optional(subject): selector.ColorRGBSelector()
+                for subject in subjects
+            }
+        )
+        suggested = {
+            subject: hex_to_rgb(timetable.color(subject)) for subject in subjects
+        }
+        return self.async_show_form(
+            step_id="timetable_colors",
+            data_schema=self.add_suggested_values_to_schema(schema, suggested),
         )
 
     # --- add ----------------------------------------------------------------
@@ -349,8 +540,15 @@ class HearthOptionsFlow(OptionsFlow):
                 for member_id, value in self._routines.items()
                 if member_id not in doomed
             }
+            timetable = self._timetable
+            for member_id in doomed:
+                timetable.lessons.pop(member_id, None)
             return await self._apply(
-                **{CONF_MEMBERS: remaining, CONF_ROUTINES: routines}
+                **{
+                    CONF_MEMBERS: remaining,
+                    CONF_ROUTINES: routines,
+                    CONF_TIMETABLE: timetable.as_options(),
+                }
             )
 
         return self.async_show_form(

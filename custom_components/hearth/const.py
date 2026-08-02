@@ -7,7 +7,7 @@ from typing import Final
 DOMAIN: Final = "hearth"
 
 # Keep in sync with manifest.json, package.json and src/lib/const.ts.
-VERSION: Final = "0.3.1"
+VERSION: Final = "0.4.0"
 
 # Where the bundled Lovelace cards are served from.
 FRONTEND_URL_BASE: Final = "/hearth-frontend"
@@ -22,6 +22,7 @@ DATA_FRONTEND_REGISTERED: Final = f"{DOMAIN}_frontend_registered"
 CONF_MEMBERS: Final = "members"
 CONF_SHARED: Final = "shared"
 CONF_ROUTINES: Final = "routines"
+CONF_TIMETABLE: Final = "timetable"
 
 # Routine blocks. Two is deliberate: a wall panel should show what is due now,
 # and "before school" versus "before bed" is the split that actually matters.
@@ -32,6 +33,38 @@ ROUTINE_BLOCKS: Final[tuple[str, ...]] = (BLOCK_MORNING, BLOCK_EVENING)
 # Weekday keys are 0 = Monday, matching datetime.weekday() — and Chores4Kids,
 # so the household only has to learn one numbering.
 WEEKDAYS: Final[tuple[str, ...]] = ("0", "1", "2", "3", "4", "5", "6")
+
+# --- Timetable --------------------------------------------------------------
+
+CONF_PERIODS: Final = "periods"
+CONF_SUBJECT_COLORS: Final = "colors"
+CONF_LESSONS: Final = "lessons"
+
+# A gap this long between two periods is a break, and is drawn as one. Deriving
+# breaks from the lesson times means there is nothing extra to configure.
+BREAK_MIN_MINUTES: Final = 5
+
+# Written instead of a subject to leave a period deliberately empty.
+FREE_MARKERS: Final[frozenset[str]] = frozenset(
+    {"-", "--", "---", "–", "—", "x", "frei", "free", "."}
+)
+
+# Colours handed to subjects that have none, picked by a stable hash of the name so
+# a subject keeps its colour for good — and keeps it across every member.
+SUBJECT_COLORS: Final[list[str]] = [
+    "#3a86c8",
+    "#4f9d69",
+    "#e0603a",
+    "#8e6bbf",
+    "#c9a227",
+    "#2a9d8f",
+    "#d1707f",
+    "#7a8b3a",
+    "#b5651d",
+    "#5a7d9a",
+    "#a05195",
+    "#47845c",
+]
 
 CONF_MEMBER_ID: Final = "id"
 CONF_NAME: Final = "name"
@@ -64,6 +97,10 @@ ATTR_VERSION: Final = "version"
 ATTR_ROUTINE_MORNING: Final = "routine_morning"
 ATTR_ROUTINE_EVENING: Final = "routine_evening"
 ATTR_ROUTINE_BLOCKS: Final = "routine_blocks"
+
+# The lesson grid — periods, breaks and subject colours — on the board sensor; one
+# member's week on their own sensor, which keeps either attribute set small.
+ATTR_TIMETABLE: Final = "timetable"
 
 # --- Routine completion state ------------------------------------------------
 

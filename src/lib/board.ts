@@ -5,6 +5,7 @@
  * setup, so changing a colour in the options flow updates the whole dashboard at once.
  */
 import { DEFAULT_MEMBER_COLORS } from './const';
+import { parseGrid, type TimetableGrid } from './timetable';
 import type { CalendarStyle } from './calendar';
 import type { HassEntity, HomeAssistant } from './types';
 
@@ -25,6 +26,8 @@ export interface HearthBoard {
   sharedCalendars: string[];
   sharedTodoLists: string[];
   readonlyCalendars: string[];
+  /** The lesson grid, or null when no timetable is configured. */
+  timetable: TimetableGrid | null;
 }
 
 /** Colour used for events on calendars that belong to the family rather than a person. */
@@ -86,6 +89,7 @@ export function findBoard(
     sharedCalendars: list('shared_calendars'),
     sharedTodoLists: list('shared_todo_lists'),
     readonlyCalendars: list('readonly_calendars'),
+    timetable: parseGrid(attributes.timetable),
   };
 }
 

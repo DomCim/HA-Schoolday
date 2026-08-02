@@ -1,0 +1,663 @@
+/**
+ * The school timetable — the week on the wall, in the family's own colours.
+ *
+ * Everything it draws comes from the Hearth options: the periods and their breaks
+ * from the board sensor, the lessons from the member sensors. A card with no options
+ * at all is the normal case — it picks the household's lesson grid, the members who
+ * actually have a timetable, and the days they have school on.
+ *
+ * Like the routines, the timetable is typed in rather than read from a calendar: it
+ * is fixed for a school year, and forty recurring events a week is not a calendar
+ * anybody wants to maintain.
+ */
+import { LitElement, css, html, nothing, type TemplateResult } from 'lit';
+import { customElement, property, state } from 'lit/decorators.js';
+
+import { findBoard, memberSensor, type HearthMember } from '../lib/board';
+import { localeOf } from '../lib/dates';
+import { t } from '../lib/i18n';
+import { hearthButtons, hearthTokens } from '../lib/styles';
+import {
+  buildRows,
+  currentPeriod,
+  formatTime,
+  hasLessons,
+  lessonAt,
+  nextLesson,
+  nowMinutes,
+  periodProgress,
+  weekOf,
+  weekdayIndex,
+  type TimetableGrid,
+  type TimetableWeek,
+} from '../lib/timetable';
+import type {
+  HomeAssistant,
+  LovelaceCard,
+  LovelaceCardConfig,
+  LovelaceCardEditor,
+} from '../lib/types';
+
+export type TimetableLayout = 'auto' | 'week' | 'day';
+export type TimetableDays = 'auto' | 'school' | 'week';
+
+/** Below this the week does not fit legibly, so the card shows one day instead. */
+const NARROW_PX = 560;
+
+/** 1 January 2024 was a Monday, which makes it a convenient weekday-name origin. */
+const WEEKDAY_ORIGIN = new Date(2024, 0, 1);
+
+export interface HearthTimetableCardConfig extends LovelaceCardConfig {
+  board_entity?: string;
+  /** Show only this member, by id or name. Otherwise the card offers a switcher. */
+  member?: string;
+  /** Limit the switcher to these members, by id or name. */
+  members?: string[];
+  /** "auto" shows the week when there is room for it, one day when there is not. */
+  layout?: TimetableLayout;
+  /** Which weekdays to show. "auto" follows the timetable itself. */
+  week_days?: TimetableDays;
+  show_rooms?: boolean;
+  show_breaks?: boolean;
+  show_times?: boolean;
+  /** Hide periods that are free on every day shown. */
+  hide_empty_periods?: boolean;
+  /** Mark today, the running lesson and what is coming next. */
+  highlight?: boolean;
+}
+
+@customElement('hearth-timetable-card')
+export class HearthTimetableCard extends LitElement implements LovelaceCard {
+  @property({ attribute: false }) public hass?: HomeAssistant;
+
+  @state() private _config: HearthTimetableCardConfig = { type: '' };
+  /** The member picked with the chips; unset means "the first one". */
+  @state() private _memberId?: string;
+  /** The day picked in day view; unset means "today, or the first school day". */
+  @state() private _day?: number;
+  @state() private _narrow = false;
+  /** Bumped on a timer so the running lesson stays the running lesson. */
+  @state() private _tick = 0;
+
+  private _resizeObserver?: ResizeObserver;
+  private _timer?: ReturnType<typeof setInterval>;
+
+  public static async getConfigElement(): Promise<LovelaceCardEditor> {
+    return document.createElement('hearth-timetable-card-editor');
+  }
+
+  public static getStubConfig(): Record<string, unknown> {
+    return { layout: 'auto', week_days: 'auto' };
+  }
+
+  public setConfig(config: HearthTimetableCardConfig): void {
+    this._config = { ...config };
+  }
+
+  public getCardSize(): number {
+    return 8;
+  }
+
+  public getGridOptions(): { columns: 'full'; rows: 'auto' } {
+    return { columns: 'full', rows: 'auto' };
+  }
+
+  public override connectedCallback(): void {
+    super.connectedCallback();
+    this._resizeObserver = new ResizeObserver(([entry]) => {
+      this._narrow = entry.contentRect.width < NARROW_PX;
+    });
+    this._resizeObserver.observe(this);
+    // Half a minute is close enough for a lesson that lasts forty-five.
+    this._timer = setInterval(() => {
+      this._tick += 1;
+    }, 30_000);
+  }
+
+  public override disconnectedCallback(): void {
+    this._resizeObserver?.disconnect();
+    this._resizeObserver = undefined;
+    if (this._timer) {
+      clearInterval(this._timer);
+      this._timer = undefined;
+    }
+    super.disconnectedCallback();
+  }
+
+  // --- data ---------------------------------------------------------------
+
+  /** The members this card may show: they have a timetable, and are not filtered out. */
+  private _candidates(members: HearthMember[]): { member: HearthMember; week: TimetableWeek }[] {
+    const wanted = (this._config.members ?? (this._config.member ? [this._config.member] : []))
+      .map((value) => value.toLowerCase());
+
+    return members
+      .filter(
+        (member) =>
+          !wanted.length ||
+          wanted.includes(member.id.toLowerCase()) ||
+          wanted.includes(member.name.toLowerCase()),
+      )
+      .map((member) => ({ member, week: weekOf(memberSensor(this.hass!, member.id)) }))
+      .filter((entry) => hasLessons(entry.week));
+  }
+
+  /** The weekdays to draw, 0 = Monday. */
+  private _weekdays(week: TimetableWeek): number[] {
+    const setting = this._config.week_days ?? 'auto';
+    if (setting === 'week') {
+      return [0, 1, 2, 3, 4, 5, 6];
+    }
+    if (setting === 'school') {
+      return [0, 1, 2, 3, 4];
+    }
+    // Monday to Friday, extended only if there really is something at the weekend.
+    // A Wednesday off stays a visible gap rather than vanishing from the grid.
+    const used = Object.keys(week)
+      .map(Number)
+      .filter((day) => (week[day] ?? []).length > 0);
+    const last = Math.max(4, ...used);
+    return Array.from({ length: last + 1 }, (_, index) => index);
+  }
+
+  private _weekdayName(weekday: number, style: 'short' | 'long'): string {
+    const date = new Date(WEEKDAY_ORIGIN);
+    date.setDate(date.getDate() + weekday);
+    return new Intl.DateTimeFormat(localeOf(this.hass!), { weekday: style }).format(date);
+  }
+
+  private _color(grid: TimetableGrid, subject: string): string {
+    return grid.subjects[subject] ?? 'var(--hearth-line)';
+  }
+
+  // --- pieces -------------------------------------------------------------
+
+  private _renderChips(
+    candidates: { member: HearthMember; week: TimetableWeek }[],
+    selected: HearthMember,
+  ): TemplateResult | typeof nothing {
+    if (candidates.length < 2) {
+      return nothing;
+    }
+    return html`
+      <div class="chips">
+        ${candidates.map(
+          ({ member }) => html`
+            <button
+              class="chip"
+              style=${`--member-color:${member.color}`}
+              aria-pressed=${member.id === selected.id}
+              @click=${() => {
+                this._memberId = member.id;
+              }}
+            >
+              ${member.name}
+            </button>
+          `,
+        )}
+      </div>
+    `;
+  }
+
+  /** What is running now, or what comes next — the line a wall panel is read for. */
+  private _renderStatus(
+    grid: TimetableGrid,
+    week: TimetableWeek,
+    today: number,
+  ): TemplateResult | typeof nothing {
+    if (this._config.highlight === false) {
+      return nothing;
+    }
+    const minutes = nowMinutes();
+    const running = currentPeriod(grid, minutes);
+    const lesson = running ? lessonAt(week, today, running.index) : undefined;
+
+    if (running && lesson) {
+      const left = running.endMinutes - minutes;
+      return html`
+        <div class="status">
+          <span class="pill" style=${`--subject:${this._color(grid, lesson.subject)}`}
+            >${t(this.hass, 'timetable.now')}</span
+          >
+          <span class="status-text">
+            ${lesson.subject}${lesson.room ? html` · ${lesson.room}` : nothing}
+          </span>
+          <span class="status-muted">${t(this.hass, 'timetable.remaining', { minutes: left })}</span>
+        </div>
+      `;
+    }
+
+    const upcoming = nextLesson(grid, week, today, minutes);
+    if (upcoming) {
+      return html`
+        <div class="status">
+          <span class="pill next">${t(this.hass, 'timetable.next')}</span>
+          <span class="status-text">
+            ${upcoming.lesson.subject}${upcoming.lesson.room
+              ? html` · ${upcoming.lesson.room}`
+              : nothing}
+          </span>
+          <span class="status-muted">${formatTime(this.hass, upcoming.period.start)}</span>
+        </div>
+      `;
+    }
+
+    // Nothing left today, but there was something: say so rather than stay blank.
+    if ((week[today] ?? []).length) {
+      return html`<div class="status">
+        <span class="status-muted">${t(this.hass, 'timetable.done_for_today')}</span>
+      </div>`;
+    }
+    return nothing;
+  }
+
+  private _renderCell(
+    grid: TimetableGrid,
+    week: TimetableWeek,
+    weekday: number,
+    periodIndex: number,
+    isNow: boolean,
+    progress: number | null,
+  ): TemplateResult {
+    const lesson = lessonAt(week, weekday, periodIndex);
+    if (!lesson) {
+      return html`<div class="cell free ${isNow ? 'now' : ''}"></div>`;
+    }
+    const showRoom = this._config.show_rooms !== false && lesson.room;
+    return html`
+      <div
+        class="cell ${isNow ? 'now' : ''}"
+        style=${`--subject:${this._color(grid, lesson.subject)}`}
+        title=${lesson.room ? `${lesson.subject} · ${lesson.room}` : lesson.subject}
+      >
+        <span class="subject">${lesson.subject}</span>
+        ${showRoom ? html`<span class="room">${lesson.room}</span>` : nothing}
+        ${isNow && progress !== null
+          ? html`<div class="progress"><div style=${`width:${Math.round(progress * 100)}%`}></div></div>`
+          : nothing}
+      </div>
+    `;
+  }
+
+  protected override render(): TemplateResult {
+    if (!this.hass) {
+      return html`<ha-card></ha-card>`;
+    }
+
+    const board = findBoard(this.hass, this._config.board_entity);
+    if (!board) {
+      return html`<ha-card><div class="notice">${t(this.hass, 'board.missing')}</div></ha-card>`;
+    }
+
+    const grid = board.timetable;
+    if (!grid) {
+      return html`<ha-card
+        ><div class="notice">${t(this.hass, 'timetable.no_periods')}</div></ha-card
+      >`;
+    }
+
+    const candidates = this._candidates(board.members);
+    if (!candidates.length) {
+      return html`<ha-card
+        ><div class="notice">${t(this.hass, 'timetable.none_configured')}</div></ha-card
+      >`;
+    }
+
+    const selected =
+      candidates.find((entry) => entry.member.id === this._memberId) ?? candidates[0];
+    const { member, week } = selected;
+
+    const weekdays = this._weekdays(week);
+    const today = weekdayIndex();
+    const highlight = this._config.highlight !== false;
+
+    // One day at a time when the card is too narrow for a week, or when asked to.
+    const layout = this._config.layout ?? 'auto';
+    const dayView = layout === 'day' || (layout === 'auto' && this._narrow);
+    const day =
+      this._day !== undefined && weekdays.includes(this._day)
+        ? this._day
+        : weekdays.includes(today)
+          ? today
+          : weekdays[0];
+    const columns = dayView ? [day] : weekdays;
+
+    const rows = buildRows(grid, (period) => {
+      if (this._config.hide_empty_periods === false) {
+        return true;
+      }
+      return columns.some((weekday) => lessonAt(week, weekday, period.index) !== undefined);
+    });
+
+    const running = highlight ? currentPeriod(grid) : undefined;
+    const showTimes = this._config.show_times !== false;
+    const showBreaks = this._config.show_breaks !== false;
+
+    return html`
+      <ha-card style=${`--member-color:${member.color}`}>
+        <div class="head">
+          <div class="title">
+            <span class="dot"></span>
+            <span>${member.name}</span>
+          </div>
+          ${this._renderChips(candidates, member)}
+        </div>
+        ${highlight && weekdays.includes(today)
+          ? this._renderStatus(grid, week, today)
+          : nothing}
+        ${dayView
+          ? html`
+              <div class="days">
+                ${weekdays.map(
+                  (weekday) => html`
+                    <button
+                      class="chip day ${weekday === today && highlight ? 'is-today' : ''}"
+                      aria-pressed=${weekday === day}
+                      @click=${() => {
+                        this._day = weekday;
+                      }}
+                    >
+                      ${this._weekdayName(weekday, 'short')}
+                    </button>
+                  `,
+                )}
+              </div>
+            `
+          : nothing}
+
+        <div
+          class="grid"
+          style=${`grid-template-columns:${showTimes ? 'max-content' : 'min-content'} repeat(${columns.length}, minmax(0, 1fr))`}
+        >
+          <div class="corner"></div>
+          ${columns.map(
+            (weekday) => html`
+              <div class="col-head ${highlight && weekday === today ? 'today' : ''}">
+                ${this._weekdayName(weekday, dayView ? 'long' : 'short')}
+              </div>
+            `,
+          )}
+          ${rows.map((row) => {
+            if (row.kind === 'break') {
+              return showBreaks
+                ? html`
+                    <div class="break">
+                      <span class="line"></span>
+                      <span
+                        >${t(this.hass, 'timetable.break')} ·
+                        ${formatTime(this.hass, row.gap.start)}–${formatTime(
+                          this.hass,
+                          row.gap.end,
+                        )}</span
+                      >
+                      <span class="line"></span>
+                    </div>
+                  `
+                : nothing;
+            }
+
+            const { period } = row;
+            const progress = highlight ? periodProgress(period) : null;
+            return html`
+              <div class="time">
+                <span class="no">${period.index}</span>
+                ${showTimes
+                  ? html`<span class="span"
+                      >${formatTime(this.hass, period.start)}<br />${formatTime(
+                        this.hass,
+                        period.end,
+                      )}</span
+                    >`
+                  : nothing}
+              </div>
+              ${columns.map((weekday) =>
+                this._renderCell(
+                  grid,
+                  week,
+                  weekday,
+                  period.index,
+                  highlight && weekday === today && running?.index === period.index,
+                  progress,
+                ),
+              )}
+            `;
+          })}
+        </div>
+      </ha-card>
+    `;
+  }
+
+  static override styles = [
+    hearthTokens,
+    hearthButtons,
+    css`
+      /* The card measures itself to decide between the week and a single day, and an
+         inline host has no width worth measuring. */
+      :host {
+        display: block;
+      }
+
+      ha-card {
+        padding: 12px;
+        box-sizing: border-box;
+      }
+
+      .head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: var(--hearth-gap);
+        margin-bottom: 8px;
+      }
+
+      .title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 1.15rem;
+        font-weight: 700;
+      }
+
+      .dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--member-color);
+      }
+
+      .chips,
+      .days {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .days {
+        margin-bottom: 8px;
+      }
+
+      .chip {
+        min-height: 36px;
+        padding: 0 14px;
+        border: 1px solid var(--hearth-line);
+        border-radius: 18px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--hearth-muted);
+      }
+
+      .chip[aria-pressed='true'] {
+        border-color: var(--member-color);
+        background: color-mix(in srgb, var(--member-color) 18%, transparent);
+        color: var(--primary-text-color);
+      }
+
+      .chip.day.is-today {
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
+      .status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+        font-size: 0.95rem;
+      }
+
+      .pill {
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        background: color-mix(in srgb, var(--subject) 22%, transparent);
+        color: var(--primary-text-color);
+      }
+
+      .pill.next {
+        background: var(--hearth-surface-alt);
+        color: var(--hearth-muted);
+      }
+
+      .status-text {
+        font-weight: 600;
+      }
+
+      .status-muted {
+        color: var(--hearth-muted);
+        font-size: 0.85rem;
+      }
+
+      .grid {
+        display: grid;
+        gap: 4px;
+        align-items: stretch;
+      }
+
+      .col-head {
+        padding: 2px 0 4px;
+        text-align: center;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--hearth-muted);
+      }
+
+      .col-head.today {
+        color: var(--text-primary-color, #fff);
+        background: var(--hearth-today);
+        border-radius: 8px;
+      }
+
+      .time {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding-right: 8px;
+        text-align: right;
+        font-size: 0.68rem;
+        line-height: 1.25;
+        color: var(--hearth-muted);
+        white-space: nowrap;
+      }
+
+      .time .no {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--primary-text-color);
+      }
+
+      .cell {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-height: var(--hearth-touch);
+        padding: 4px 8px;
+        box-sizing: border-box;
+        overflow: hidden;
+        border-radius: 10px;
+        border-left: 3px solid var(--subject);
+        background: color-mix(in srgb, var(--subject) 18%, transparent);
+      }
+
+      .cell .subject {
+        font-size: 0.95rem;
+        font-weight: 600;
+        line-height: 1.15;
+        overflow-wrap: anywhere;
+      }
+
+      .cell .room {
+        margin-top: 2px;
+        font-size: 0.72rem;
+        color: var(--hearth-muted);
+      }
+
+      /* A free period is drawn, not left out: the grid has to keep its shape, and an
+         empty slot with nothing in it reads as a rendering fault. */
+      .cell.free {
+        background: transparent;
+        border: 1px dashed var(--hearth-line);
+        opacity: 0.6;
+      }
+
+      .cell.now {
+        box-shadow: inset 0 0 0 2px var(--hearth-today);
+      }
+
+      .progress {
+        height: 3px;
+        margin-top: 4px;
+        border-radius: 2px;
+        background: var(--hearth-line);
+        overflow: hidden;
+      }
+
+      .progress > div {
+        height: 100%;
+        background: var(--hearth-today);
+      }
+
+      .break {
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 1px 0;
+        font-size: 0.7rem;
+        color: var(--hearth-muted);
+      }
+
+      .break .line {
+        flex: 1;
+        height: 1px;
+        background: var(--hearth-line);
+      }
+
+      .notice {
+        padding: 8px 2px;
+        color: var(--hearth-muted);
+        font-size: 0.9rem;
+      }
+    `,
+  ];
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    'hearth-timetable-card': HearthTimetableCard;
+  }
+}
+
+window.customCards = window.customCards || [];
+window.customCards.push({
+  type: 'hearth-timetable-card',
+  name: 'Hearth Timetable',
+  description:
+    'The school timetable per child, colour-coded by subject, with the running lesson marked.',
+  preview: true,
+  documentationURL: 'https://github.com/DomCim/Homeassistant-hearth',
+});

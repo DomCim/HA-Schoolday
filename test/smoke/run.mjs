@@ -576,6 +576,181 @@ check(
   unknownLang.replace(/\s+/g, ' ').trim().slice(0, 60),
 );
 
+// --------------------------------------------------------------- timetable card
+
+// Wednesday 5 August 2026, 09:15 — inside the second period, so "the lesson that is
+// running now" is a fact rather than whatever the clock says when CI happens to run.
+// Every check that depends on the real date has already run by this point.
+await page.clock.setFixedTime(new Date('2026-08-05T09:15:00+02:00'));
+
+await page.evaluate(() =>
+  window.__mount({ type: 'custom:hearth-timetable-card' }, 'hearth-timetable-card'),
+);
+await page.waitForTimeout(400);
+
+const ttChips = await page.locator('hearth-timetable-card .chips .chip').allTextContents();
+check(
+  'only members with a timetable are offered',
+  ttChips.map((c) => c.trim()).join(',') === 'Ben,Nik',
+  ttChips.map((c) => c.trim()).join(','),
+);
+
+const ttHeads = await page.locator('hearth-timetable-card .col-head').allTextContents();
+check(
+  'the week runs Monday to Friday when nobody has weekend lessons',
+  ttHeads.length === 5 && /^Mo/.test(ttHeads[0].trim()) && /^Fr/.test(ttHeads[4].trim()),
+  ttHeads.map((h) => h.trim()).join(' '),
+);
+
+const ttRows = await page.locator('hearth-timetable-card .time').count();
+check('periods nobody has are left out', ttRows === 6, `${ttRows} period rows`);
+
+const ttBreaks = await page.locator('hearth-timetable-card .break').allTextContents();
+check(
+  'breaks come from the gaps, and none dangles off the end',
+  ttBreaks.length === 2 && /09:30–09:50/.test(ttBreaks[0]) && /11:20–11:30/.test(ttBreaks[1]),
+  ttBreaks.map((b) => b.replace(/\s+/g, ' ').trim()).join(' | '),
+);
+
+const nowCells = await page.locator('hearth-timetable-card .cell.now').count();
+const nowSubject = await page
+  .locator('hearth-timetable-card .cell.now .subject')
+  .textContent()
+  .catch(() => null);
+check(
+  'the lesson running right now is the one marked',
+  nowCells === 1 && nowSubject?.trim() === 'Sport',
+  `${nowCells} marked, ${nowSubject?.trim()}`,
+);
+
+const todayHead = await page.locator('hearth-timetable-card .col-head.today').textContent();
+check('today is the column that is highlighted', /^Mi/.test(todayHead.trim()), todayHead.trim());
+
+const status = await page.locator('hearth-timetable-card .status').textContent();
+check(
+  'the status line names the running lesson and the time left',
+  /Jetzt/.test(status) && /Sport/.test(status) && /Turnhalle/.test(status) && /15 min/.test(status),
+  status.replace(/\s+/g, ' ').trim(),
+);
+
+const rooms = await page.locator('hearth-timetable-card .room').allTextContents();
+check(
+  'rooms are shown under their subject',
+  rooms.some((r) => r.trim() === '1.OG 5') && rooms.some((r) => r.trim() === 'Turnhalle'),
+  rooms.map((r) => r.trim()).join(' | '),
+);
+
+const cellBox = await page.locator('hearth-timetable-card .cell').first().boundingBox();
+check('lesson cells are touch-sized', cellBox.height >= 44, `${Math.round(cellBox.height)}px tall`);
+
+await page.screenshot({ path: join(SHOTS, 'timetable.png') });
+
+// Switching member redraws for the other child, without touching the card config.
+await page.locator('hearth-timetable-card .chip', { hasText: 'Nik' }).click();
+await page.waitForTimeout(300);
+const nikTitle = await page.locator('hearth-timetable-card .title').textContent();
+const nikRows = await page.locator('hearth-timetable-card .time').count();
+check(
+  "tapping a chip switches to that child's week",
+  nikTitle.trim() === 'Nik' && nikRows === 2,
+  `${nikTitle.trim()}, ${nikRows} period rows`,
+);
+
+// One day at a time, the way the card falls back on a phone.
+await page.evaluate(() =>
+  window.__mount(
+    { type: 'custom:hearth-timetable-card', member: 'Ben', layout: 'day' },
+    'hearth-timetable-card',
+  ),
+);
+await page.waitForTimeout(400);
+
+const dayHeads = await page.locator('hearth-timetable-card .col-head').allTextContents();
+const dayChips = await page.locator('hearth-timetable-card .days .chip').count();
+check(
+  'day view opens on today and offers the other days',
+  dayHeads.length === 1 && dayHeads[0].trim() === 'Mittwoch' && dayChips === 5,
+  `${dayHeads.map((h) => h.trim()).join(',')} / ${dayChips} chips`,
+);
+check(
+  'a single member is not offered as a switcher',
+  (await page.locator('hearth-timetable-card .chips .chip').count()) === 0,
+);
+
+await page.locator('hearth-timetable-card .days .chip', { hasText: 'Mo' }).click();
+await page.waitForTimeout(250);
+const mondayCells = await page.locator('hearth-timetable-card .cell .subject').allTextContents();
+check(
+  'picking a day shows that day',
+  mondayCells.map((c) => c.trim()).join(',') === 'Deutsch,Mathe,Kunst,HSU,Deutsch',
+  mondayCells.map((c) => c.trim()).join(','),
+);
+await page.screenshot({ path: join(SHOTS, 'timetable-day.png') });
+
+// Every option off: nothing may disappear that the option did not name.
+await page.evaluate(() =>
+  window.__mount(
+    {
+      type: 'custom:hearth-timetable-card',
+      member: 'Ben',
+      show_rooms: false,
+      show_breaks: false,
+      hide_empty_periods: false,
+      highlight: false,
+    },
+    'hearth-timetable-card',
+  ),
+);
+await page.waitForTimeout(400);
+const bare = await page.evaluate(() => {
+  const root = document.querySelector('hearth-timetable-card').shadowRoot;
+  return {
+    rooms: root.querySelectorAll('.room').length,
+    breaks: root.querySelectorAll('.break').length,
+    periods: root.querySelectorAll('.time').length,
+    marked: root.querySelectorAll('.cell.now').length,
+    today: root.querySelectorAll('.col-head.today').length,
+    status: root.querySelectorAll('.status').length,
+  };
+});
+check(
+  'the options switch off exactly what they name',
+  bare.rooms === 0 &&
+    bare.breaks === 0 &&
+    bare.periods === 7 &&
+    bare.marked === 0 &&
+    bare.today === 0 &&
+    bare.status === 0,
+  JSON.stringify(bare),
+);
+
+// A household that never configured a timetable gets guidance, not an empty card.
+await page.evaluate(() => {
+  const host = document.getElementById('host');
+  host.innerHTML = '';
+  const card = document.createElement('hearth-timetable-card');
+  card.setConfig({ type: 'custom:hearth-timetable-card' });
+  const board = window.__hass.states['sensor.hearth_board'];
+  card.hass = {
+    ...window.__hass,
+    states: {
+      ...window.__hass.states,
+      'sensor.hearth_board': {
+        ...board,
+        attributes: { ...board.attributes, timetable: { periods: [], breaks: [], subjects: {} } },
+      },
+    },
+  };
+  host.appendChild(card);
+});
+await page.waitForTimeout(300);
+const ttNotice = await page.locator('hearth-timetable-card .notice').textContent();
+check(
+  'a missing timetable explains where to add one',
+  /Stundenzeiten/.test(ttNotice),
+  ttNotice.trim().slice(0, 60),
+);
+
 // ------------------------------------------------------------- card editors
 
 const editors = await page.evaluate(async () => {
@@ -585,6 +760,7 @@ const editors = await page.evaluate(async () => {
     'hearth-people-card',
     'hearth-lists-card',
     'hearth-routines-card',
+    'hearth-timetable-card',
     'hearth-header-card',
   ];
   const out = [];
@@ -602,7 +778,7 @@ const editors = await page.evaluate(async () => {
 });
 check(
   'every card offers a defined visual editor',
-  editors.length === 6 && editors.every((e) => e.defined && e.tag === `${e.type}-editor`),
+  editors.length === 7 && editors.every((e) => e.defined && e.tag === `${e.type}-editor`),
   editors.map((e) => `${e.tag}:${e.defined ? 'ok' : 'MISSING'}`).join(' '),
 );
 check(
@@ -643,7 +819,7 @@ const registered = await page.evaluate(() => window.customCards.map((c) => c.typ
 check(
   'every card registers itself in the picker',
   registered.join(',') ===
-    'hearth-agenda-card,hearth-calendar-card,hearth-header-card,hearth-lists-card,hearth-people-card,hearth-routines-card',
+    'hearth-agenda-card,hearth-calendar-card,hearth-header-card,hearth-lists-card,hearth-people-card,hearth-routines-card,hearth-timetable-card',
   registered.join(','),
 );
 

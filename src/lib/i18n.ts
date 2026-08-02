@@ -73,6 +73,23 @@ const EN: Dict = {
   'routines.none_configured':
     'No routines for today. Add them under Configure → Edit routines in the Hearth integration.',
 
+  // timetable
+  'timetable.no_periods':
+    'No lesson times yet. Add them under Configure → School timetable in the Hearth integration.',
+  'timetable.none_configured':
+    'Nobody has a timetable yet. Add one under Configure → School timetable in the Hearth integration.',
+  'timetable.break': 'Break',
+  'timetable.now': 'Now',
+  'timetable.next': 'Next',
+  'timetable.remaining': '{minutes} min left',
+  'timetable.done_for_today': 'School is out for today.',
+  'timetable.layout_auto': 'Automatic (week, one day when narrow)',
+  'timetable.layout_week': 'Whole week',
+  'timetable.layout_day': 'One day',
+  'timetable.days_auto': 'Automatic (as the timetable needs)',
+  'timetable.days_school': 'Monday to Friday',
+  'timetable.days_week': 'All seven days',
+
   // card editors
   'editor.board_entity': 'Board sensor',
   'editor.view': 'Opening view',
@@ -98,6 +115,14 @@ const EN: Dict = {
   'editor.evening_from': 'Evening starts at (hour)',
   'editor.show_empty': 'Show members with nothing on today',
   'editor.members': 'Limit to these members',
+  'editor.member': 'Family member',
+  'editor.layout': 'Layout',
+  'editor.week_days': 'Days shown',
+  'editor.show_rooms': 'Show rooms',
+  'editor.show_breaks': 'Show breaks',
+  'editor.show_times': 'Show lesson times',
+  'editor.hide_empty_periods': 'Hide periods nobody has',
+  'editor.highlight': 'Mark today and the running lesson',
 };
 
 const DE: Dict = {
@@ -158,6 +183,22 @@ const DE: Dict = {
   'routines.none_configured':
     'Für heute sind keine Routinen hinterlegt. Trage sie in der Hearth-Integration unter „Konfigurieren → Routinen bearbeiten“ ein.',
 
+  'timetable.no_periods':
+    'Noch keine Stundenzeiten. Trage sie in der Hearth-Integration unter „Konfigurieren → Stundenplan“ ein.',
+  'timetable.none_configured':
+    'Noch hat niemand einen Stundenplan. Lege ihn in der Hearth-Integration unter „Konfigurieren → Stundenplan“ an.',
+  'timetable.break': 'Pause',
+  'timetable.now': 'Jetzt',
+  'timetable.next': 'Danach',
+  'timetable.remaining': 'noch {minutes} min',
+  'timetable.done_for_today': 'Für heute ist Schule aus.',
+  'timetable.layout_auto': 'Automatisch (Woche, schmal ein Tag)',
+  'timetable.layout_week': 'Ganze Woche',
+  'timetable.layout_day': 'Ein Tag',
+  'timetable.days_auto': 'Automatisch (wie der Stundenplan es braucht)',
+  'timetable.days_school': 'Montag bis Freitag',
+  'timetable.days_week': 'Alle sieben Tage',
+
   'editor.board_entity': 'Board-Sensor',
   'editor.view': 'Startansicht',
   'editor.views': 'Verfügbare Ansichten',
@@ -182,6 +223,14 @@ const DE: Dict = {
   'editor.evening_from': 'Abend beginnt um (Stunde)',
   'editor.show_empty': 'Mitglieder ohne Routine heute anzeigen',
   'editor.members': 'Auf diese Mitglieder beschränken',
+  'editor.member': 'Familienmitglied',
+  'editor.layout': 'Darstellung',
+  'editor.week_days': 'Angezeigte Tage',
+  'editor.show_rooms': 'Räume anzeigen',
+  'editor.show_breaks': 'Pausen anzeigen',
+  'editor.show_times': 'Stundenzeiten anzeigen',
+  'editor.hide_empty_periods': 'Stunden ausblenden, die niemand hat',
+  'editor.highlight': 'Heute und laufende Stunde hervorheben',
 };
 
 const DICTS: Record<string, Dict> = { en: EN, de: DE };

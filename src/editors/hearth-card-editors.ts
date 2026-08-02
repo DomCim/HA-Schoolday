@@ -10,6 +10,7 @@
 import { LitElement, html, type TemplateResult } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 
+import { findBoard } from '../lib/board';
 import { fireEvent } from '../lib/dom';
 import { t } from '../lib/i18n';
 import type { HomeAssistant, LovelaceCardConfig, LovelaceCardEditor } from '../lib/types';
@@ -162,6 +163,38 @@ export class HearthRoutinesCardEditor extends HearthCardEditor {
   }
 }
 
+@customElement('hearth-timetable-card-editor')
+export class HearthTimetableCardEditor extends HearthCardEditor {
+  protected schema(): FormItem[] {
+    // The members come from the board, so the option is a name to pick rather than
+    // an id to look up. Everything else about the timetable lives in the integration.
+    const members = (findBoard(this.hass!)?.members ?? []).map((member) => ({
+      value: member.id,
+      label: member.name,
+    }));
+
+    return [
+      BOARD_ENTITY,
+      ...(members.length > 1 ? [select('member', members)] : []),
+      select('layout', [
+        { value: 'auto', label: t(this.hass, 'timetable.layout_auto') },
+        { value: 'week', label: t(this.hass, 'timetable.layout_week') },
+        { value: 'day', label: t(this.hass, 'timetable.layout_day') },
+      ]),
+      select('week_days', [
+        { value: 'auto', label: t(this.hass, 'timetable.days_auto') },
+        { value: 'school', label: t(this.hass, 'timetable.days_school') },
+        { value: 'week', label: t(this.hass, 'timetable.days_week') },
+      ]),
+      boolean('show_rooms'),
+      boolean('show_times'),
+      boolean('show_breaks'),
+      boolean('hide_empty_periods'),
+      boolean('highlight'),
+    ];
+  }
+}
+
 @customElement('hearth-header-card-editor')
 export class HearthHeaderCardEditor extends HearthCardEditor {
   protected schema(): FormItem[] {
@@ -180,6 +213,7 @@ declare global {
     'hearth-people-card-editor': HearthPeopleCardEditor;
     'hearth-lists-card-editor': HearthListsCardEditor;
     'hearth-routines-card-editor': HearthRoutinesCardEditor;
+    'hearth-timetable-card-editor': HearthTimetableCardEditor;
     'hearth-header-card-editor': HearthHeaderCardEditor;
   }
 }

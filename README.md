@@ -31,6 +31,7 @@ no separate resource registration, and the integration and cards can never drift
 | `hearth-agenda-card` | Today and tomorrow as a large-touch-target list |
 | `hearth-people-card` | Avatar row: presence, open tasks, points |
 | `hearth-routines-card` | Daily routines per child and weekday, ticked off by the kids |
+| `hearth-timetable-card` | The school timetable per child, colour-coded by subject |
 | `hearth-lists-card` | Shopping lists and checklists as tiles, tap to tick off |
 | `hearth-header-card` | Clock, date, weather, holiday / school day |
 
@@ -46,8 +47,8 @@ block, and each block holds a different list per weekday.
 Set them under **Configure → Edit routines**: pick the member and the block, then fill in seven
 fields, one step per line.
 
-The school timetable is **not** read from anywhere, and does not need to be. It is fixed for a
-school year, so "Tuesday is PE" is encoded once as Tuesday's steps.
+Routines are deliberately independent of the timetable below: "pack the PE kit" belongs to the
+evening before, not to the lesson. Put it on the days that have PE and be done with it.
 
 Ticks reset overnight on their own. Nothing has to run at midnight for that to be correct — a
 stored day that is not today reads as "nothing done yet" — the scheduled reset exists only so a
@@ -59,6 +60,70 @@ Two services drive it, for automations and for the card:
 |---|---|
 | `hearth.set_routine_step` | Tick a step off, or put it back. Takes a member name or id. |
 | `hearth.reset_routine` | Clear today's ticks, for one member or everyone. |
+
+## Timetable
+
+The school timetable is part of Hearth, under **Configure → School timetable**. Like the routines
+it is typed in rather than read from a calendar: it is fixed for a school year, and forty recurring
+events a week is not a calendar anybody wants to maintain.
+
+It is deliberately three short steps, not a page of YAML:
+
+**Lesson times** — one period per line, for the whole household:
+
+```
+08:00-08:45
+08:45-09:30
+09:50-10:35
+10:35-11:20
+```
+
+Breaks are never entered. Every gap of five minutes or more between two periods *is* a break, and
+the card draws it as one — the twenty minutes above appear by themselves.
+
+**Someone's timetable** — one lesson per line, in period order, one field per weekday:
+
+```
+Deutsch
+Mathe | 1.OG 5
+-
+6. Sport | Turnhalle
+```
+
+The room follows a vertical bar, `-` leaves a period free, and a line may name its own period, so a
+day that starts at the third lesson needs no placeholders above it. Days you leave empty simply have
+no school.
+
+**Subject colours** — every subject already has one, derived from its name, so Maths is the same
+colour on every child's card and stays that colour when the week is rewritten. This step only exists
+to change the ones you do not like, and it is a colour picker per subject.
+
+The card needs no configuration at all. It finds the household's lesson grid, offers the members who
+have a timetable, shows Monday to Friday unless somebody has weekend lessons, hides periods nobody
+has, marks today and the lesson that is running right now, and falls back to a single day when it is
+too narrow for a week:
+
+```yaml
+type: custom:hearth-timetable-card
+```
+
+| Option | Default | What it does |
+|---|---|---|
+| `member` | all | Show one child only, by name or id. Otherwise the card offers a switcher. |
+| `layout` | `auto` | `auto` shows the week and drops to one day when narrow; `week`; `day`. |
+| `week_days` | `auto` | `auto` follows the timetable; `school` is Mon–Fri; `week` is all seven. |
+| `show_rooms` | `true` | The room under the subject. |
+| `show_times` | `true` | The times next to the period number. |
+| `show_breaks` | `true` | The break rows between the periods. |
+| `hide_empty_periods` | `true` | Leave out periods that are free on every day shown. |
+| `highlight` | `true` | Today, the running lesson and the "now / next" line. |
+
+Coming from
+[student-schedule-card](https://github.com/DomCim/student-schedule-card)? `times:` becomes the
+lesson-times field one line each, and each day of `subjects:` becomes that weekday's field —
+`{subject: Kunst, room: 1.OG 5}` is `Kunst | 1.OG 5`, and `{free: true}` is `-`. `days:`, `breaks:`
+and `colors:` have no counterpart on purpose: the weekday names come from Home Assistant's language,
+the breaks from the gaps in the times, and the colours from the subject names.
 
 ## Requirements
 
@@ -110,7 +175,8 @@ npm test           # renders the built cards in headless Chromium
 `npm test` boots the built bundle in a real browser against a stubbed `hass` and checks the things
 that actually break: events landing on the right day, all-day events honouring their exclusive end,
 dashboard churn not triggering refetches, a broken calendar warning instead of blanking the board,
-and touch targets being big enough. It needs a browser once: `npx playwright install chromium`.
+the timetable marking the lesson that is running at a frozen point in time, and touch targets being
+big enough. It needs a browser once: `npx playwright install chromium`.
 Set `HEARTH_CHROMIUM` to use one you already have.
 
 The built bundle is **committed on purpose**: HACS installs `custom_components/hearth/` verbatim and

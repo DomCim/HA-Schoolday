@@ -21,6 +21,7 @@
           "remove_member": "Remove a family member",
           "shared": "Shared calendars and lists",
           "routines": "Edit routines",
+          "timetable": "School timetable",
           "done": "Done"
         }
       },
@@ -112,7 +113,54 @@
           "5": "Saturday",
           "6": "Sunday"
         }
+      },
+      "timetable": {
+        "title": "School timetable",
+        "description": "The lesson times are shared by the whole household. The lessons themselves belong to one family member, and are shown on the Hearth Timetable card in that member's colours.",
+        "menu_options": {
+          "timetable_times": "Lesson times",
+          "timetable_lessons": "Edit someone's timetable",
+          "timetable_colors": "Subject colours",
+          "init": "Back"
+        }
+      },
+      "timetable_times": {
+        "title": "Lesson times",
+        "description": "One period per line, as HH:MM-HH:MM:\n\n08:00-08:45\n08:45-09:30\n09:50-10:35\n\nBreaks are not entered anywhere: every gap of five minutes or more between two periods is drawn as a break by itself.",
+        "data": {
+          "periods": "Periods"
+        },
+        "data_description": {
+          "periods": "The order does not matter, they are sorted by their start time. Emptying this field hides the timetable card."
+        }
+      },
+      "timetable_lessons": {
+        "title": "Whose timetable?",
+        "description": "Pick the family member. The next step is their whole week.",
+        "data": {
+          "id": "Family member"
+        }
+      },
+      "timetable_week": {
+        "title": "{name} – timetable",
+        "description": "One lesson per line, in the order of the periods:\n\n{periods}\n\nThe room goes after a vertical bar, a dash leaves a period free, and a line may name its own period so a late start needs no filler:\n\nGerman\nMaths | 1.OG 5\n-\n6. PE | Gym\n\nSubjects pick their own colour. Days you leave empty simply have no school.",
+        "data": {
+          "0": "Monday",
+          "1": "Tuesday",
+          "2": "Wednesday",
+          "3": "Thursday",
+          "4": "Friday",
+          "5": "Saturday",
+          "6": "Sunday"
+        }
+      },
+      "timetable_colors": {
+        "title": "Subject colours",
+        "description": "Every subject already has a colour, derived from its name, and it is the same colour for every child. Change the ones you would like to be different."
       }
+    },
+    "error": {
+      "invalid_period": "\"{line}\" is not a time range. Write every line as HH:MM-HH:MM, for example 08:00-08:45."
     },
     "abort": {
       "member_not_found": "That family member no longer exists."

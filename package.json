@@ -1,6 +1,6 @@
 {
   "name": "hearth",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "private": true,
   "description": "Hearth \u2014 a family board for Home Assistant",
   "type": "module",

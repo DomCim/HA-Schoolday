@@ -1,4 +1,4 @@
-# Hearth-Board für den Goldammerweg — Stand Hearth 0.3.1
+# Hearth-Board für den Goldammerweg — Stand Hearth 0.4.0
 #
 # Einfügen: Einstellungen → Dashboards → Dashboard hinzufügen (leer, Titel "Hearth",
 # Symbol mdi:fireplace) → öffnen → Stift → Drei-Punkte → Raw-Konfigurationseditor →
@@ -45,6 +45,17 @@ views:
     - type: custom:hearth-routines-card
       block: auto
       evening_from: 14
+      grid_options:
+        columns: full
+  - type: grid
+    column_span: 4
+    cards:
+    - type: heading
+      heading: Stundenplan
+      icon: mdi:school-outline
+    # Ohne Optionen: die Karte nimmt das Stundenraster aus den Hearth-Optionen, bietet
+    # die Kinder mit Stundenplan zur Auswahl an und hebt die laufende Stunde hervor.
+    - type: custom:hearth-timetable-card
       grid_options:
         columns: full
   - type: grid

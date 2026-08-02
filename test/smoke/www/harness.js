@@ -137,6 +137,68 @@ const ROUTINES = {
   },
 };
 
+// The lesson grid, as models.Timetable.as_card_dict() publishes it on the board.
+// Period 7 is deliberately unused by everyone, so the trimming of empty periods —
+// and of the break that would hang off the end of the table — is testable.
+const TIMETABLE = {
+  periods: [
+    { index: 1, start: '08:00', end: '08:45' },
+    { index: 2, start: '08:45', end: '09:30' },
+    { index: 3, start: '09:50', end: '10:35' },
+    { index: 4, start: '10:35', end: '11:20' },
+    { index: 5, start: '11:30', end: '12:15' },
+    { index: 6, start: '12:15', end: '13:00' },
+    { index: 7, start: '13:15', end: '14:00' },
+  ],
+  breaks: [
+    { after: 2, start: '09:30', end: '09:50', minutes: 20 },
+    { after: 4, start: '11:20', end: '11:30', minutes: 10 },
+    { after: 6, start: '13:00', end: '13:15', minutes: 15 },
+  ],
+  subjects: {
+    Chor: '#476d80',
+    Deutsch: '#4f9d69',
+    Englisch: '#a05195',
+    HSU: '#3a86c8',
+    Kunst: '#8e6bbf',
+    Mathe: '#e0603a',
+    Musik: '#2a9d8f',
+    Religion: '#5a7d9a',
+    Sport: '#c9a227',
+    WG: '#b5651d',
+  },
+};
+
+// One week per member, as the member sensor publishes it. Jan has none, which is
+// how a parent looks on this card: no timetable, no chip, no column.
+const lesson = (period, subject, room = null) => ({ period, subject, room });
+
+const WEEKS = {
+  m1: {
+    0: [
+      lesson(1, 'Deutsch'),
+      lesson(2, 'Mathe'),
+      lesson(3, 'Kunst', '1.OG 5'),
+      lesson(4, 'HSU'),
+      lesson(5, 'Deutsch'),
+    ],
+    1: [
+      lesson(1, 'Deutsch'),
+      lesson(2, 'Religion'),
+      lesson(3, 'WG'),
+      lesson(4, 'WG'),
+      lesson(6, 'Chor'),
+    ],
+    2: [lesson(1, 'Mathe'), lesson(2, 'Sport', 'Turnhalle'), lesson(3, 'Deutsch'), lesson(4, 'HSU')],
+    3: [lesson(1, 'Englisch'), lesson(2, 'Mathe'), lesson(3, 'Deutsch')],
+    4: [lesson(1, 'Deutsch'), lesson(2, 'Musik'), lesson(3, 'Mathe')],
+  },
+  m3: {
+    0: [lesson(1, 'Mathe'), lesson(2, 'Deutsch')],
+    2: [lesson(1, 'Englisch'), lesson(2, 'Kunst', 'Werkraum')],
+  },
+};
+
 // One sensor per member, matching what custom_components/hearth/sensor.py publishes.
 function memberState(entityId, name, memberId, color, openTasks, points) {
   return {
@@ -153,6 +215,7 @@ function memberState(entityId, name, memberId, color, openTasks, points) {
       todo_lists: [],
       routine_morning: ROUTINES[memberId]?.morning ?? [],
       routine_evening: ROUTINES[memberId]?.evening ?? [],
+      timetable: WEEKS[memberId] ?? {},
     },
     last_changed: STAMP,
     last_updated: STAMP,
@@ -205,6 +268,7 @@ const hass = {
         shared_calendars: ['calendar.familien_kalender_dill'],
         shared_todo_lists: ['todo.kaufland'],
         readonly_calendars: ['calendar.deutschland_by'],
+        timetable: TIMETABLE,
         version: '0.1.0',
       },
       last_changed: STAMP,

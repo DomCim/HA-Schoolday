@@ -33,6 +33,7 @@ from .const import (
     ATTR_ROUTINE_BLOCKS,
     ATTR_ROUTINE_EVENING,
     ATTR_ROUTINE_MORNING,
+    ATTR_TIMETABLE,
     ATTR_TODO_LISTS,
     ATTR_VERSION,
     BLOCK_EVENING,
@@ -161,6 +162,9 @@ class HearthBoardSensor(HearthBaseSensor):
             CONF_SHARED_TODO_LISTS: self._config.shared_todo_lists,
             CONF_READONLY_CALENDARS: self._config.readonly_calendars,
             ATTR_ROUTINE_BLOCKS: list(ROUTINE_BLOCKS),
+            # The lesson grid only: each member's own week rides on their sensor, so
+            # neither attribute set grows with the size of the family.
+            ATTR_TIMETABLE: self._config.timetable.as_card_dict(),
             ATTR_VERSION: VERSION,
         }
 
@@ -242,4 +246,5 @@ class HearthMemberSensor(HearthBaseSensor):
             ATTR_TODO_LISTS: self._member.todo_lists,
             ATTR_ROUTINE_MORNING: self._routine(BLOCK_MORNING),
             ATTR_ROUTINE_EVENING: self._routine(BLOCK_EVENING),
+            ATTR_TIMETABLE: self._config.timetable.member_card_dict(self._member.id),
         }

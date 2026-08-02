@@ -312,18 +312,18 @@ export class SchooldayRoutinesCard extends LitElement implements LovelaceCard {
         border-radius: 8px;
         text-align: left;
         font-size: 1rem;
-        background: var(--schoolday-surface);
+        background: color-mix(in srgb, var(--member-color) 20%, var(--schoolday-surface));
       }
 
       .step:active {
-        background: var(--schoolday-surface-alt);
+        background: color-mix(in srgb, var(--member-color) 32%, var(--schoolday-surface));
       }
 
       .step .tick {
         width: 26px;
         height: 26px;
         flex: none;
-        fill: var(--schoolday-line);
+        fill: var(--schoolday-muted);
         transition: fill 140ms ease;
       }
 

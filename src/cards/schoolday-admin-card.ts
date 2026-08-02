@@ -16,6 +16,7 @@ import {
   adminOf,
   calendarEntities,
   callSchoolday,
+  materialsFor,
   messageOf,
   personEntities,
   stepsFor,
@@ -34,9 +35,22 @@ import type {
   LovelaceCardEditor,
 } from '../lib/types';
 
-export type AdminSection = 'timetable' | 'routines' | 'family' | 'subjects' | 'holidays';
+export type AdminSection =
+  | 'timetable'
+  | 'routines'
+  | 'family'
+  | 'subjects'
+  | 'materials'
+  | 'holidays';
 
-const SECTIONS: AdminSection[] = ['timetable', 'routines', 'family', 'subjects', 'holidays'];
+const SECTIONS: AdminSection[] = [
+  'timetable',
+  'routines',
+  'family',
+  'subjects',
+  'materials',
+  'holidays',
+];
 const BLOCKS = ['morning', 'evening'];
 /** 1 January 2024 was a Monday, which makes it a convenient weekday-name origin. */
 const WEEKDAY_ORIGIN = new Date(2024, 0, 1);
@@ -612,6 +626,35 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
     `;
   }
 
+  // --- materials ----------------------------------------------------------
+
+  /**
+   * What each subject needs brought along.
+   *
+   * Listed per subject rather than as one free-text block, because the subject is the
+   * key the evening routine looks things up by — and a typed subject name that does
+   * not match the timetable is a packing list that silently never appears.
+   */
+  private _renderMaterials(config: AdminConfig): TemplateResult {
+    const subjects = config.subjects.length
+      ? config.subjects
+      : Object.keys(this._board?.timetable?.subjects ?? {}).sort();
+    if (!subjects.length) {
+      return html`<div class="notice">${t(this.hass, 'admin.no_subjects')}</div>`;
+    }
+    return html`
+      <div class="notice quiet">${t(this.hass, 'admin.materials_hint')}</div>
+      ${subjects.map((subject) =>
+        this._lines(
+          subject,
+          materialsFor(config, subject),
+          t(this.hass, 'admin.materials_items'),
+          (items) => this._call('set_materials', { subject, items }),
+        ),
+      )}
+    `;
+  }
+
   // --- holidays -----------------------------------------------------------
 
   private _renderHolidays(config: AdminConfig): TemplateResult {
@@ -676,7 +719,9 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
                 ? this._renderFamily(config)
                 : this._section === 'subjects'
                   ? this._renderSubjects(config)
-                  : this._renderHolidays(config)}
+                  : this._section === 'materials'
+                    ? this._renderMaterials(config)
+                    : this._renderHolidays(config)}
         </div>
       </ha-card>
     `;

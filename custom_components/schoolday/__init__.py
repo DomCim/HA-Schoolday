@@ -20,6 +20,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.event import async_track_time_change
 
 from .const import (
+    DATA_ABSENCE,
     DATA_FRONTEND_REGISTERED,
     DATA_STORE,
     FRONTEND_DIR,
@@ -28,11 +29,11 @@ from .const import (
     VERSION,
 )
 from .services import async_register_services
-from .store import RoutineStore
+from .store import AbsenceStore, RoutineStore
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS: list[Platform] = [Platform.SENSOR]
+PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.SWITCH]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -45,14 +46,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await store.async_load()
         hass.data[DATA_STORE] = store
 
+    if DATA_ABSENCE not in hass.data:
+        absence = AbsenceStore(hass)
+        await absence.async_load()
+        hass.data[DATA_ABSENCE] = absence
+
     async_register_services(hass)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))
 
-    # Correctness does not depend on this — a stale day already reads as "nothing
-    # done". It is here so the wall panel clears itself overnight, unattended.
+    # Correctness does not depend on either of these — a stale day already reads as
+    # "nothing done", and an absence that has run out already reads as over. They are
+    # here so the wall panel clears itself overnight, unattended.
     async def _handle_midnight(_now: Any) -> None:
         await hass.data[DATA_STORE].async_handle_midnight()
+        await hass.data[DATA_ABSENCE].async_handle_midnight()
 
     entry.async_on_unload(
         async_track_time_change(hass, _handle_midnight, hour=0, minute=0, second=10)

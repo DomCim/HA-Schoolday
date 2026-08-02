@@ -12,14 +12,20 @@ panel visibly clears without anyone touching it.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 from typing import Any
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.storage import Store
 
-from .const import SIGNAL_ROUTINE_UPDATED, STORAGE_KEY, STORAGE_VERSION
+from .const import (
+    SIGNAL_ABSENCE_UPDATED,
+    SIGNAL_ROUTINE_UPDATED,
+    STORAGE_KEY,
+    STORAGE_KEY_ABSENCE,
+    STORAGE_VERSION,
+)
 
 
 class RoutineStore:
@@ -111,3 +117,102 @@ class RoutineStore:
         if self._roll_day():
             await self._async_save()
         async_dispatcher_send(self._hass, SIGNAL_ROUTINE_UPDATED)
+
+
+class AbsenceStore:
+    """Who is at home ill, and until when.
+
+    Stored as a last day rather than a flag, and that is the whole design. A flag has
+    to be switched off by somebody remembering to; a date runs out on its own. The one
+    thing worse than a board that does not know a child is ill is a board that still
+    thinks so on Thursday because Monday was never undone.
+
+    The default is today, because the person reaching for this is a parent at
+    breakfast. Two days of flu is one more tap, and that tap is cheaper than the week
+    of silent wrong announcements the other default would eventually cost.
+    """
+
+    def __init__(self, hass: HomeAssistant) -> None:
+        """Set up the backing store."""
+        self._hass = hass
+        self._store: Store[dict[str, Any]] = Store(
+            hass, STORAGE_VERSION, STORAGE_KEY_ABSENCE
+        )
+        # member id -> last day of the absence, inclusive
+        self._until: dict[str, date] = {}
+
+    @staticmethod
+    def _today() -> date:
+        return date.today()
+
+    async def async_load(self) -> None:
+        """Load persisted absences, dropping any that have run out."""
+        data = await self._store.async_load() or {}
+        loaded: dict[str, date] = {}
+        for member_id, raw in (data.get("until") or {}).items():
+            try:
+                until = date.fromisoformat(str(raw))
+            except ValueError:
+                continue
+            if until >= self._today():
+                loaded[str(member_id)] = until
+        self._until = loaded
+
+    async def _async_save(self) -> None:
+        await self._store.async_save(
+            {
+                "until": {
+                    member_id: until.isoformat()
+                    for member_id, until in self._until.items()
+                }
+            }
+        )
+
+    def _expire(self) -> bool:
+        """Drop absences that have run out. Returns True when something was dropped."""
+        today = self._today()
+        expired = [
+            member_id for member_id, until in self._until.items() if until < today
+        ]
+        for member_id in expired:
+            del self._until[member_id]
+        return bool(expired)
+
+    def until(self, member_id: str) -> date | None:
+        """The last day of this member's absence, or None when they are not ill.
+
+        Expiry is checked on read as well as at midnight, so this is right even if
+        nothing ran overnight.
+        """
+        until = self._until.get(member_id)
+        return until if until is not None and until >= self._today() else None
+
+    def is_absent(self, member_id: str) -> bool:
+        """Whether this member is at home ill today."""
+        return self.until(member_id) is not None
+
+    async def async_set(
+        self, member_id: str, absent: bool, until: date | None = None
+    ) -> None:
+        """Mark a member ill through a day, or say they are better."""
+        self._expire()
+        if absent:
+            last = until or self._today()
+            # Yesterday would store an absence that is already over, which reads as a
+            # switch that refuses to turn on. Today is the shortest thing it can mean.
+            self._until[member_id] = max(last, self._today())
+        else:
+            self._until.pop(member_id, None)
+        await self._async_save()
+        async_dispatcher_send(self._hass, SIGNAL_ABSENCE_UPDATED)
+
+    async def async_handle_midnight(self) -> None:
+        """Let absences run out, so the board recovers on its own."""
+        if self._expire():
+            await self._async_save()
+        async_dispatcher_send(self._hass, SIGNAL_ABSENCE_UPDATED)
+
+    @staticmethod
+    def days_from_now(days: int) -> date:
+        """The last day of an absence that lasts this many days, today included."""
+        return date.today() + timedelta(days=max(1, days) - 1)

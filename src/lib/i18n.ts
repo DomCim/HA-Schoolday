@@ -21,6 +21,9 @@ const EN: Dict = {
   'routines.both': 'Both',
   'routines.none_configured':
     'No routines for today. Add them under Configure → Edit routines in the Schoolday integration.',
+  'routines.sick': 'At home ill',
+  'routines.packed_for': 'for {subject}',
+  'timetable.sick': 'Ill',
 
   // timetable
   'timetable.no_periods':
@@ -63,6 +66,9 @@ const EN: Dict = {
   'admin.tab_family': 'Family',
   'admin.tab_subjects': 'Subjects',
   'admin.tab_holidays': 'Days off',
+  'admin.tab_materials': 'Material',
+  'admin.materials_hint': 'What each subject needs brought along. These show up in the evening routine on the day before, for whoever has that subject.',
+  'admin.materials_items': 'One thing per line',
   'admin.save': 'Save',
   'admin.add': 'Add',
   'admin.clear': 'Clear',
@@ -108,6 +114,9 @@ const DE: Dict = {
   'routines.both': 'Beide',
   'routines.none_configured':
     'Für heute sind keine Routinen hinterlegt. Trage sie in der Schoolday-Integration unter „Konfigurieren → Routinen bearbeiten“ ein.',
+  'routines.sick': 'Krank zu Hause',
+  'routines.packed_for': 'für {subject}',
+  'timetable.sick': 'Krank',
 
   'timetable.no_periods':
     'Noch keine Stundenzeiten. Trage sie in der Schoolday-Integration unter „Konfigurieren → Stundenplan“ ein.',
@@ -148,6 +157,9 @@ const DE: Dict = {
   'admin.tab_family': 'Familie',
   'admin.tab_subjects': 'Fächer',
   'admin.tab_holidays': 'Freie Tage',
+  'admin.tab_materials': 'Material',
+  'admin.materials_hint': 'Was ein Fach an Sachen braucht. Es erscheint am Abend davor in der Abendroutine, bei jedem Kind, das dieses Fach hat.',
+  'admin.materials_items': 'Eine Sache pro Zeile',
   'admin.save': 'Speichern',
   'admin.add': 'Hinzufügen',
   'admin.clear': 'Leeren',

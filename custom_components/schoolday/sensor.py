@@ -34,6 +34,7 @@ from .const import (
     ATTR_COLOR,
     ATTR_DATE,
     ATTR_DAY_MODE,
+    ATTR_FROM_SUBJECT,
     ATTR_LABEL,
     ATTR_LESSON_NEXT,
     ATTR_LESSON_NOW,
@@ -49,6 +50,7 @@ from .const import (
     ATTR_ROUTINE_EVENING,
     ATTR_ROUTINE_MORNING,
     ATTR_SCHOOL_TODAY,
+    ATTR_SICK_UNTIL,
     ATTR_SUBJECT,
     ATTR_TIMETABLE,
     ATTR_TODAY,
@@ -58,6 +60,7 @@ from .const import (
     ATTR_WEEKDAY,
     BLOCK_EVENING,
     BLOCK_MORNING,
+    DATA_ABSENCE,
     DATA_STORE,
     DOMAIN,
     EVENT_LESSON_ENDED,
@@ -65,14 +68,16 @@ from .const import (
     MODE_CARE,
     MODE_FREE,
     MODE_SCHOOL,
+    MODE_SICK,
     OUTLOOK_DAYS,
     ROUTINE_BLOCKS,
+    SIGNAL_ABSENCE_UPDATED,
     SIGNAL_ROUTINE_UPDATED,
     STATE_FREE,
     VERSION,
 )
 from .models import Lesson, Member, Period, SchooldayConfig
-from .store import RoutineStore
+from .store import AbsenceStore, RoutineStore
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -87,11 +92,12 @@ async def async_setup_entry(
     _async_remove_orphans(hass, entry, config)
 
     store: RoutineStore = hass.data[DATA_STORE]
+    absence: AbsenceStore = hass.data[DATA_ABSENCE]
     async_add_entities(
         [
             SchooldayBoardSensor(entry, config),
             *(
-                SchooldayMemberSensor(entry, member, config, store)
+                SchooldayMemberSensor(entry, member, config, store, absence)
                 for member in config.members
             ),
         ]
@@ -102,11 +108,17 @@ async def async_setup_entry(
 def _async_remove_orphans(
     hass: HomeAssistant, entry: ConfigEntry, config: SchooldayConfig
 ) -> None:
-    """Drop registry entries for members that no longer exist."""
+    """Drop registry entries for members that no longer exist.
+
+    Every unique id Schoolday can produce has to be listed here, not just the sensors:
+    this sweeps the whole config entry, so a platform left out would have its entities
+    deleted the moment they were created.
+    """
     registry = er.async_get(hass)
     expected = {
         _board_unique_id(entry),
         *(_member_unique_id(entry, member.id) for member in config.members),
+        *(sick_unique_id(entry, member.id) for member in config.members),
     }
     for registry_entry in er.async_entries_for_config_entry(registry, entry.entry_id):
         if registry_entry.unique_id not in expected:
@@ -119,6 +131,11 @@ def _board_unique_id(entry: ConfigEntry) -> str:
 
 def _member_unique_id(entry: ConfigEntry, member_id: str) -> str:
     return f"{entry.entry_id}_{member_id}"
+
+
+def sick_unique_id(entry: ConfigEntry, member_id: str) -> str:
+    """The ill-today switch's unique id. Public because two platforms need to agree."""
+    return f"{entry.entry_id}_{member_id}_sick"
 
 
 def _device_info(entry: ConfigEntry) -> DeviceInfo:
@@ -280,12 +297,14 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         member: Member,
         config: SchooldayConfig,
         store: RoutineStore,
+        absence: AbsenceStore,
     ) -> None:
         """Initialise a member sensor."""
         super().__init__(entry)
         self._member = member
         self._config = config
         self._store = store
+        self._absence = absence
         self._attr_name = member.name
         self._attr_unique_id = _member_unique_id(entry, member.id)
         #: The lesson considered running, so a boundary knows what just ended.
@@ -300,6 +319,14 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         self.async_on_remove(
             async_dispatcher_connect(
                 self.hass, SIGNAL_ROUTINE_UPDATED, self._handle_change
+            )
+        )
+        # An absence closes the day the moment it is switched on, which has to end the
+        # lesson that was running — so it goes through the boundary logic, not straight
+        # to the state, exactly as a holiday appearing mid-morning does.
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self.hass, SIGNAL_ABSENCE_UPDATED, self._handle_absence_change
             )
         )
         watched = [*self._config.school_calendars]
@@ -425,6 +452,27 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         self._outlook = [entries[day] for day in days]
 
     @property
+    def _published_outlook(self) -> list[dict[str, Any]]:
+        """The outlook with this member's illness laid over it.
+
+        Kept apart from the calendar-driven outlook rather than written into it: the
+        calendars answer what the school is doing, the absence answers what this child
+        is doing, and only one of the two survives a reload of the other. Overlaying at
+        the last moment is also what makes the switch feel instant — nothing has to be
+        fetched again.
+        """
+        until = self._absence.until(self._member.id)
+        if until is None:
+            return self._outlook
+        first = dt_util.now().date()
+        return [
+            {**entry, ATTR_MODE: MODE_SICK, ATTR_LABEL: None}
+            if first.isoformat() <= str(entry[ATTR_DATE]) <= until.isoformat()
+            else entry
+            for entry in self._outlook
+        ]
+
+    @property
     def _day_mode(self) -> str:
         """What kind of day today is for this member.
 
@@ -433,7 +481,15 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         announcement from ever disagreeing.
         """
         wanted = dt_util.now().date().isoformat()
-        for entry in self._outlook:
+        for entry in self._published_outlook:
+            if entry[ATTR_DATE] == wanted:
+                return str(entry[ATTR_MODE])
+        return MODE_SCHOOL
+
+    def _mode_on(self, day: date) -> str:
+        """What kind of day a date is for this member, school when it is out of range."""
+        wanted = day.isoformat()
+        for entry in self._published_outlook:
             if entry[ATTR_DATE] == wanted:
                 return str(entry[ATTR_MODE])
         return MODE_SCHOOL
@@ -539,14 +595,58 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
 
     # --- routines -----------------------------------------------------------
 
+    def _packing(self) -> list[tuple[str, str]]:
+        """What tomorrow's lessons need packed, as (item, subject) pairs.
+
+        Tomorrow rather than today, because that is when a school bag is packed. A
+        tomorrow that is a holiday, a care day or a sick day needs nothing, which is
+        also why Friday evening is quiet and Sunday evening is not — without a single
+        rule about weekends anywhere.
+        """
+        if not self._config.materials:
+            return []
+        tomorrow = dt_util.now().date() + timedelta(days=1)
+        if self._mode_on(tomorrow) != MODE_SCHOOL:
+            return []
+        lessons = self._config.timetable.day(self._member.id, tomorrow.weekday())
+        subjects = list(dict.fromkeys(lesson.subject for lesson in lessons))
+        return self._config.packing_list(subjects)
+
     def _routine(self, block: str) -> list[dict[str, Any]]:
-        """Today's steps for a block, each marked done or not."""
+        """Today's steps for a block, each marked done or not.
+
+        The evening also carries what tomorrow's subjects need packed. Those steps are
+        generated rather than stored: typing "pack the PE kit" into Monday evening
+        states the same fact as Tuesday's timetable, and the copy is the one nobody
+        updates when the timetable changes. They tick off exactly like any other step —
+        the store knows a step by its words, not by where it came from.
+        """
         weekday, _ = self._now()
-        steps = self._config.routine(self._member.id, block).steps_for(
-            weekday, self._day_mode
-        )
         completed = self._store.completed(self._member.id, block)
-        return [{"step": step, "done": step in completed} for step in steps]
+        steps = [
+            {"step": step, "done": step in completed}
+            for step in self._config.routine(self._member.id, block).steps_for(
+                weekday, self._day_mode
+            )
+        ]
+        if block != BLOCK_EVENING:
+            return steps
+
+        typed = {entry["step"].casefold() for entry in steps}
+        for item, subject in self._packing():
+            # A household that typed the step before the materials existed keeps
+            # theirs: two identical lines, one tickable and one not, is worse than
+            # either on its own.
+            if item.casefold() in typed:
+                continue
+            steps.append(
+                {
+                    "step": item,
+                    "done": item in completed,
+                    ATTR_FROM_SUBJECT: subject,
+                }
+            )
+        return steps
 
     @callback
     def _handle_change(self, _event: Any = None) -> None:
@@ -557,6 +657,16 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
     def _handle_calendar_change(self, _event: Any = None) -> None:
         """A holiday or a care day was added, moved or removed."""
         self.hass.async_create_task(self._async_recheck())
+
+    @callback
+    def _handle_absence_change(self, _event: Any = None) -> None:
+        """This member fell ill, or got better.
+
+        Through the boundary logic, so switching it on at half past nine ends the
+        lesson that was running instead of dropping it silently. The calendars are not
+        re-read: nothing about them changed.
+        """
+        self._apply_boundary()
 
     async def _async_recheck(self) -> None:
         """Re-read the calendars and publish.
@@ -584,11 +694,13 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         # even when German is on twice.
         subjects = list(dict.fromkeys(entry[ATTR_SUBJECT] for entry in today))
 
+        until = self._absence.until(self._member.id)
         return {
             ATTR_MEMBER_ID: self._member.id,
             ATTR_COLOR: self._member.color,
             ATTR_DAY_MODE: self._day_mode,
-            ATTR_OUTLOOK: self._outlook,
+            ATTR_SICK_UNTIL: until.isoformat() if until else None,
+            ATTR_OUTLOOK: self._published_outlook,
             ATTR_AVATAR: self._member.avatar,
             ATTR_ROUTINE_MORNING: self._routine(BLOCK_MORNING),
             ATTR_ROUTINE_EVENING: self._routine(BLOCK_EVENING),

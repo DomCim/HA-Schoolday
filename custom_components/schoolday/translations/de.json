@@ -23,6 +23,7 @@
           "timetable_times": "Stundenzeiten",
           "timetable_lessons": "Stundenplan eines Kindes bearbeiten",
           "timetable_colors": "Fächerfarben",
+          "timetable_materials": "Material pro Fach",
           "timetable_calendars": "Freie Tage und Ferienbetreuung",
           "done": "Fertig"
         }
@@ -137,6 +138,10 @@
         "data_description": {
           "care_keywords": "Zum Beispiel „Ferienbetreuung“ oder „Hort“. Leer lassen, wenn ihr keine Betreuung habt – dann gibt es keine Betreuungstage."
         }
+      },
+      "timetable_materials": {
+        "title": "Material pro Fach",
+        "description": "Eine Sache pro Zeile. Sie erscheinen am Abend vor diesem Fach in der Abendroutine, bei jedem Kind, das es hat — so muss niemand eine Packliste mit dem Stundenplan im Gleichschritt halten."
       }
     },
     "error": {
@@ -151,6 +156,11 @@
       "board": {
         "name": "Board"
       }
+    },
+    "switch": {
+      "sick": {
+        "name": "{name} ist krank"
+      }
     }
   },
   "selector": {
@@ -162,25 +172,13 @@
     }
   },
   "services": {
-    "set_routine_step": {
-      "name": "Routineschritt setzen",
-      "description": "Hakt einen Routineschritt für heute ab oder nimmt ihn zurück.",
+    "remove_member": {
+      "name": "Familienmitglied entfernen",
+      "description": "Entfernt ein Mitglied samt Stundenplan und Routinen.",
       "fields": {
         "member": {
           "name": "Mitglied",
-          "description": "Name oder ID des Familienmitglieds."
-        },
-        "block": {
-          "name": "Tageszeit",
-          "description": "morning oder evening."
-        },
-        "step": {
-          "name": "Schritt",
-          "description": "Der Schritt, exakt wie in der Routine hinterlegt."
-        },
-        "done": {
-          "name": "Erledigt",
-          "description": "Wahr hakt ab, falsch nimmt zurück."
+          "description": "Name oder Id des Familienmitglieds."
         }
       }
     },
@@ -194,13 +192,53 @@
         }
       }
     },
-    "set_periods": {
-      "name": "Stundenzeiten setzen",
-      "description": "Ersetzt die Stundenzeiten des Haushalts. Pausen sind die Lücken dazwischen.",
+    "set_absent": {
+      "name": "Krankmelden",
+      "description": "Den Schultag für ein Kind schließen. Sein Stundenplan bleibt leer, seine Routine schweigt und die Morgendurchsage überspringt es.",
       "fields": {
-        "periods": {
+        "member": {
+          "name": "Familienmitglied",
+          "description": "Name oder ID."
+        },
+        "absent": {
+          "name": "Krank",
+          "description": "Aus heißt: wieder gesund."
+        },
+        "until": {
+          "name": "Bis",
+          "description": "Der letzte Tag, dieser eingeschlossen. Leer bedeutet heute."
+        }
+      }
+    },
+    "set_calendars": {
+      "name": "Freie Tage und Ferienbetreuung setzen",
+      "description": "Benennt die Kalender, die die Schule schließen, und die Wörter für die Betreuung.",
+      "fields": {
+        "school_calendars": {
+          "name": "Kalender",
+          "description": "Jeder laufende Termin darin bedeutet schulfrei."
+        },
+        "care_keywords": {
+          "name": "Betreuungs-Stichwörter",
+          "description": "Werden mit den Terminen im eigenen Kalender des Kindes verglichen."
+        }
+      }
+    },
+    "set_day": {
+      "name": "Ganzen Tag setzen",
+      "description": "Ersetzt die Stunden eines Kindes an einem Wochentag.",
+      "fields": {
+        "member": {
+          "name": "Mitglied",
+          "description": "Name oder Id des Familienmitglieds."
+        },
+        "weekday": {
+          "name": "Wochentag",
+          "description": "0 für Montag bis 6 für Sonntag."
+        },
+        "lessons": {
           "name": "Stunden",
-          "description": "Ein HH:MM-HH:MM je Eintrag, zum Beispiel 08:00-08:45."
+          "description": "Eine Liste aus Einträgen mit Stunde, Fach und optionalem Raum."
         }
       }
     },
@@ -230,57 +268,17 @@
         }
       }
     },
-    "set_day": {
-      "name": "Ganzen Tag setzen",
-      "description": "Ersetzt die Stunden eines Kindes an einem Wochentag.",
-      "fields": {
-        "member": {
-          "name": "Mitglied",
-          "description": "Name oder Id des Familienmitglieds."
-        },
-        "weekday": {
-          "name": "Wochentag",
-          "description": "0 für Montag bis 6 für Sonntag."
-        },
-        "lessons": {
-          "name": "Stunden",
-          "description": "Eine Liste aus Einträgen mit Stunde, Fach und optionalem Raum."
-        }
-      }
-    },
-    "set_routine": {
-      "name": "Routine setzen",
-      "description": "Ersetzt die Schritte eines Kindes für einen Block an einem Tag.",
-      "fields": {
-        "member": {
-          "name": "Mitglied",
-          "description": "Name oder Id des Familienmitglieds."
-        },
-        "block": {
-          "name": "Tageszeit",
-          "description": "morning oder evening."
-        },
-        "day": {
-          "name": "Tag",
-          "description": "Wochentag 0–6, oder free für einen freien Tag und care für Ferienbetreuung."
-        },
-        "steps": {
-          "name": "Schritte",
-          "description": "Ein Schritt je Eintrag. Eine leere Liste löscht den Tag."
-        }
-      }
-    },
-    "set_subject_color": {
-      "name": "Fachfarbe setzen",
-      "description": "Färbt ein Fach um. Leeren gibt ihm die aus dem Namen abgeleitete Farbe zurück.",
+    "set_materials": {
+      "name": "Material für ein Fach festlegen",
+      "description": "Festlegen, was ein Fach an Sachen braucht. Sie erscheinen am Abend vor diesem Fach in der Abendroutine und werden abgehakt wie jeder andere Schritt.",
       "fields": {
         "subject": {
           "name": "Fach",
-          "description": "Das Fach, genau so geschrieben wie im Stundenplan."
+          "description": "Das Fach, geschrieben wie im Stundenplan."
         },
-        "color": {
-          "name": "Farbe",
-          "description": "Leer lassen für die abgeleitete Farbe."
+        "items": {
+          "name": "Einzupacken",
+          "description": "Eines pro Eintrag. Eine leere Liste fragt nicht mehr danach."
         }
       }
     },
@@ -310,27 +308,71 @@
         }
       }
     },
-    "remove_member": {
-      "name": "Familienmitglied entfernen",
-      "description": "Entfernt ein Mitglied samt Stundenplan und Routinen.",
+    "set_periods": {
+      "name": "Stundenzeiten setzen",
+      "description": "Ersetzt die Stundenzeiten des Haushalts. Pausen sind die Lücken dazwischen.",
+      "fields": {
+        "periods": {
+          "name": "Stunden",
+          "description": "Ein HH:MM-HH:MM je Eintrag, zum Beispiel 08:00-08:45."
+        }
+      }
+    },
+    "set_routine": {
+      "name": "Routine setzen",
+      "description": "Ersetzt die Schritte eines Kindes für einen Block an einem Tag.",
       "fields": {
         "member": {
           "name": "Mitglied",
           "description": "Name oder Id des Familienmitglieds."
+        },
+        "block": {
+          "name": "Tageszeit",
+          "description": "morning oder evening."
+        },
+        "day": {
+          "name": "Tag",
+          "description": "Wochentag 0–6, oder free für einen freien Tag und care für Ferienbetreuung."
+        },
+        "steps": {
+          "name": "Schritte",
+          "description": "Ein Schritt je Eintrag. Eine leere Liste löscht den Tag."
         }
       }
     },
-    "set_calendars": {
-      "name": "Freie Tage und Ferienbetreuung setzen",
-      "description": "Benennt die Kalender, die die Schule schließen, und die Wörter für die Betreuung.",
+    "set_routine_step": {
+      "name": "Routineschritt setzen",
+      "description": "Hakt einen Routineschritt für heute ab oder nimmt ihn zurück.",
       "fields": {
-        "school_calendars": {
-          "name": "Kalender",
-          "description": "Jeder laufende Termin darin bedeutet schulfrei."
+        "member": {
+          "name": "Mitglied",
+          "description": "Name oder ID des Familienmitglieds."
         },
-        "care_keywords": {
-          "name": "Betreuungs-Stichwörter",
-          "description": "Werden mit den Terminen im eigenen Kalender des Kindes verglichen."
+        "block": {
+          "name": "Tageszeit",
+          "description": "morning oder evening."
+        },
+        "step": {
+          "name": "Schritt",
+          "description": "Der Schritt, exakt wie in der Routine hinterlegt."
+        },
+        "done": {
+          "name": "Erledigt",
+          "description": "Wahr hakt ab, falsch nimmt zurück."
+        }
+      }
+    },
+    "set_subject_color": {
+      "name": "Fachfarbe setzen",
+      "description": "Färbt ein Fach um. Leeren gibt ihm die aus dem Namen abgeleitete Farbe zurück.",
+      "fields": {
+        "subject": {
+          "name": "Fach",
+          "description": "Das Fach, genau so geschrieben wie im Stundenplan."
+        },
+        "color": {
+          "name": "Farbe",
+          "description": "Leer lassen für die abgeleitete Farbe."
         }
       }
     }

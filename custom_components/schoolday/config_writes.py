@@ -24,6 +24,7 @@ from .const import (
     CONF_CALENDAR,
     CONF_CARE_KEYWORDS,
     CONF_COLOR,
+    CONF_MATERIALS,
     CONF_MEMBER_ID,
     CONF_MEMBERS,
     CONF_NAME,
@@ -297,6 +298,35 @@ def remove_member(options: dict[str, Any], member_id: str) -> dict[str, Any]:
         CONF_ROUTINES: routines,
         CONF_TIMETABLE: timetable.as_options(),
     }
+
+
+def set_materials(
+    options: dict[str, Any], subject: str, items: list[str]
+) -> dict[str, Any]:
+    """Say what a subject needs brought along, or stop asking for anything.
+
+    An empty list removes the subject rather than storing an empty one, so a subject
+    nobody packs for leaves no trace in the options and no empty row in the editor.
+
+    The subject is not checked against the timetable on purpose: materials may well be
+    typed before the week is, and refusing "Schwimmen" because next term has not been
+    entered yet would be a rule that only ever gets in the way.
+    """
+    name = subject.strip()
+    if not name:
+        raise SchooldayValueError("A subject needs a name.")
+
+    materials = {
+        str(key): list(value) for key, value in (options.get(CONF_MATERIALS) or {}).items()
+    }
+    # Case-insensitively, so "Sport" typed twice edits one entry rather than making a
+    # second one the packing list would then read out twice.
+    for existing in [key for key in materials if key.casefold() == name.casefold()]:
+        del materials[existing]
+
+    if cleaned := [item for raw in items if (item := str(raw).strip())]:
+        materials[name] = cleaned
+    return {CONF_MATERIALS: materials}
 
 
 def set_calendars(

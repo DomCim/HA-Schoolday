@@ -23,6 +23,7 @@
           "timetable_times": "Lesson times",
           "timetable_lessons": "Edit someone's timetable",
           "timetable_colors": "Subject colours",
+          "timetable_materials": "What each subject needs",
           "timetable_calendars": "Days off and holiday care",
           "done": "Done"
         }
@@ -137,6 +138,10 @@
         "data_description": {
           "care_keywords": "For example \"Holiday club\". Leave empty if you do not use holiday care — then there are no care days."
         }
+      },
+      "timetable_materials": {
+        "title": "What each subject needs",
+        "description": "One thing per line. They are added to the evening routine on the day before that subject, for whoever has it — so nobody has to keep a packing list in step with the timetable."
       }
     },
     "error": {
@@ -151,6 +156,11 @@
       "board": {
         "name": "Board"
       }
+    },
+    "switch": {
+      "sick": {
+        "name": "{name} is ill"
+      }
     }
   },
   "selector": {
@@ -162,25 +172,13 @@
     }
   },
   "services": {
-    "set_routine_step": {
-      "name": "Set routine step",
-      "description": "Tick a routine step off for today, or put it back.",
+    "remove_member": {
+      "name": "Remove a family member",
+      "description": "Remove a member, along with their timetable and routines.",
       "fields": {
         "member": {
           "name": "Member",
           "description": "Family member name or id."
-        },
-        "block": {
-          "name": "Time of day",
-          "description": "morning or evening."
-        },
-        "step": {
-          "name": "Step",
-          "description": "The step, exactly as configured in the routine."
-        },
-        "done": {
-          "name": "Done",
-          "description": "True ticks it off, false puts it back."
         }
       }
     },
@@ -194,13 +192,53 @@
         }
       }
     },
-    "set_periods": {
-      "name": "Set lesson times",
-      "description": "Replace the household's lesson times. Breaks are the gaps between them.",
+    "set_absent": {
+      "name": "Mark ill",
+      "description": "Close the school day for one child. Their lessons empty out, their routine falls silent and the morning announcement skips them.",
       "fields": {
-        "periods": {
-          "name": "Periods",
-          "description": "One HH:MM-HH:MM per entry, for example 08:00-08:45."
+        "member": {
+          "name": "Family member",
+          "description": "Name or id."
+        },
+        "absent": {
+          "name": "Ill",
+          "description": "Off says they are better again."
+        },
+        "until": {
+          "name": "Until",
+          "description": "The last day of the absence, today included. Left empty it means today."
+        }
+      }
+    },
+    "set_calendars": {
+      "name": "Set days off and holiday care",
+      "description": "Name the calendars that close the school and the words that mean holiday care.",
+      "fields": {
+        "school_calendars": {
+          "name": "Calendars",
+          "description": "Any event running on these means there is no school."
+        },
+        "care_keywords": {
+          "name": "Holiday-care keywords",
+          "description": "Matched against events on each member's own calendar."
+        }
+      }
+    },
+    "set_day": {
+      "name": "Set a whole day",
+      "description": "Replace one member's lessons for one weekday.",
+      "fields": {
+        "member": {
+          "name": "Member",
+          "description": "Family member name or id."
+        },
+        "weekday": {
+          "name": "Weekday",
+          "description": "0 for Monday to 6 for Sunday."
+        },
+        "lessons": {
+          "name": "Lessons",
+          "description": "A list of entries with period, subject and optional room."
         }
       }
     },
@@ -230,57 +268,17 @@
         }
       }
     },
-    "set_day": {
-      "name": "Set a whole day",
-      "description": "Replace one member's lessons for one weekday.",
-      "fields": {
-        "member": {
-          "name": "Member",
-          "description": "Family member name or id."
-        },
-        "weekday": {
-          "name": "Weekday",
-          "description": "0 for Monday to 6 for Sunday."
-        },
-        "lessons": {
-          "name": "Lessons",
-          "description": "A list of entries with period, subject and optional room."
-        }
-      }
-    },
-    "set_routine": {
-      "name": "Set routine steps",
-      "description": "Replace one member's steps for one block on one day.",
-      "fields": {
-        "member": {
-          "name": "Member",
-          "description": "Family member name or id."
-        },
-        "block": {
-          "name": "Time of day",
-          "description": "morning or evening."
-        },
-        "day": {
-          "name": "Day",
-          "description": "A weekday 0-6, or free for a day off and care for holiday care."
-        },
-        "steps": {
-          "name": "Steps",
-          "description": "One step per entry. An empty list clears the day."
-        }
-      }
-    },
-    "set_subject_color": {
-      "name": "Set a subject colour",
-      "description": "Recolour one subject. Clearing it hands back the colour derived from its name.",
+    "set_materials": {
+      "name": "Set what a subject needs",
+      "description": "Say what a subject needs brought along. These are added to the evening routine on the day before that subject, and tick off like any other step.",
       "fields": {
         "subject": {
           "name": "Subject",
-          "description": "The subject, exactly as it is spelled in the timetable."
+          "description": "The subject, spelled as in the timetable."
         },
-        "color": {
-          "name": "Colour",
-          "description": "Leave empty to go back to the derived colour."
+        "items": {
+          "name": "Things to pack",
+          "description": "One per entry. An empty list stops asking for anything."
         }
       }
     },
@@ -310,27 +308,71 @@
         }
       }
     },
-    "remove_member": {
-      "name": "Remove a family member",
-      "description": "Remove a member, along with their timetable and routines.",
+    "set_periods": {
+      "name": "Set lesson times",
+      "description": "Replace the household's lesson times. Breaks are the gaps between them.",
+      "fields": {
+        "periods": {
+          "name": "Periods",
+          "description": "One HH:MM-HH:MM per entry, for example 08:00-08:45."
+        }
+      }
+    },
+    "set_routine": {
+      "name": "Set routine steps",
+      "description": "Replace one member's steps for one block on one day.",
       "fields": {
         "member": {
           "name": "Member",
           "description": "Family member name or id."
+        },
+        "block": {
+          "name": "Time of day",
+          "description": "morning or evening."
+        },
+        "day": {
+          "name": "Day",
+          "description": "A weekday 0-6, or free for a day off and care for holiday care."
+        },
+        "steps": {
+          "name": "Steps",
+          "description": "One step per entry. An empty list clears the day."
         }
       }
     },
-    "set_calendars": {
-      "name": "Set days off and holiday care",
-      "description": "Name the calendars that close the school and the words that mean holiday care.",
+    "set_routine_step": {
+      "name": "Set routine step",
+      "description": "Tick a routine step off for today, or put it back.",
       "fields": {
-        "school_calendars": {
-          "name": "Calendars",
-          "description": "Any event running on these means there is no school."
+        "member": {
+          "name": "Member",
+          "description": "Family member name or id."
         },
-        "care_keywords": {
-          "name": "Holiday-care keywords",
-          "description": "Matched against events on each member's own calendar."
+        "block": {
+          "name": "Time of day",
+          "description": "morning or evening."
+        },
+        "step": {
+          "name": "Step",
+          "description": "The step, exactly as configured in the routine."
+        },
+        "done": {
+          "name": "Done",
+          "description": "True ticks it off, false puts it back."
+        }
+      }
+    },
+    "set_subject_color": {
+      "name": "Set a subject colour",
+      "description": "Recolour one subject. Clearing it hands back the colour derived from its name.",
+      "fields": {
+        "subject": {
+          "name": "Subject",
+          "description": "The subject, exactly as it is spelled in the timetable."
+        },
+        "color": {
+          "name": "Colour",
+          "description": "Leave empty to go back to the derived colour."
         }
       }
     }

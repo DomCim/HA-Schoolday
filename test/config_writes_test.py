@@ -161,6 +161,55 @@ out = W.set_calendars(BASE, None, ["Hort"])
 check("nur Stichwoerter laesst Kalender unberuehrt",
       "school_calendars" not in out and out["care_keywords"] == ["Hort"], str(out))
 
+# --- materials -------------------------------------------------------------
+out = W.set_materials(BASE, "Sport", ["Sportbeutel", " ", "Turnschuhe"])
+check("Material wird gesetzt, Leerzeilen fallen weg",
+      out["materials"] == {"Sport": ["Sportbeutel", "Turnschuhe"]}, str(out))
+
+# The same subject typed with different capitals must edit one entry, not make a
+# second one the packing list would then read out twice.
+out = W.set_materials(merged(out), "sport", ["Badesachen"])
+check("Fach unterschiedlich geschrieben ergibt einen Eintrag",
+      out["materials"] == {"sport": ["Badesachen"]}, str(out))
+
+out = W.set_materials(merged({"materials": {"Sport": ["Sportbeutel"]}}), "Sport", [])
+check("leere Liste entfernt das Fach", out["materials"] == {}, str(out))
+
+try:
+    W.set_materials(BASE, "  ", ["x"])
+    check("Fach ohne Namen abgewiesen", False, "keine Ausnahme")
+except SchooldayValueError as e:
+    check("Fach ohne Namen abgewiesen", "needs a name" in str(e), str(e)[:50])
+
+# --- the packing list a day generates --------------------------------------
+Models = importlib.import_module("schoolday.models")
+config = Models.SchooldayConfig.from_options(
+    merged({"materials": {"Sport": ["Sportbeutel", "Turnschuhe"], "Schwimmen": ["Handtuch", "Sportbeutel"]}})
+)
+check("Packliste kommt in Fach-Reihenfolge",
+      config.packing_list(["Sport"]) == [("Sportbeutel", "Sport"), ("Turnschuhe", "Sport")],
+      str(config.packing_list(["Sport"])))
+# One towel, not two: a child ticking the same thing off twice stops trusting the list.
+check("eine Sache aus zwei Faechern steht einmal da",
+      [item for item, _ in config.packing_list(["Sport", "Schwimmen"])]
+      == ["Sportbeutel", "Turnschuhe", "Handtuch"],
+      str(config.packing_list(["Sport", "Schwimmen"])))
+check("Fach ohne Material ergibt nichts", config.packing_list(["Mathe"]) == [], "")
+# The tag keeps the spelling from the timetable, not the one from the materials, so
+# only the things themselves are compared here.
+check("Gross- und Kleinschreibung egal",
+      [item for item, _ in config.packing_list(["sport"])]
+      == [item for item, _ in config.packing_list(["Sport"])],
+      str(config.packing_list(["sport"])))
+
+# A sick day has no routine at all — deliberately not the holiday list, which would
+# offer swimming things to a child in bed.
+routine = Models.Routine.from_dict({"0": ["Zaehne putzen"], "free": ["Ausschlafen"]})
+check("kranker Tag hat keine Schritte",
+      routine.steps_for(0, "sick") == []
+      and routine.steps_for(0, "free") == ["Ausschlafen"],
+      str(routine.steps_for(0, "sick")))
+
 # --- the base must never be mutated ---------------------------------------
 check("Ausgangs-Optionen bleiben unveraendert",
       BASE["timetable"]["lessons"][MEMBER]["0"] == {"1": {"subject": "Deutsch", "room": None}}
@@ -221,6 +270,25 @@ check(
     "_guard liefert eine Coroutine, keine synchrone Funktion",
     "async def wrapped" in services_src,
     "async def wrapped" if "async def wrapped" in services_src else "def wrapped",
+)
+
+# --- the orphan sweep must know every unique id ----------------------------
+# _async_remove_orphans deletes every registry entry of the config entry it does not
+# recognise, across all platforms. A platform missing from its expected set has its
+# entities deleted the moment they are created — and silently, which is the worst part.
+made = set()
+for path in pathlib.Path("custom_components/schoolday").glob("*.py"):
+    for node in ast.walk(ast.parse(path.read_text())):
+        if isinstance(node, ast.Assign) and any(
+            isinstance(target, ast.Attribute) and target.attr == "_attr_unique_id"
+            for target in node.targets
+        ):
+            made.add(ast.unparse(node.value).split("(")[0].split(".")[-1])
+sensor_src = pathlib.Path("custom_components/schoolday/sensor.py").read_text()
+check(
+    "die Waise-Bereinigung kennt jede erzeugte unique_id",
+    made and all(name in sensor_src for name in made),
+    f"{len(made)} Quellen, unbekannt: {sorted(n for n in made if n not in sensor_src)}",
 )
 
 print(f"\n{'alle bestanden' if not fails else str(fails) + ' fehlgeschlagen'}")

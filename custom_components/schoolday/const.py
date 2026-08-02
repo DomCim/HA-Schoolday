@@ -52,6 +52,13 @@ ROUTINE_BLOCKS: Final[tuple[str, ...]] = (BLOCK_MORNING, BLOCK_EVENING)
 MODE_SCHOOL: Final = "school"
 MODE_CARE: Final = "care"
 MODE_FREE: Final = "free"
+
+# A child who is at home ill. Deliberately not a routine key like the two above: there
+# is no list for it, because being ill is the absence of a day rather than a kind of
+# one. It closes the day for that child alone, which is what tells it apart from a
+# holiday — and it is what makes the morning announcement skip them with no second
+# condition to maintain.
+MODE_SICK: Final = "sick"
 #: Routine keys for the two non-school days, alongside the weekday keys "0".."6".
 ROUTINE_HOLIDAY: Final = MODE_FREE
 ROUTINE_CARE: Final = MODE_CARE
@@ -66,6 +73,15 @@ WEEKDAYS: Final[tuple[str, ...]] = ("0", "1", "2", "3", "4", "5", "6")
 CONF_PERIODS: Final = "periods"
 CONF_SUBJECT_COLORS: Final = "colors"
 CONF_LESSONS: Final = "lessons"
+
+# What a subject needs brought along: subject -> list of things. Household-wide rather
+# than per child, because a PE bag is a PE bag whoever carries it.
+#
+# This is the one place the timetable and the routines are allowed to know about each
+# other. Typing "pack the PE kit" into Monday evening states the same fact twice — that
+# there is PE on Tuesday — and the second copy is the one nobody updates when the
+# timetable changes.
+CONF_MATERIALS: Final = "materials"
 
 # A gap this long between two periods is a break, and is drawn as one. Deriving
 # breaks from the lesson times means there is nothing extra to configure.
@@ -138,7 +154,7 @@ ATTR_PERIOD: Final = "period"
 ATTR_SCHOOL_TODAY: Final = "school_today"
 ATTR_NO_SCHOOL: Final = "no_school_reason"
 
-# What kind of day this member is having: school, care or free.
+# What kind of day this member is having: school, care, free or sick.
 ATTR_DAY_MODE: Final = "day_mode"
 
 # This week and the next seven days, in date order. A timetable repeats forever, but
@@ -176,6 +192,24 @@ STORAGE_VERSION: Final = 1
 DATA_STORE: Final = f"{DOMAIN}_store"
 SIGNAL_ROUTINE_UPDATED: Final = f"{DOMAIN}_routine_updated"
 
+# --- Who is at home ill -------------------------------------------------------
+
+# Also out of the config entry, and for the same reason. Stored as a date per member
+# rather than a flag: a flag has to be turned off by somebody remembering to, and the
+# one thing worse than a board that does not know a child is ill is a board that still
+# thinks so a week later.
+STORAGE_KEY_ABSENCE: Final = f"{DOMAIN}.absence"
+
+DATA_ABSENCE: Final = f"{DOMAIN}_absence"
+SIGNAL_ABSENCE_UPDATED: Final = f"{DOMAIN}_absence_updated"
+
+SERVICE_SET_ABSENT: Final = "set_absent"
+ATTR_ABSENT: Final = "absent"
+ATTR_UNTIL: Final = "until"
+
+# Until when this member is ill, on their sensor. Null when they are not.
+ATTR_SICK_UNTIL: Final = "sick_until"
+
 SERVICE_SET_ROUTINE_STEP: Final = "set_routine_step"
 SERVICE_RESET_ROUTINE: Final = "reset_routine"
 
@@ -190,6 +224,7 @@ SERVICE_SET_SUBJECT_COLOR: Final = "set_subject_color"
 SERVICE_SET_MEMBER: Final = "set_member"
 SERVICE_REMOVE_MEMBER: Final = "remove_member"
 SERVICE_SET_CALENDARS: Final = "set_calendars"
+SERVICE_SET_MATERIALS: Final = "set_materials"
 
 ATTR_WEEKDAY_FIELD: Final = "weekday"
 ATTR_SUBJECT_FIELD: Final = "subject"
@@ -201,6 +236,12 @@ ATTR_PERIODS: Final = "periods"
 ATTR_NAME: Final = "name"
 ATTR_KEYWORDS: Final = "care_keywords"
 ATTR_CALENDAR_FIELD: Final = "school_calendars"
+ATTR_ITEMS: Final = "items"
+
+# The packing list a subject generates, next to the steps somebody typed. Marked as
+# such on the step itself so a card can say where it came from — and so nobody goes
+# looking for it in the routine they can edit.
+ATTR_FROM_SUBJECT: Final = "subject"
 
 ATTR_MEMBER: Final = "member"
 ATTR_BLOCK: Final = "block"

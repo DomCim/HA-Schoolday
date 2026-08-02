@@ -34,6 +34,10 @@ export interface AdminConfig {
   colors: Record<string, string>;
   schoolCalendars: string[];
   careKeywords: string[];
+  /** subject -> what it needs brought along. Household-wide, like the colours. */
+  materials: Record<string, string[]>;
+  /** Every subject in use, so the materials editor has something to list. */
+  subjects: string[];
 }
 
 const EMPTY: AdminConfig = {
@@ -43,6 +47,8 @@ const EMPTY: AdminConfig = {
   colors: {},
   schoolCalendars: [],
   careKeywords: [],
+  materials: {},
+  subjects: [],
 };
 
 function stringList(raw: unknown): string[] {
@@ -94,6 +100,16 @@ export function parseAdmin(raw: unknown): AdminConfig {
     }
   }
 
+  const materials: Record<string, string[]> = {};
+  for (const [subject, items] of Object.entries(
+    (data.materials as Record<string, unknown>) ?? {},
+  )) {
+    const cleaned = stringList(items);
+    if (cleaned.length) {
+      materials[subject] = cleaned;
+    }
+  }
+
   return {
     members,
     routines,
@@ -101,7 +117,23 @@ export function parseAdmin(raw: unknown): AdminConfig {
     colors,
     schoolCalendars: stringList(data.school_calendars),
     careKeywords: stringList(data.care_keywords),
+    materials,
+    subjects: stringList(data.subjects),
   };
+}
+
+/**
+ * What a subject needs brought along.
+ *
+ * Case-insensitively, matching the integration: the materials are typed somewhere
+ * other than the timetable and should not have to agree keystroke for keystroke.
+ */
+export function materialsFor(config: AdminConfig, subject: string): string[] {
+  const wanted = subject.toLowerCase();
+  const found = Object.entries(config.materials).find(
+    ([name]) => name.toLowerCase() === wanted,
+  );
+  return found ? found[1] : [];
 }
 
 /** The editable configuration, off the board sensor. */

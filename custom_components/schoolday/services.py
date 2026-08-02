@@ -27,11 +27,13 @@ from homeassistant.helpers import config_validation as cv
 from . import config_writes
 from .config_writes import SchooldayValueError
 from .const import (
+    ATTR_ABSENT,
     ATTR_BLOCK,
     ATTR_CALENDAR_FIELD,
     ATTR_COLOR,
     ATTR_DAY,
     ATTR_DONE,
+    ATTR_ITEMS,
     ATTR_KEYWORDS,
     ATTR_LESSONS,
     ATTR_MEMBER,
@@ -42,17 +44,21 @@ from .const import (
     ATTR_STEP,
     ATTR_STEPS,
     ATTR_SUBJECT_FIELD,
+    ATTR_UNTIL,
     ATTR_WEEKDAY_FIELD,
     CONF_AVATAR,
     CONF_CALENDAR,
+    DATA_ABSENCE,
     DATA_STORE,
     DOMAIN,
     ROUTINE_BLOCKS,
     SERVICE_REMOVE_MEMBER,
     SERVICE_RESET_ROUTINE,
+    SERVICE_SET_ABSENT,
     SERVICE_SET_CALENDARS,
     SERVICE_SET_DAY,
     SERVICE_SET_LESSON,
+    SERVICE_SET_MATERIALS,
     SERVICE_SET_MEMBER,
     SERVICE_SET_PERIODS,
     SERVICE_SET_ROUTINE,
@@ -60,7 +66,7 @@ from .const import (
     SERVICE_SET_SUBJECT_COLOR,
 )
 from .models import SchooldayConfig
-from .store import RoutineStore
+from .store import AbsenceStore, RoutineStore
 
 SET_STEP_SCHEMA = vol.Schema(
     {
@@ -137,6 +143,21 @@ SET_CALENDARS_SCHEMA = vol.Schema(
     }
 )
 
+SET_MATERIALS_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_SUBJECT_FIELD): cv.string,
+        vol.Required(ATTR_ITEMS): vol.All(cv.ensure_list, [cv.string]),
+    }
+)
+
+SET_ABSENT_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_MEMBER): cv.string,
+        vol.Optional(ATTR_ABSENT, default=True): cv.boolean,
+        vol.Optional(ATTR_UNTIL): cv.date,
+    }
+)
+
 
 def _entry(hass: HomeAssistant) -> ConfigEntry:
     """The single Schoolday config entry."""
@@ -199,11 +220,28 @@ def async_register_services(hass: HomeAssistant) -> None:
         member = call.data.get(ATTR_MEMBER)
         await store.async_reset(_resolve_member_id(hass, member) if member else None)
 
+    async def _async_set_absent(call: ServiceCall) -> None:
+        """Mark a member ill, through a day when one is given.
+
+        The switch on the board covers today, which is what somebody at breakfast
+        means. This is the same thing with a date on it, for the two days of flu you
+        already know about and for automations.
+        """
+        absence: AbsenceStore = hass.data[DATA_ABSENCE]
+        await absence.async_set(
+            _resolve_member_id(hass, call.data[ATTR_MEMBER]),
+            call.data[ATTR_ABSENT],
+            call.data.get(ATTR_UNTIL),
+        )
+
     hass.services.async_register(
         DOMAIN, SERVICE_SET_ROUTINE_STEP, _async_set_step, schema=SET_STEP_SCHEMA
     )
     hass.services.async_register(
         DOMAIN, SERVICE_RESET_ROUTINE, _async_reset, schema=RESET_SCHEMA
+    )
+    hass.services.async_register(
+        DOMAIN, SERVICE_SET_ABSENT, _async_set_absent, schema=SET_ABSENT_SCHEMA
     )
 
     # --- the configuration itself ------------------------------------------
@@ -314,6 +352,15 @@ def async_register_services(hass: HomeAssistant) -> None:
         )
 
     @_guard
+    def _set_materials(call: ServiceCall) -> None:
+        _apply(
+            call,
+            config_writes.set_materials(
+                _options(call), call.data[ATTR_SUBJECT_FIELD], call.data[ATTR_ITEMS]
+            ),
+        )
+
+    @_guard
     def _set_calendars(call: ServiceCall) -> None:
         _apply(
             call,
@@ -333,5 +380,6 @@ def async_register_services(hass: HomeAssistant) -> None:
         (SERVICE_SET_MEMBER, _set_member, SET_MEMBER_SCHEMA),
         (SERVICE_REMOVE_MEMBER, _remove_member, REMOVE_MEMBER_SCHEMA),
         (SERVICE_SET_CALENDARS, _set_calendars, SET_CALENDARS_SCHEMA),
+        (SERVICE_SET_MATERIALS, _set_materials, SET_MATERIALS_SCHEMA),
     ):
         hass.services.async_register(DOMAIN, service, handler, schema=schema)

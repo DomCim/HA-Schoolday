@@ -55,6 +55,9 @@ const TIMETABLE = {
     Musik: '#2a9d8f',
     Religion: '#5a7d9a',
     Sport: '#c9a227',
+    // Only ever a replacement on one date, never in the week — and still coloured,
+    // because a lesson with no colour reads as broken rather than as unusual.
+    Vertretung: '#7a8b3a',
     WG: '#b5651d',
   },
 };
@@ -180,6 +183,15 @@ const hass = {
           care_keywords: ['Ferienbetreuung'],
           materials: { Sport: ['Sportbeutel', 'Turnschuhe'] },
           subjects: Object.keys(TIMETABLE.subjects),
+          // Thursday the 6th: second period covered, third period off.
+          exceptions: {
+            m1: {
+              '2026-08-06': {
+                label: null,
+                periods: { 2: { subject: 'Vertretung', room: 'R2' }, 3: {} },
+              },
+            },
+          },
         },
         version: '0.5.0',
       },

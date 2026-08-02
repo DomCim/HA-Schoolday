@@ -214,3 +214,56 @@ set_absent:
       required: false
       selector:
         date:
+
+set_exception:
+  fields:
+    member:
+      required: true
+      example: Ben
+      selector:
+        text:
+    date:
+      required: true
+      example: "2026-09-18"
+      selector:
+        date:
+    period:
+      required: false
+      example: 3
+      selector:
+        number:
+          min: 1
+          max: 20
+          mode: box
+    subject:
+      required: false
+      example: Sport
+      selector:
+        text:
+    room:
+      required: false
+      selector:
+        text:
+    cancelled:
+      required: false
+      default: false
+      selector:
+        boolean:
+    label:
+      required: false
+      example: Wandertag
+      selector:
+        text:
+
+clear_exception:
+  fields:
+    member:
+      required: true
+      example: Ben
+      selector:
+        text:
+    date:
+      required: true
+      example: "2026-09-18"
+      selector:
+        date:

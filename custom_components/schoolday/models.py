@@ -10,6 +10,7 @@ from __future__ import annotations
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass, field
+from datetime import date
 from typing import Any
 from zlib import crc32
 
@@ -19,6 +20,8 @@ from .const import (
     CONF_CALENDAR,
     CONF_CARE_KEYWORDS,
     CONF_COLOR,
+    CONF_EXCEPTIONS,
+    CONF_LABEL,
     CONF_LESSONS,
     CONF_MEMBER_ID,
     CONF_MEMBERS,
@@ -549,16 +552,22 @@ class Timetable:
         """True when there is nothing to draw."""
         return not self.periods or not any(self.lessons.values())
 
-    def as_card_dict(self) -> dict[str, Any]:
+    def as_card_dict(self, extra_subjects: Iterable[str] = ()) -> dict[str, Any]:
         """The grid every timetable card shares: periods, breaks and subject colours.
 
         The lessons themselves ride on the member sensors instead, which keeps both
         sets of attributes small no matter how big the family gets.
+
+        `extra_subjects` covers the ones that appear nowhere in the week — a subject
+        covering a single period on a single date. Without them that lesson is the one
+        thing on the card with no colour at all, which reads as broken rather than as
+        unusual.
         """
+        names = sorted({*self.subjects, *extra_subjects}, key=str.casefold)
         return {
             "periods": [period.as_card_dict() for period in self.periods],
             "breaks": self.breaks,
-            "subjects": {subject: self.color(subject) for subject in self.subjects},
+            "subjects": {subject: self.color(subject) for subject in names},
         }
 
     def member_card_dict(self, member_id: str) -> dict[str, list[dict[str, Any]]]:
@@ -567,6 +576,87 @@ class Timetable:
             str(weekday): [lesson.as_card_dict() for lesson in day]
             for weekday, day in sorted(self.week(member_id).items())
         }
+
+
+@dataclass(slots=True)
+class DayException:
+    """What one particular date does differently from the week it belongs to.
+
+    Either the whole day is taken over — a trip, a sports day — or individual periods
+    are. A period that maps to ``None`` is cancelled; one that maps to a lesson is
+    replaced. A period not mentioned at all runs exactly as the timetable says, which
+    is what keeps this a thin layer rather than a second timetable.
+
+    A day-level label *is* the day being taken over; there is no separate flag saying
+    so. "Wandertag" and "the timetable still applies" is not a combination anybody
+    means, and a flag with only one useful position is a question not worth asking.
+    """
+
+    label: str | None = None
+    #: period -> the replacement lesson, or None when the period is cancelled.
+    periods: dict[int, Lesson | None] = field(default_factory=dict)
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any] | None) -> DayException:
+        """Build from the stored shape."""
+        raw = data or {}
+        periods: dict[int, Lesson | None] = {}
+        for key, entry in (raw.get(CONF_PERIODS) or {}).items():
+            try:
+                period = int(key)
+            except (TypeError, ValueError):
+                continue
+            subject = str((entry or {}).get("subject") or "").strip()
+            if not subject:
+                periods[period] = None
+                continue
+            room = str((entry or {}).get("room") or "").strip() or None
+            periods[period] = Lesson(period=period, subject=subject, room=room)
+        return cls(
+            label=str(raw.get(CONF_LABEL) or "").strip() or None,
+            periods=periods,
+        )
+
+    def as_options(self) -> dict[str, Any]:
+        """The stored shape."""
+        return {
+            CONF_LABEL: self.label,
+            CONF_PERIODS: {
+                str(period): (
+                    {"subject": lesson.subject, "room": lesson.room} if lesson else {}
+                )
+                for period, lesson in sorted(self.periods.items())
+            },
+        }
+
+    @property
+    def closed(self) -> bool:
+        """True when the whole day is taken over, which a label is what says."""
+        return self.label is not None
+
+    @property
+    def is_empty(self) -> bool:
+        """True when this exception says nothing and should not be stored."""
+        return not self.label and not self.periods
+
+    def as_changes(self) -> dict[str, Any]:
+        """The period changes, in the shape the cards read off the outlook."""
+        return {
+            str(period): (lesson.as_card_dict() if lesson else None)
+            for period, lesson in sorted(self.periods.items())
+        }
+
+    def applied_to(self, lessons: list[Lesson]) -> list[Lesson]:
+        """This day's lessons, once the exception has had its say."""
+        if self.closed:
+            return []
+        by_period = {lesson.period: lesson for lesson in lessons}
+        for period, replacement in self.periods.items():
+            if replacement is None:
+                by_period.pop(period, None)
+            else:
+                by_period[period] = replacement
+        return [by_period[period] for period in sorted(by_period)]
 
 
 @dataclass(slots=True)
@@ -584,6 +674,8 @@ class SchooldayConfig:
     timetable: Timetable = field(default_factory=Timetable)
     #: subject -> what it needs brought along, in the order it should be packed.
     materials: dict[str, list[str]] = field(default_factory=dict)
+    #: member id -> "YYYY-MM-DD" -> what that date does differently.
+    exceptions: dict[str, dict[str, DayException]] = field(default_factory=dict)
 
     @classmethod
     def from_options(cls, options: dict[str, Any]) -> SchooldayConfig:
@@ -607,6 +699,16 @@ class SchooldayConfig:
             if cleaned and (name := str(subject).strip()):
                 materials[name] = cleaned
 
+        exceptions: dict[str, dict[str, DayException]] = {}
+        for member_id, dates in (options.get(CONF_EXCEPTIONS) or {}).items():
+            per_date = {
+                str(day): parsed
+                for day, entry in (dates or {}).items()
+                if not (parsed := DayException.from_dict(entry)).is_empty
+            }
+            if per_date:
+                exceptions[str(member_id)] = per_date
+
         return cls(
             members=members,
             school_calendars=list(options.get(CONF_SCHOOL_CALENDARS) or []),
@@ -618,7 +720,34 @@ class SchooldayConfig:
             routines=routines,
             timetable=Timetable.from_dict(options.get(CONF_TIMETABLE)),
             materials=materials,
+            exceptions=exceptions,
         )
+
+    @property
+    def exception_subjects(self) -> set[str]:
+        """Subjects that only ever appear as a replacement on one date."""
+        return {
+            lesson.subject
+            for dates in self.exceptions.values()
+            for change in dates.values()
+            for lesson in change.periods.values()
+            if lesson is not None
+        }
+
+    def exception(self, member_id: str, day: date) -> DayException | None:
+        """What this member's date does differently, if anything."""
+        return (self.exceptions.get(member_id) or {}).get(day.isoformat())
+
+    def lessons_on(self, member_id: str, day: date) -> list[Lesson]:
+        """This member's lessons on one dated day, exception and all.
+
+        The one function everything asks. A weekday says what a Tuesday is usually
+        like; only a date knows whether this Tuesday's third period was cancelled, and
+        the two answers must never be worked out in two places.
+        """
+        lessons = self.timetable.day(member_id, day.weekday())
+        change = self.exception(member_id, day)
+        return change.applied_to(lessons) if change else list(lessons)
 
     def packing_list(self, subjects: Iterable[str]) -> list[tuple[str, str]]:
         """What a day of these subjects needs packed, as (item, subject) pairs.

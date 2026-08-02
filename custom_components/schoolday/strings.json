@@ -172,6 +172,20 @@
     }
   },
   "services": {
+    "clear_exception": {
+      "name": "Put a date back",
+      "description": "Drop everything one date said differently, so the timetable applies again.",
+      "fields": {
+        "member": {
+          "name": "Family member",
+          "description": "Name or id."
+        },
+        "date": {
+          "name": "Date",
+          "description": "The day to hand back to the timetable."
+        }
+      }
+    },
     "remove_member": {
       "name": "Remove a family member",
       "description": "Remove a member, along with their timetable and routines.",
@@ -239,6 +253,40 @@
         "lessons": {
           "name": "Lessons",
           "description": "A list of entries with period, subject and optional room."
+        }
+      }
+    },
+    "set_exception": {
+      "name": "Set what a date does differently",
+      "description": "The timetable repeats; one date may not. With a period this changes that period alone; without one, a label takes the whole day over. Dates in the past are dropped.",
+      "fields": {
+        "member": {
+          "name": "Family member",
+          "description": "Name or id."
+        },
+        "date": {
+          "name": "Date",
+          "description": "The one day this is about."
+        },
+        "period": {
+          "name": "Period",
+          "description": "Leave empty to say something about the whole day."
+        },
+        "subject": {
+          "name": "Subject",
+          "description": "What runs instead. Empty and not cancelled hands the period back to the timetable."
+        },
+        "room": {
+          "name": "Room",
+          "description": "Where the replacement is."
+        },
+        "cancelled": {
+          "name": "Cancelled",
+          "description": "The period does not happen at all."
+        },
+        "label": {
+          "name": "What the day is",
+          "description": "\"School trip\", \"Sports day\". Setting one takes the day over; clearing it hands the day back."
         }
       }
     },

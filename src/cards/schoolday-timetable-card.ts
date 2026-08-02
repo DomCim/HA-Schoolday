@@ -22,8 +22,7 @@ import {
   currentPeriod,
   formatTime,
   hasLessons,
-  lessonAt,
-  nextLesson,
+  lessonsOn,
   nowMinutes,
   dayFor,
   outlookDate,
@@ -33,6 +32,7 @@ import {
   weekdayIndex,
   type Outlook,
   type TimetableGrid,
+  type TimetableLesson,
   type TimetableWeek,
 } from '../lib/timetable';
 import type {
@@ -217,9 +217,12 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
     }
     // An illness has no label of its own — there is no event behind it — so it always
     // falls through to the word, which is the whole of what there is to say.
-    const fallback = { care: 'timetable.care', sick: 'timetable.sick', free: 'timetable.free' }[
-      day.mode
-    ];
+    const fallback = {
+      care: 'timetable.care',
+      sick: 'timetable.sick',
+      event: 'timetable.event',
+      free: 'timetable.free',
+    }[day.mode];
     return {
       mode: day.mode,
       label: (day.mode === 'sick' ? null : day.label) ?? t(this.hass, fallback ?? 'timetable.free'),
@@ -259,6 +262,27 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
 
   private _color(grid: TimetableGrid, subject: string): string {
     return grid.subjects[subject] ?? 'var(--schoolday-line)';
+  }
+
+  /**
+   * What one column actually holds, by period.
+   *
+   * A column is a date, not a weekday, and only the date knows that the third period
+   * was cancelled or is being covered by somebody else. Everything the card draws goes
+   * through here, so the grid, the hiding of empty periods and the running-lesson line
+   * can never disagree about what is on.
+   */
+  private _columnLessons(
+    week: TimetableWeek,
+    outlook: Outlook,
+    weekday: number,
+  ): Map<number, { lesson: TimetableLesson; changed: boolean }> {
+    return new Map(
+      lessonsOn(week, weekday, this._dayFor(outlook, weekday)).map((entry) => [
+        entry.lesson.period,
+        entry,
+      ]),
+    );
   }
 
   // --- pieces -------------------------------------------------------------
@@ -303,15 +327,14 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
   /** What is running now, or what comes next — the line a wall panel is read for. */
   private _renderStatus(
     grid: TimetableGrid,
-    week: TimetableWeek,
-    today: number,
+    day: Map<number, { lesson: TimetableLesson; changed: boolean }>,
   ): TemplateResult | typeof nothing {
     if (this._config.highlight === false) {
       return nothing;
     }
     const minutes = nowMinutes();
     const running = currentPeriod(grid, minutes);
-    const lesson = running ? lessonAt(week, today, running.index) : undefined;
+    const lesson = running ? day.get(running.index)?.lesson : undefined;
 
     if (running && lesson) {
       const left = running.endMinutes - minutes;
@@ -328,23 +351,24 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
       `;
     }
 
-    const upcoming = nextLesson(grid, week, today, minutes);
+    const upcoming = grid.periods.find(
+      (period) => period.startMinutes > minutes && day.has(period.index),
+    );
     if (upcoming) {
+      const next = day.get(upcoming.index)!.lesson;
       return html`
         <div class="status">
           <span class="pill next">${t(this.hass, 'timetable.next')}</span>
           <span class="status-text">
-            ${upcoming.lesson.subject}${upcoming.lesson.room
-              ? html` · ${upcoming.lesson.room}`
-              : nothing}
+            ${next.subject}${next.room ? html` · ${next.room}` : nothing}
           </span>
-          <span class="status-muted">${formatTime(this.hass, upcoming.period.start)}</span>
+          <span class="status-muted">${formatTime(this.hass, upcoming.start)}</span>
         </div>
       `;
     }
 
     // Nothing left today, but there was something: say so rather than stay blank.
-    if ((week[today] ?? []).length) {
+    if (day.size) {
       return html`<div class="status">
         <span class="status-muted">${t(this.hass, 'timetable.done_for_today')}</span>
       </div>`;
@@ -354,26 +378,29 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
 
   private _renderCell(
     grid: TimetableGrid,
-    week: TimetableWeek,
-    weekday: number,
-    periodIndex: number,
+    entry: { lesson: TimetableLesson; changed: boolean } | undefined,
     isNow: boolean,
     progress: number | null,
     place: string,
   ): TemplateResult {
-    const lesson = lessonAt(week, weekday, periodIndex);
-    if (!lesson) {
+    if (!entry) {
       return html`<div class="cell free ${isNow ? 'now' : ''}" style=${place}></div>`;
     }
+    const { lesson, changed } = entry;
     const showRoom = this._config.show_rooms !== false && lesson.room;
     return html`
       <div
-        class="cell ${isNow ? 'now' : ''}"
+        class="cell ${isNow ? 'now' : ''} ${changed ? 'changed' : ''}"
         style=${`--subject:${this._color(grid, lesson.subject)};${place}`}
-        title=${lesson.room ? `${lesson.subject} · ${lesson.room}` : lesson.subject}
+        title=${`${lesson.room ? `${lesson.subject} · ${lesson.room}` : lesson.subject}${
+          changed ? ` · ${t(this.hass, 'timetable.changed')}` : ''
+        }`}
       >
         <span class="subject">${lesson.subject}</span>
         ${showRoom ? html`<span class="room">${lesson.room}</span>` : nothing}
+        ${changed
+          ? html`<span class="swap" aria-label=${t(this.hass, 'timetable.changed')}></span>`
+          : nothing}
         ${isNow && progress !== null
           ? html`<div class="progress"><div style=${`width:${Math.round(progress * 100)}%`}></div></div>`
           : nothing}
@@ -434,11 +461,18 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
     const closedToday = this._closure(outlook, today);
     const openColumns = columns.filter((weekday) => this._closure(outlook, weekday) === null);
     const closures = openColumns.length < columns.length;
+
+    // Worked out once per column and then only read: the grid, the hiding of empty
+    // periods and the running-lesson line all have to agree about what is on.
+    const byColumn = new Map(
+      columns.map((weekday) => [weekday, this._columnLessons(week, outlook, weekday)]),
+    );
+
     const rows = buildRows(grid, (period) => {
       if (this._config.hide_empty_periods === false) {
         return true;
       }
-      return openColumns.some((weekday) => lessonAt(week, weekday, period.index) !== undefined);
+      return openColumns.some((weekday) => byColumn.get(weekday)?.has(period.index));
     });
 
     const running = highlight && !closedToday ? currentPeriod(grid) : undefined;
@@ -462,7 +496,7 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
         ${highlight && closedToday
           ? this._renderNoSchool(closedToday.label)
           : highlight && weekdays.includes(today)
-            ? this._renderStatus(grid, week, today)
+            ? this._renderStatus(grid, this._columnLessons(week, outlook, today))
             : nothing}
         ${dayView
           ? html`
@@ -583,9 +617,7 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
                     ></div>`
                   : this._renderCell(
                       grid,
-                      week,
-                      weekday,
-                      period.index,
+                      byColumn.get(weekday)?.get(period.index),
                       highlight && weekday === today && running?.index === period.index,
                       progress,
                       `grid-column:${index + 2};grid-row:${line}`,
@@ -785,6 +817,32 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
 
       .closure.sick {
         --closure: var(--schoolday-sick);
+      }
+
+      .closure.event {
+        --closure: var(--schoolday-event);
+      }
+
+      /* A lesson that is not the one the timetable promised. Marked rather than merely
+         shown: a substitution the reader cannot see is worse than no substitution
+         layer at all, because they would trust the wrong thing without knowing. */
+      .cell.changed {
+        outline: 2px dashed color-mix(in srgb, var(--subject) 65%, transparent);
+        outline-offset: -2px;
+      }
+
+      .cell.changed .swap {
+        position: absolute;
+        top: 3px;
+        right: 4px;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--subject);
+      }
+
+      .cell {
+        position: relative;
       }
 
       .time {

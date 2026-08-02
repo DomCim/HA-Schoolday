@@ -41,6 +41,7 @@ export type AdminSection =
   | 'family'
   | 'subjects'
   | 'materials'
+  | 'exceptions'
   | 'holidays';
 
 const SECTIONS: AdminSection[] = [
@@ -49,6 +50,7 @@ const SECTIONS: AdminSection[] = [
   'family',
   'subjects',
   'materials',
+  'exceptions',
   'holidays',
 ];
 const BLOCKS = ['morning', 'evening'];
@@ -72,6 +74,8 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
   @state() private _block = 'morning';
   /** Which routine day is open: "0".."6", "free" or "care". */
   @state() private _routineDay = '0';
+  /** Which date the exceptions section is showing; unset means today. */
+  @state() private _exceptionDate = '';
   /** The cell being edited, as `weekday:period`. */
   @state() private _cell?: string;
   @state() private _draftSubject = '';
@@ -655,6 +659,159 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
     `;
   }
 
+  // --- exceptions ---------------------------------------------------------
+
+  /** Today as `YYYY-MM-DD` in the browser's zone, which is how exceptions are keyed. */
+  private static _todayKey(): string {
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    return `${now.getFullYear()}-${month}-${String(now.getDate()).padStart(2, '0')}`;
+  }
+
+  /**
+   * What one date does differently.
+   *
+   * A date at a time, not a week: the timetable is worth typing in once because it
+   * repeats, and the moment it can be edited per week it stops repeating and becomes
+   * fifty-two timetables. This says "on the 18th, third period is off" and nothing more.
+   */
+  private _renderExceptions(config: AdminConfig): TemplateResult {
+    const member = this._selected(config);
+    const grid = this._board?.timetable;
+    if (!member) {
+      return html`<div class="notice">${t(this.hass, 'admin.no_members')}</div>`;
+    }
+    if (!grid?.periods.length) {
+      return html`<div class="notice">${t(this.hass, 'admin.periods_first')}</div>`;
+    }
+
+    const today = SchooldayAdminCard._todayKey();
+    const stored = config.exceptions[member.id] ?? {};
+    const day = this._exceptionDate || today;
+    const current = stored[day];
+    const week = weekOf(memberSensor(this.hass!, member.id));
+    const weekday = (new Date(`${day}T00:00:00`).getDay() + 6) % 7;
+
+    return html`
+      <div class="notice quiet">${t(this.hass, 'admin.exceptions_hint')}</div>
+      ${this._memberChips(config, member)}
+
+      <div class="row">
+        <label class="field grow">
+          <span class="label">${t(this.hass, 'admin.exception_date')}</span>
+          <input
+            type="date"
+            min=${today}
+            .value=${day}
+            @change=${(event: Event) => {
+              this._exceptionDate = (event.target as HTMLInputElement).value;
+            }}
+          />
+        </label>
+        ${Object.keys(stored).length
+          ? html`<div class="chips">
+              ${Object.keys(stored)
+                .sort()
+                .map(
+                  (marked) => html`
+                    <button
+                      class="chip ${marked === day ? 'on' : ''}"
+                      @click=${() => {
+                        this._exceptionDate = marked;
+                      }}
+                    >
+                      ${marked.slice(8)}.${marked.slice(5, 7)}.
+                    </button>
+                  `,
+                )}
+            </div>`
+          : nothing}
+      </div>
+
+      <label class="field">
+        <span class="label">${t(this.hass, 'admin.exception_label')}</span>
+        <input
+          id="exception-label"
+          placeholder=${t(this.hass, 'admin.exception_label_hint')}
+          .value=${current?.label ?? ''}
+        />
+        <button
+          class="apply"
+          ?disabled=${this._busy}
+          @click=${(event: Event) => {
+            const root = (event.target as HTMLElement).closest('.field');
+            const field = root?.querySelector('input') as HTMLInputElement | null;
+            this._call('set_exception', {
+              member: member.id,
+              date: day,
+              label: field?.value ?? '',
+            });
+          }}
+        >
+          ${t(this.hass, 'admin.save')}
+        </button>
+      </label>
+
+      ${current?.label
+        ? nothing
+        : html`
+            <div class="exception-periods">
+              ${grid.periods.map((period) => {
+                const override = current?.periods?.[String(period.index)];
+                // `in` rather than a truthiness test: a cancelled period is stored as
+                // null, and "cancelled" and "not mentioned" are the two answers this
+                // whole row has to tell apart.
+                const overridden = current ? String(period.index) in current.periods : false;
+                const planned = lessonAt(week, weekday, period.index);
+                const shown = overridden ? (override?.subject ?? null) : (planned?.subject ?? null);
+                return html`
+                  <div class="exception-row">
+                    <span class="no">${period.index}</span>
+                    <span class="planned ${overridden && !override ? 'gone' : ''}">
+                      ${shown ?? '—'}
+                    </span>
+                    <input
+                      class="replacement"
+                      placeholder=${t(this.hass, 'admin.subject')}
+                      .value=${override?.subject ?? ''}
+                      @change=${(event: Event) =>
+                        this._call('set_exception', {
+                          member: member.id,
+                          date: day,
+                          period: period.index,
+                          subject: (event.target as HTMLInputElement).value,
+                        })}
+                    />
+                    <button
+                      class="link ${overridden && !override ? 'on' : ''}"
+                      ?disabled=${this._busy || !planned}
+                      @click=${() =>
+                        this._call('set_exception', {
+                          member: member.id,
+                          date: day,
+                          period: period.index,
+                          cancelled: !(overridden && !override),
+                        })}
+                    >
+                      ${t(this.hass, 'admin.exception_cancel')}
+                    </button>
+                  </div>
+                `;
+              })}
+            </div>
+          `}
+      ${current
+        ? html`<button
+            class="link"
+            ?disabled=${this._busy}
+            @click=${() => this._call('clear_exception', { member: member.id, date: day })}
+          >
+            ${t(this.hass, 'admin.exception_reset')}
+          </button>`
+        : html`<div class="notice quiet">${t(this.hass, 'admin.exception_none')}</div>`}
+    `;
+  }
+
   // --- holidays -----------------------------------------------------------
 
   private _renderHolidays(config: AdminConfig): TemplateResult {
@@ -721,7 +878,9 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
                   ? this._renderSubjects(config)
                   : this._section === 'materials'
                     ? this._renderMaterials(config)
-                    : this._renderHolidays(config)}
+                    : this._section === 'exceptions'
+                      ? this._renderExceptions(config)
+                      : this._renderHolidays(config)}
         </div>
       </ha-card>
     `;
@@ -823,6 +982,39 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
         flex-wrap: wrap;
         gap: 8px;
         align-items: flex-end;
+      }
+
+      /* One row per period: what the timetable says, what runs instead, and the way
+         to say it does not run at all. Three columns rather than a dialog, because
+         a substitution is usually one word and should cost one tap. */
+      .exception-periods {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin: 8px 0;
+      }
+
+      .exception-row {
+        display: grid;
+        grid-template-columns: 2ch minmax(0, 1fr) minmax(0, 1fr) max-content;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .exception-row .planned {
+        color: var(--schoolday-muted);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .exception-row .planned.gone {
+        text-decoration: line-through;
+      }
+
+      .exception-row .link.on {
+        color: var(--error-color, #d33);
+        font-weight: 700;
       }
 
       .apply,

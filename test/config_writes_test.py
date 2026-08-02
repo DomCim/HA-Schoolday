@@ -210,6 +210,88 @@ check("kranker Tag hat keine Schritte",
       and routine.steps_for(0, "free") == ["Ausschlafen"],
       str(routine.steps_for(0, "sick")))
 
+# --- exceptions ------------------------------------------------------------
+import datetime  # noqa: E402
+
+TODAY = datetime.date(2026, 9, 14)
+SOON = "2026-09-18"
+
+out = W.set_exception(BASE, MEMBER, SOON, label="Wandertag", today=TODAY)
+check("Tages-Ausnahme wird gesetzt",
+      out["exceptions"][MEMBER][SOON]["label"] == "Wandertag", str(out["exceptions"]))
+
+# A label is what says the day is taken over; there is no second flag to disagree with.
+Models = importlib.import_module("schoolday.models")
+day = Models.DayException.from_dict(out["exceptions"][MEMBER][SOON])
+check("Bezeichnung nimmt den Tag ein", day.closed and day.applied_to([Models.Lesson(1, "Deutsch")]) == [], str(day))
+
+out = W.set_exception(merged(out), MEMBER, SOON, label="", today=TODAY)
+check("leere Bezeichnung gibt den Tag zurueck", out["exceptions"] == {}, str(out["exceptions"]))
+
+# One period, three ways: cancelled, replaced, handed back.
+out = W.set_exception(BASE, MEMBER, SOON, period=1, cancelled=True, today=TODAY)
+entry = out["exceptions"][MEMBER][SOON]["periods"]["1"]
+check("Stunde entfaellt", entry == {}, str(entry))
+
+out = W.set_exception(merged(out), MEMBER, SOON, period=2, subject="Vertretung", room="R2", today=TODAY)
+check("Stunde wird ersetzt",
+      out["exceptions"][MEMBER][SOON]["periods"]["2"] == {"subject": "Vertretung", "room": "R2"},
+      str(out["exceptions"][MEMBER][SOON]["periods"]))
+
+out = W.set_exception(merged(out), MEMBER, SOON, period=1, today=TODAY)
+check("weder entfallen noch ersetzt gibt die Stunde zurueck",
+      "1" not in out["exceptions"][MEMBER][SOON]["periods"], str(out["exceptions"]))
+
+# What the sensors ask: the week, with that one date's changes applied.
+config = Models.SchooldayConfig.from_options(merged(out))
+check("Datum ueberschreibt den Wochentag",
+      [(l.period, l.subject) for l in config.lessons_on(MEMBER, datetime.date(2026, 9, 14))]
+      == [(1, "Deutsch")],
+      "Montag ohne Ausnahme")
+# 18 September 2026 is a Friday, which the base week leaves empty — so the replacement
+# is the only thing on, which is exactly what a substitution on a free period means.
+check("Ersatzstunde erscheint am Datum",
+      [(l.period, l.subject) for l in config.lessons_on(MEMBER, datetime.date(2026, 9, 18))]
+      == [(2, "Vertretung")],
+      str([(l.period, l.subject) for l in config.lessons_on(MEMBER, datetime.date(2026, 9, 18))]))
+
+try:
+    W.set_exception(BASE, MEMBER, "2026-09-01", label="zu spaet", today=TODAY)
+    check("vergangenes Datum abgewiesen", False, "keine Ausnahme")
+except SchooldayValueError as e:
+    check("vergangenes Datum abgewiesen", "already been" in str(e), str(e)[:60])
+
+try:
+    W.set_exception(BASE, MEMBER, "kein Datum", label="x", today=TODAY)
+    check("kaputtes Datum abgewiesen", False, "keine Ausnahme")
+except SchooldayValueError as e:
+    check("kaputtes Datum abgewiesen", "YYYY-MM-DD" in str(e), str(e)[:60])
+
+try:
+    W.set_exception(BASE, MEMBER, SOON, period=99, cancelled=True, today=TODAY)
+    check("unbekannte Stunde abgewiesen", False, "keine Ausnahme")
+except SchooldayValueError as e:
+    check("unbekannte Stunde abgewiesen", "no period 99" in str(e), str(e)[:60])
+
+# Everything before today goes on every write, so this can never become a second
+# timetable nobody maintains.
+stale = merged({"exceptions": {MEMBER: {"2020-01-01": {"label": "alt"}, SOON: {"label": "neu"}}}})
+out = W.set_exception(stale, MEMBER, SOON, label="neu", today=TODAY)
+check("vergangene Ausnahmen werden beim Schreiben verworfen",
+      list(out["exceptions"][MEMBER]) == [SOON], str(out["exceptions"]))
+
+# A subject that only ever covers one period on one date still needs a colour: a
+# lesson with none is the one thing on the card that reads as broken.
+covered = Models.SchooldayConfig.from_options(
+    merged(W.set_exception(BASE, MEMBER, SOON, period=2, subject="Vertretung", today=TODAY))
+)
+check("Vertretungsfach bekommt eine Farbe",
+      "Vertretung" in covered.timetable.as_card_dict(covered.exception_subjects)["subjects"],
+      str(sorted(covered.timetable.as_card_dict(covered.exception_subjects)["subjects"])))
+
+out = W.clear_exception(merged(out), MEMBER, SOON, today=TODAY)
+check("zuruecksetzen raeumt das Datum weg", out["exceptions"] == {}, str(out["exceptions"]))
+
 # --- the base must never be mutated ---------------------------------------
 check("Ausgangs-Optionen bleiben unveraendert",
       BASE["timetable"]["lessons"][MEMBER]["0"] == {"1": {"subject": "Deutsch", "room": None}}

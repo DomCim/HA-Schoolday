@@ -30,11 +30,14 @@ from .const import (
     ATTR_ABSENT,
     ATTR_BLOCK,
     ATTR_CALENDAR_FIELD,
+    ATTR_CANCELLED,
     ATTR_COLOR,
+    ATTR_DATE_FIELD,
     ATTR_DAY,
     ATTR_DONE,
     ATTR_ITEMS,
     ATTR_KEYWORDS,
+    ATTR_LABEL_FIELD,
     ATTR_LESSONS,
     ATTR_MEMBER,
     ATTR_NAME,
@@ -52,11 +55,13 @@ from .const import (
     DATA_STORE,
     DOMAIN,
     ROUTINE_BLOCKS,
+    SERVICE_CLEAR_EXCEPTION,
     SERVICE_REMOVE_MEMBER,
     SERVICE_RESET_ROUTINE,
     SERVICE_SET_ABSENT,
     SERVICE_SET_CALENDARS,
     SERVICE_SET_DAY,
+    SERVICE_SET_EXCEPTION,
     SERVICE_SET_LESSON,
     SERVICE_SET_MATERIALS,
     SERVICE_SET_MEMBER,
@@ -147,6 +152,25 @@ SET_MATERIALS_SCHEMA = vol.Schema(
     {
         vol.Required(ATTR_SUBJECT_FIELD): cv.string,
         vol.Required(ATTR_ITEMS): vol.All(cv.ensure_list, [cv.string]),
+    }
+)
+
+SET_EXCEPTION_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_MEMBER): cv.string,
+        vol.Required(ATTR_DATE_FIELD): cv.string,
+        vol.Optional(ATTR_PERIOD): vol.Coerce(int),
+        vol.Optional(ATTR_SUBJECT_FIELD): vol.Any(cv.string, None),
+        vol.Optional(ATTR_ROOM_FIELD): vol.Any(cv.string, None),
+        vol.Optional(ATTR_CANCELLED, default=False): cv.boolean,
+        vol.Optional(ATTR_LABEL_FIELD): vol.Any(cv.string, None),
+    }
+)
+
+CLEAR_EXCEPTION_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_MEMBER): cv.string,
+        vol.Required(ATTR_DATE_FIELD): cv.string,
     }
 )
 
@@ -361,6 +385,33 @@ def async_register_services(hass: HomeAssistant) -> None:
         )
 
     @_guard
+    def _set_exception(call: ServiceCall) -> None:
+        _apply(
+            call,
+            config_writes.set_exception(
+                _options(call),
+                _resolve_member_id(hass, call.data[ATTR_MEMBER]),
+                call.data[ATTR_DATE_FIELD],
+                call.data.get(ATTR_PERIOD),
+                call.data.get(ATTR_SUBJECT_FIELD),
+                call.data.get(ATTR_ROOM_FIELD),
+                call.data[ATTR_CANCELLED],
+                call.data.get(ATTR_LABEL_FIELD),
+            ),
+        )
+
+    @_guard
+    def _clear_exception(call: ServiceCall) -> None:
+        _apply(
+            call,
+            config_writes.clear_exception(
+                _options(call),
+                _resolve_member_id(hass, call.data[ATTR_MEMBER]),
+                call.data[ATTR_DATE_FIELD],
+            ),
+        )
+
+    @_guard
     def _set_calendars(call: ServiceCall) -> None:
         _apply(
             call,
@@ -381,5 +432,7 @@ def async_register_services(hass: HomeAssistant) -> None:
         (SERVICE_REMOVE_MEMBER, _remove_member, REMOVE_MEMBER_SCHEMA),
         (SERVICE_SET_CALENDARS, _set_calendars, SET_CALENDARS_SCHEMA),
         (SERVICE_SET_MATERIALS, _set_materials, SET_MATERIALS_SCHEMA),
+        (SERVICE_SET_EXCEPTION, _set_exception, SET_EXCEPTION_SCHEMA),
+        (SERVICE_CLEAR_EXCEPTION, _clear_exception, CLEAR_EXCEPTION_SCHEMA),
     ):
         hass.services.async_register(DOMAIN, service, handler, schema=schema)

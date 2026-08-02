@@ -31,6 +31,7 @@ from .const import (
     ATTR_ADMIN,
     ATTR_AVATAR,
     ATTR_BOARD,
+    ATTR_CHANGES,
     ATTR_COLOR,
     ATTR_DATE,
     ATTR_DAY_MODE,
@@ -66,6 +67,7 @@ from .const import (
     EVENT_LESSON_ENDED,
     EVENT_LESSON_STARTED,
     MODE_CARE,
+    MODE_EVENT,
     MODE_FREE,
     MODE_SCHOOL,
     MODE_SICK,
@@ -272,7 +274,9 @@ class SchooldayBoardSensor(SchooldayBaseSensor):
             ATTR_ROUTINE_BLOCKS: list(ROUTINE_BLOCKS),
             # The lesson grid only: each member's own week rides on their sensor, so
             # neither attribute set grows with the size of the family.
-            ATTR_TIMETABLE: self._config.timetable.as_card_dict(),
+            ATTR_TIMETABLE: self._config.timetable.as_card_dict(
+                self._config.exception_subjects
+            ),
             ATTR_SCHOOL_TODAY: reason is None,
             ATTR_NO_SCHOOL: reason,
             # What the management card edits. Only it reads this; the display cards
@@ -449,6 +453,20 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
                         entry[ATTR_MODE] = MODE_CARE
                         entry[ATTR_LABEL] = summary or None
 
+        # Last, what the household said about this one date. Only where the day is
+        # still a school day: the calendars answer whether school happens at all, and
+        # a trip cannot take place during the summer holidays.
+        for day in days:
+            change = self._config.exception(self._member.id, day)
+            if change is None:
+                continue
+            entry = entries[day]
+            if change.closed and entry[ATTR_MODE] == MODE_SCHOOL:
+                entry[ATTR_MODE] = MODE_EVENT
+                entry[ATTR_LABEL] = change.label
+            if change.periods:
+                entry[ATTR_CHANGES] = change.as_changes()
+
         self._outlook = [entries[day] for day in days]
 
     @property
@@ -498,31 +516,48 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
     def _school_today(self) -> bool:
         return self._day_mode == MODE_SCHOOL
 
+    def _lessons_today(self) -> list[Lesson]:
+        """Today's lessons by date, so a cancelled period really is gone.
+
+        Everything below asks this rather than the weekly grid. A weekday says what a
+        Tuesday is usually like; only a date knows what this Tuesday holds, and the two
+        must never be worked out in two places.
+        """
+        return self._config.lessons_on(self._member.id, dt_util.now().date())
+
     def _lesson_now(self) -> dict[str, Any] | None:
         if not self._school_today:
             return None
-        weekday, minutes = self._now()
-        found = self._config.timetable.lesson_at(self._member.id, weekday, minutes)
-        return _lesson_dict(*found) if found else None
+        _weekday, minutes = self._now()
+        period = self._config.timetable.period_at(minutes)
+        if period is None:
+            return None
+        lesson = next(
+            (item for item in self._lessons_today() if item.period == period.index), None
+        )
+        return _lesson_dict(lesson, period) if lesson else None
 
     def _lesson_next(self) -> dict[str, Any] | None:
         if not self._school_today:
             return None
-        weekday, minutes = self._now()
-        found = self._config.timetable.next_lesson(self._member.id, weekday, minutes)
-        return _lesson_dict(*found) if found else None
+        _weekday, minutes = self._now()
+        day = {lesson.period: lesson for lesson in self._lessons_today()}
+        for period in self._config.timetable.periods:
+            if period.start_minutes <= minutes:
+                continue
+            if lesson := day.get(period.index):
+                return _lesson_dict(lesson, period)
+        return None
 
     def _today(self) -> list[dict[str, Any]]:
         # On a holiday there is nothing on today — which is what makes the morning
         # announcement fall silent by itself, with no second condition to maintain.
         if not self._school_today:
             return []
-        weekday, _ = self._now()
-        timetable = self._config.timetable
-        periods = {period.index: period for period in timetable.periods}
+        periods = {period.index: period for period in self._config.timetable.periods}
         return [
             _lesson_dict(lesson, periods[lesson.period])
-            for lesson in timetable.day(self._member.id, weekday)
+            for lesson in self._lessons_today()
             if lesson.period in periods
         ]
 

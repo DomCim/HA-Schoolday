@@ -38,6 +38,15 @@ export interface AdminConfig {
   materials: Record<string, string[]>;
   /** Every subject in use, so the materials editor has something to list. */
   subjects: string[];
+  /** member id -> "YYYY-MM-DD" -> what that date does differently. */
+  exceptions: Record<string, Record<string, AdminException>>;
+}
+
+export interface AdminException {
+  /** Set means the whole day is taken over; there is no separate flag for that. */
+  label: string | null;
+  /** period -> the replacement, or null for a period that is cancelled. */
+  periods: Record<string, { subject: string; room: string | null } | null>;
 }
 
 const EMPTY: AdminConfig = {
@@ -49,6 +58,7 @@ const EMPTY: AdminConfig = {
   careKeywords: [],
   materials: {},
   subjects: [],
+  exceptions: {},
 };
 
 function stringList(raw: unknown): string[] {
@@ -110,9 +120,40 @@ export function parseAdmin(raw: unknown): AdminConfig {
     }
   }
 
+  const exceptions: AdminConfig['exceptions'] = {};
+  for (const [memberId, dates] of Object.entries(
+    (data.exceptions as Record<string, unknown>) ?? {},
+  )) {
+    const perDate: Record<string, AdminException> = {};
+    for (const [day, entry] of Object.entries((dates as Record<string, unknown>) ?? {})) {
+      const raw = (entry ?? {}) as Record<string, unknown>;
+      const periods: AdminException['periods'] = {};
+      for (const [key, value] of Object.entries(
+        (raw.periods as Record<string, unknown>) ?? {},
+      )) {
+        const lesson = (value ?? {}) as Record<string, unknown>;
+        periods[key] =
+          typeof lesson.subject === 'string' && lesson.subject
+            ? {
+                subject: lesson.subject,
+                room: typeof lesson.room === 'string' && lesson.room ? lesson.room : null,
+              }
+            : null;
+      }
+      perDate[day] = {
+        label: typeof raw.label === 'string' && raw.label ? raw.label : null,
+        periods,
+      };
+    }
+    if (Object.keys(perDate).length) {
+      exceptions[memberId] = perDate;
+    }
+  }
+
   return {
     members,
     routines,
+    exceptions,
     periods: stringList(data.periods),
     colors,
     schoolCalendars: stringList(data.school_calendars),

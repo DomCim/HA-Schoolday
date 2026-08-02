@@ -1,0 +1,19 @@
+title: Schoolday
+description: The school week and the daily routines, on the wall.
+remote_theme: just-the-docs/just-the-docs
+url: https://domcim.github.io
+baseurl: /HA-Schoolday
+
+# The repository link in the theme's footer, and the "edit this page" target.
+aux_links:
+  Schoolday on GitHub:
+    - https://github.com/DomCim/HA-Schoolday
+aux_links_new_tab: true
+
+color_scheme: dark
+search_enabled: true
+
+# Everything the site needs lives in docs/; nothing else belongs on the site.
+exclude:
+  - Gemfile
+  - Gemfile.lock

@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation
+    url: https://domcim.github.io/HA-Schoolday/
+    about: Setting up the timetable, routines, homework, days off and the cards.
+  - name: Question or idea
+    url: https://github.com/DomCim/HA-Schoolday/discussions
+    about: For anything that is not yet a bug or a concrete request.

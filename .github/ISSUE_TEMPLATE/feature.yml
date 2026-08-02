@@ -1,0 +1,33 @@
+name: Feature request
+description: Something Schoolday should be able to do and cannot.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Schoolday is a board for one household's school week, and it stays small on
+        purpose. The most useful thing you can write here is not the feature but the
+        **situation** — what happens in your week that the board gets wrong.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is the situation
+      description: >
+        The morning, the child, the thing that goes wrong. Concrete beats general.
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you have in mind
+      description: Optional. A rough shape is fine; so is "no idea, you decide".
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: What you do instead today
+      description: >
+        Including "nothing". If you already solve it with an automation or a
+        second card, that is worth knowing — it may be the answer.

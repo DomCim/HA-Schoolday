@@ -163,8 +163,22 @@ const dayHeads = await page.locator('schoolday-timetable-card .col-head').allTex
 const dayChips = await page.locator('schoolday-timetable-card .days .chip').count();
 check(
   'day view opens on today and offers the other days',
-  dayHeads.length === 1 && dayHeads[0].trim() === 'Mittwoch' && dayChips === 5,
-  `${dayHeads.map((h) => h.trim()).join(',')} / ${dayChips} chips`,
+  dayHeads.length === 1 &&
+    /Mittwoch/.test(dayHeads[0]) &&
+    /5\.8\./.test(dayHeads[0]) &&
+    dayChips === 5,
+  `${dayHeads.map((h) => h.replace(/\s+/g, ' ').trim()).join(',')} / ${dayChips} chips`,
+);
+
+// The whole point of the outlook: a weekday that has already been this week points at
+// next week's, so the column a parent taps is never one that is already over.
+const chipDates = await page
+  .locator('schoolday-timetable-card .days .chip .chip-date')
+  .allTextContents();
+check(
+  'past weekdays roll on to next week, the rest stay in this one',
+  chipDates.map((text) => text.trim()).join(' ') === '10.8. 11.8. 5.8. 6.8. 7.8.',
+  chipDates.map((text) => text.trim()).join(' '),
 );
 check(
   'a single member is not offered as a switcher',
@@ -243,6 +257,50 @@ check(
   'a missing timetable explains where to add one',
   /Stundenzeiten/.test(ttNotice),
   ttNotice.trim().slice(0, 60),
+);
+
+// A day the child is not at school says so in its own column, and shows no lessons:
+// during the summer holidays the grid must not still promise Monday's German.
+await page.evaluate(() => {
+  const host = document.getElementById('host');
+  host.innerHTML = '';
+  const card = document.createElement('schoolday-timetable-card');
+  card.setConfig({ type: 'custom:schoolday-timetable-card', member: 'Ben', layout: 'week' });
+  const sensor = Object.values(window.__hass.states).find(
+    (state) => state.attributes?.friendly_name === 'Schoolday Ben',
+  );
+  const outlook = JSON.parse(JSON.stringify(sensor.attributes.outlook));
+  outlook[0] = { ...outlook[0], mode: 'free', label: 'Sommerferien Bayern' };
+  outlook[1] = { ...outlook[1], mode: 'care', label: 'Ben Ferienbetreuung' };
+  card.hass = {
+    ...window.__hass,
+    states: {
+      ...window.__hass.states,
+      [sensor.entity_id]: { ...sensor, attributes: { ...sensor.attributes, outlook } },
+    },
+  };
+  host.appendChild(card);
+});
+await page.waitForTimeout(400);
+
+const closedLabels = await page
+  .locator('schoolday-timetable-card .col-head .col-closed')
+  .allTextContents();
+check(
+  'a closed day is named in its own column, by whatever the calendar called it',
+  closedLabels.map((text) => text.trim()).join(' | ') ===
+    'Sommerferien Bayern | Ben Ferienbetreuung',
+  closedLabels.map((text) => text.trim()).join(' | '),
+);
+
+const closedCells = await page.locator('schoolday-timetable-card .cell.closed').count();
+const closedSubjects = await page
+  .locator('schoolday-timetable-card .cell.closed .subject')
+  .count();
+check(
+  'a closed day shows no lessons at all',
+  closedCells > 0 && closedSubjects === 0,
+  `${closedCells} closed cells, ${closedSubjects} subjects in them`,
 );
 
 // A holiday keeps the week on screen — it is still the plan — but nothing is running.

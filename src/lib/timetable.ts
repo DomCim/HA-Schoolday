@@ -41,6 +41,26 @@ export interface TimetableLesson {
 /** weekday (0 = Monday) -> that day's lessons, in period order. */
 export type TimetableWeek = Record<number, TimetableLesson[]>;
 
+/** What kind of day a member is having. Mirrors MODE_* in the integration. */
+export type DayMode = 'school' | 'care' | 'free';
+
+/** One of the next seven days: which date it is, and what it actually holds. */
+export interface OutlookDay {
+  /** `YYYY-MM-DD`. Always the next occurrence of this weekday, today included. */
+  date: string;
+  mode: DayMode;
+  /** The holiday's name or the care event's title; null on a school day. */
+  label: string | null;
+}
+
+/**
+ * weekday (0 = Monday) -> the next date with that weekday.
+ *
+ * A timetable repeats forever, so on its own a column can only say what a Tuesday is
+ * usually like. This says which Tuesday, and whether it is happening at all.
+ */
+export type Outlook = Record<number, OutlookDay>;
+
 /** A row of the rendered table: a period, or the break that follows one. */
 export type TimetableRow =
   | { kind: 'period'; period: TimetablePeriod }
@@ -156,6 +176,53 @@ export function parseWeek(raw: unknown): TimetableWeek {
 /** The week of the member whose sensor this is. */
 export function weekOf(entity: HassEntity | undefined): TimetableWeek {
   return parseWeek(entity?.attributes?.timetable);
+}
+
+/** Parse the `outlook` attribute of a member sensor. */
+export function parseOutlook(raw: unknown): Outlook {
+  const outlook: Outlook = {};
+  if (!raw || typeof raw !== 'object') {
+    return outlook;
+  }
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    const weekday = Number(key);
+    if (!Number.isInteger(weekday) || weekday < 0 || weekday > 6 || !value) {
+      continue;
+    }
+    const entry = value as Record<string, unknown>;
+    if (typeof entry.date !== 'string') {
+      continue;
+    }
+    const mode = entry.mode === 'care' || entry.mode === 'free' ? entry.mode : 'school';
+    outlook[weekday] = {
+      date: entry.date,
+      mode,
+      label: typeof entry.label === 'string' && entry.label ? entry.label : null,
+    };
+  }
+  return outlook;
+}
+
+/** What the next seven days hold for the member whose sensor this is. */
+export function outlookOf(entity: HassEntity | undefined): Outlook {
+  return parseOutlook(entity?.attributes?.outlook);
+}
+
+/**
+ * The date a weekday column stands for, as a `Date` in the browser's zone.
+ *
+ * Built from the parts rather than `new Date(iso)`, which would read the string as
+ * UTC and land on the day before for anyone east of Greenwich.
+ */
+export function outlookDate(day: OutlookDay | undefined): Date | null {
+  if (!day) {
+    return null;
+  }
+  const [year, month, dayOfMonth] = day.date.split('-').map(Number);
+  if (!year || !month || !dayOfMonth) {
+    return null;
+  }
+  return new Date(year, month - 1, dayOfMonth);
 }
 
 /** True when a week holds at least one lesson. */

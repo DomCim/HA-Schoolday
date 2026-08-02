@@ -25,9 +25,12 @@ import {
   lessonAt,
   nextLesson,
   nowMinutes,
+  outlookDate,
+  outlookOf,
   periodProgress,
   weekOf,
   weekdayIndex,
+  type Outlook,
   type TimetableGrid,
   type TimetableWeek,
 } from '../lib/timetable';
@@ -127,7 +130,9 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
   // --- data ---------------------------------------------------------------
 
   /** The members this card may show: they have a timetable, and are not filtered out. */
-  private _candidates(members: SchooldayMember[]): { member: SchooldayMember; week: TimetableWeek }[] {
+  private _candidates(
+    members: SchooldayMember[],
+  ): { member: SchooldayMember; week: TimetableWeek; outlook: Outlook }[] {
     const wanted = (this._config.members ?? (this._config.member ? [this._config.member] : []))
       .map((value) => value.toLowerCase());
 
@@ -138,7 +143,10 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
           wanted.includes(member.id.toLowerCase()) ||
           wanted.includes(member.name.toLowerCase()),
       )
-      .map((member) => ({ member, week: weekOf(memberSensor(this.hass!, member.id)) }))
+      .map((member) => {
+        const sensor = memberSensor(this.hass!, member.id);
+        return { member, week: weekOf(sensor), outlook: outlookOf(sensor) };
+      })
       .filter((entry) => hasLessons(entry.week));
   }
 
@@ -164,6 +172,33 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
     const date = new Date(WEEKDAY_ORIGIN);
     date.setDate(date.getDate() + weekday);
     return new Intl.DateTimeFormat(localeOf(this.hass!), { weekday: style }).format(date);
+  }
+
+  /**
+   * The date a column stands for, as day and month.
+   *
+   * A column no longer means "Tuesdays in general" but one particular Tuesday, and
+   * once Monday's column has rolled on to next week the reader has no way to tell
+   * which one without seeing it.
+   */
+  private _columnDate(outlook: Outlook, weekday: number): string | null {
+    const date = outlookDate(outlook[weekday]);
+    if (!date) {
+      return null;
+    }
+    return new Intl.DateTimeFormat(localeOf(this.hass!), {
+      day: 'numeric',
+      month: 'numeric',
+    }).format(date);
+  }
+
+  /** What closes this day, or null when lessons are happening. */
+  private _closure(outlook: Outlook, weekday: number): string | null {
+    const day = outlook[weekday];
+    if (!day || day.mode === 'school') {
+      return null;
+    }
+    return day.label ?? t(this.hass, day.mode === 'care' ? 'timetable.care' : 'timetable.free');
   }
 
   private _color(grid: TimetableGrid, subject: string): string {
@@ -315,7 +350,7 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
 
     const selected =
       candidates.find((entry) => entry.member.id === this._memberId) ?? candidates[0];
-    const { member, week } = selected;
+    const { member, week, outlook } = selected;
 
     const weekdays = this._weekdays(week);
     const today = weekdayIndex();
@@ -332,11 +367,12 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
           : weekdays[0];
     const columns = dayView ? [day] : weekdays;
 
+    const openColumns = columns.filter((weekday) => this._closure(outlook, weekday) === null);
     const rows = buildRows(grid, (period) => {
       if (this._config.hide_empty_periods === false) {
         return true;
       }
-      return columns.some((weekday) => lessonAt(week, weekday, period.index) !== undefined);
+      return openColumns.some((weekday) => lessonAt(week, weekday, period.index) !== undefined);
     });
 
     const running = highlight && board.schoolToday ? currentPeriod(grid) : undefined;
@@ -372,6 +408,11 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
                       }}
                     >
                       ${this._weekdayName(weekday, 'short')}
+                      ${this._columnDate(outlook, weekday)
+                        ? html`<span class="chip-date"
+                            >${this._columnDate(outlook, weekday)}</span
+                          >`
+                        : nothing}
                     </button>
                   `,
                 )}
@@ -386,8 +427,25 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
           <div class="corner"></div>
           ${columns.map(
             (weekday) => html`
-              <div class="col-head ${highlight && weekday === today ? 'today' : ''}">
-                ${this._weekdayName(weekday, dayView ? 'long' : 'short')}
+              <div
+                class="col-head ${highlight && weekday === today ? 'today' : ''} ${this._closure(
+                  outlook,
+                  weekday,
+                ) !== null
+                  ? 'closed'
+                  : ''}"
+              >
+                <span class="col-day"
+                  >${this._weekdayName(weekday, dayView ? 'long' : 'short')}</span
+                >
+                ${this._columnDate(outlook, weekday)
+                  ? html`<span class="col-date">${this._columnDate(outlook, weekday)}</span>`
+                  : nothing}
+                ${this._closure(outlook, weekday)
+                  ? html`<span class="col-closed" title=${this._closure(outlook, weekday)!}
+                      >${this._closure(outlook, weekday)}</span
+                    >`
+                  : nothing}
               </div>
             `,
           )}
@@ -425,14 +483,16 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
                   : nothing}
               </div>
               ${columns.map((weekday) =>
-                this._renderCell(
-                  grid,
-                  week,
-                  weekday,
-                  period.index,
-                  highlight && weekday === today && running?.index === period.index,
-                  progress,
-                ),
+                this._closure(outlook, weekday) !== null
+                  ? html`<div class="cell closed"></div>`
+                  : this._renderCell(
+                      grid,
+                      week,
+                      weekday,
+                      period.index,
+                      highlight && weekday === today && running?.index === period.index,
+                      progress,
+                    ),
               )}
             `;
           })}

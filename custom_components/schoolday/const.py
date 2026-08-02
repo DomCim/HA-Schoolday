@@ -7,7 +7,7 @@ from typing import Final
 DOMAIN: Final = "schoolday"
 
 # Keep in sync with manifest.json, package.json and src/lib/const.ts.
-VERSION: Final = "0.5.3"
+VERSION: Final = "0.6.0"
 
 # Where the bundled Lovelace cards are served from.
 FRONTEND_URL_BASE: Final = "/schoolday-frontend"
@@ -105,6 +105,10 @@ CONF_CALENDAR: Final = "calendar"
 
 # Marker the cards use to locate the board sensor, so renaming it does not break them.
 ATTR_BOARD: Final = "schoolday_board"
+
+# Everything the options flow can change, for the management card. Deliberately apart
+# from the display attributes: the wall cards should not carry settings nobody reads.
+ATTR_ADMIN: Final = "admin"
 
 ATTR_MEMBER_ID: Final = "member_id"
 ATTR_MEMBERS: Final = "members"

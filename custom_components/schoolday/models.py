@@ -115,6 +115,10 @@ class Member:
             "order": self.order,
         }
 
+    def as_admin_dict(self) -> dict[str, Any]:
+        """As above, plus the calendar — which only something editing them needs."""
+        return {**self.as_card_dict(), "calendar": self.calendar}
+
 
 @dataclass(slots=True)
 class Routine:
@@ -173,6 +177,21 @@ class Routine:
     def is_empty(self) -> bool:
         """True when no day has any step."""
         return not any(self.by_weekday.values()) and not self.holiday and not self.care
+
+    def as_admin_dict(self) -> dict[str, list[str]]:
+        """Every day's steps, in the stored key shape, for an editor to show.
+
+        The cards only ever need today's steps; something offering to edit them needs
+        all of it, which is why this is not what rides on the member sensors.
+        """
+        days: dict[str, list[str]] = {
+            str(weekday): list(steps) for weekday, steps in sorted(self.by_weekday.items())
+        }
+        if self.holiday:
+            days[ROUTINE_HOLIDAY] = list(self.holiday)
+        if self.care:
+            days[ROUTINE_CARE] = list(self.care)
+        return days
 
 
 # --- Timetable ---------------------------------------------------------------
@@ -591,6 +610,28 @@ class SchooldayConfig:
     def member_by_id(self, member_id: str) -> Member | None:
         """Look up a member by id."""
         return next((m for m in self.members if m.id == member_id), None)
+
+    def as_admin_dict(self) -> dict[str, Any]:
+        """Everything the options flow can change, for a card that offers the same.
+
+        Kept apart from the display attributes rather than folded into them: the
+        timetable and routine cards are on the wall all day and should not carry the
+        weight of settings nobody is looking at.
+        """
+        return {
+            "members": [member.as_admin_dict() for member in self.members],
+            "routines": {
+                member.id: {
+                    block: self.routine(member.id, block).as_admin_dict()
+                    for block in ROUTINE_BLOCKS
+                }
+                for member in self.members
+            },
+            "periods": [f"{p.start}-{p.end}" for p in self.timetable.periods],
+            "colors": dict(self.timetable.colors),
+            "school_calendars": list(self.school_calendars),
+            "care_keywords": list(self.care_keywords),
+        }
 
     def member_by_name(self, name: str) -> Member | None:
         """Look up a member by name, case-insensitively."""

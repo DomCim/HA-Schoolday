@@ -1,4 +1,4 @@
-const e="0.5.3",t=["#e0603a","#3a86c8","#4f9d69","#c9a227","#8e6bbf","#d1707f"];function s(e,t,s,i){var o,r=arguments.length,n=r<3?t:null===i?i=Object.getOwnPropertyDescriptor(t,s):i;if("object"==typeof Reflect&&"function"==typeof Reflect.decorate)n=Reflect.decorate(e,t,s,i);else for(var a=e.length-1;a>=0;a--)(o=e[a])&&(n=(r<3?o(n):r>3?o(t,s,n):o(t,s))||n);return r>3&&n&&Object.defineProperty(t,s,n),n}"function"==typeof SuppressedError&&SuppressedError;const i=globalThis,o=i.ShadowRoot&&(void 0===i.ShadyCSS||i.ShadyCSS.nativeShadow)&&"adoptedStyleSheets"in Document.prototype&&"replace"in CSSStyleSheet.prototype,r=Symbol(),n=new WeakMap;let a=class{constructor(e,t,s){if(this._$cssResult$=!0,s!==r)throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");this.cssText=e,this.t=t}get styleSheet(){let e=this.o;const t=this.t;if(o&&void 0===e){const s=void 0!==t&&1===t.length;s&&(e=n.get(t)),void 0===e&&((this.o=e=new CSSStyleSheet).replaceSync(this.cssText),s&&n.set(t,e))}return e}toString(){return this.cssText}};const l=(e,...t)=>{const s=1===e.length?e[0]:t.reduce((t,s,i)=>t+(e=>{if(!0===e._$cssResult$)return e.cssText;if("number"==typeof e)return e;throw Error("Value passed to 'css' function must be a 'css' function result: "+e+". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.")})(s)+e[i+1],e[0]);return new a(s,e,r)},d=o?e=>e:e=>e instanceof CSSStyleSheet?(e=>{let t="";for(const s of e.cssRules)t+=s.cssText;return(e=>new a("string"==typeof e?e:e+"",void 0,r))(t)})(e):e,{is:c,defineProperty:h,getOwnPropertyDescriptor:u,getOwnPropertyNames:p,getOwnPropertySymbols:m,getPrototypeOf:g}=Object,f=globalThis,b=f.trustedTypes,y=b?b.emptyScript:"",_=f.reactiveElementPolyfillSupport,v=(e,t)=>e,$={toAttribute(e,t){switch(t){case Boolean:e=e?y:null;break;case Object:case Array:e=null==e?e:JSON.stringify(e)}return e},fromAttribute(e,t){let s=e;switch(t){case Boolean:s=null!==e;break;case Number:s=null===e?null:Number(e);break;case Object:case Array:try{s=JSON.parse(e)}catch(e){s=null}}return s}},w=(e,t)=>!c(e,t),x={attribute:!0,type:String,converter:$,reflect:!1,useDefault:!1,hasChanged:w};Symbol.metadata??=Symbol("metadata"),f.litPropertyMetadata??=new WeakMap;let A=class extends HTMLElement{static addInitializer(e){this._$Ei(),(this.l??=[]).push(e)}static get observedAttributes(){return this.finalize(),this._$Eh&&[...this._$Eh.keys()]}static createProperty(e,t=x){if(t.state&&(t.attribute=!1),this._$Ei(),this.prototype.hasOwnProperty(e)&&((t=Object.create(t)).wrapped=!0),this.elementProperties.set(e,t),!t.noAccessor){const s=Symbol(),i=this.getPropertyDescriptor(e,s,t);void 0!==i&&h(this.prototype,e,i)}}static getPropertyDescriptor(e,t,s){const{get:i,set:o}=u(this.prototype,e)??{get(){return this[t]},set(e){this[t]=e}};return{get:i,set(t){const r=i?.call(this);o?.call(this,t),this.requestUpdate(e,r,s)},configurable:!0,enumerable:!0}}static getPropertyOptions(e){return this.elementProperties.get(e)??x}static _$Ei(){if(this.hasOwnProperty(v("elementProperties")))return;const e=g(this);e.finalize(),void 0!==e.l&&(this.l=[...e.l]),this.elementProperties=new Map(e.elementProperties)}static finalize(){if(this.hasOwnProperty(v("finalized")))return;if(this.finalized=!0,this._$Ei(),this.hasOwnProperty(v("properties"))){const e=this.properties,t=[...p(e),...m(e)];for(const s of t)this.createProperty(s,e[s])}const e=this[Symbol.metadata];if(null!==e){const t=litPropertyMetadata.get(e);if(void 0!==t)for(const[e,s]of t)this.elementProperties.set(e,s)}this._$Eh=new Map;for(const[e,t]of this.elementProperties){const s=this._$Eu(e,t);void 0!==s&&this._$Eh.set(s,e)}this.elementStyles=this.finalizeStyles(this.styles)}static finalizeStyles(e){const t=[];if(Array.isArray(e)){const s=new Set(e.flat(1/0).reverse());for(const e of s)t.unshift(d(e))}else void 0!==e&&t.push(d(e));return t}static _$Eu(e,t){const s=t.attribute;return!1===s?void 0:"string"==typeof s?s:"string"==typeof e?e.toLowerCase():void 0}constructor(){super(),this._$Ep=void 0,this.isUpdatePending=!1,this.hasUpdated=!1,this._$Em=null,this._$Ev()}_$Ev(){this._$ES=new Promise(e=>this.enableUpdating=e),this._$AL=new Map,this._$E_(),this.requestUpdate(),this.constructor.l?.forEach(e=>e(this))}addController(e){(this._$EO??=new Set).add(e),void 0!==this.renderRoot&&this.isConnected&&e.hostConnected?.()}removeController(e){this._$EO?.delete(e)}_$E_(){const e=new Map,t=this.constructor.elementProperties;for(const s of t.keys())this.hasOwnProperty(s)&&(e.set(s,this[s]),delete this[s]);e.size>0&&(this._$Ep=e)}createRenderRoot(){const e=this.shadowRoot??this.attachShadow(this.constructor.shadowRootOptions);return((e,t)=>{if(o)e.adoptedStyleSheets=t.map(e=>e instanceof CSSStyleSheet?e:e.styleSheet);else for(const s of t){const t=document.createElement("style"),o=i.litNonce;void 0!==o&&t.setAttribute("nonce",o),t.textContent=s.cssText,e.appendChild(t)}})(e,this.constructor.elementStyles),e}connectedCallback(){this.renderRoot??=this.createRenderRoot(),this.enableUpdating(!0),this._$EO?.forEach(e=>e.hostConnected?.())}enableUpdating(e){}disconnectedCallback(){this._$EO?.forEach(e=>e.hostDisconnected?.())}attributeChangedCallback(e,t,s){this._$AK(e,s)}_$ET(e,t){const s=this.constructor.elementProperties.get(e),i=this.constructor._$Eu(e,s);if(void 0!==i&&!0===s.reflect){const o=(void 0!==s.converter?.toAttribute?s.converter:$).toAttribute(t,s.type);this._$Em=e,null==o?this.removeAttribute(i):this.setAttribute(i,o),this._$Em=null}}_$AK(e,t){const s=this.constructor,i=s._$Eh.get(e);if(void 0!==i&&this._$Em!==i){const e=s.getPropertyOptions(i),o="function"==typeof e.converter?{fromAttribute:e.converter}:void 0!==e.converter?.fromAttribute?e.converter:$;this._$Em=i;const r=o.fromAttribute(t,e.type);this[i]=r??this._$Ej?.get(i)??r,this._$Em=null}}requestUpdate(e,t,s,i=!1,o){if(void 0!==e){const r=this.constructor;if(!1===i&&(o=this[e]),s??=r.getPropertyOptions(e),!((s.hasChanged??w)(o,t)||s.useDefault&&s.reflect&&o===this._$Ej?.get(e)&&!this.hasAttribute(r._$Eu(e,s))))return;this.C(e,t,s)}!1===this.isUpdatePending&&(this._$ES=this._$EP())}C(e,t,{useDefault:s,reflect:i,wrapped:o},r){s&&!(this._$Ej??=new Map).has(e)&&(this._$Ej.set(e,r??t??this[e]),!0!==o||void 0!==r)||(this._$AL.has(e)||(this.hasUpdated||s||(t=void 0),this._$AL.set(e,t)),!0===i&&this._$Em!==e&&(this._$Eq??=new Set).add(e))}async _$EP(){this.isUpdatePending=!0;try{await this._$ES}catch(e){Promise.reject(e)}const e=this.scheduleUpdate();return null!=e&&await e,!this.isUpdatePending}scheduleUpdate(){return this.performUpdate()}performUpdate(){if(!this.isUpdatePending)return;if(!this.hasUpdated){if(this.renderRoot??=this.createRenderRoot(),this._$Ep){for(const[e,t]of this._$Ep)this[e]=t;this._$Ep=void 0}const e=this.constructor.elementProperties;if(e.size>0)for(const[t,s]of e){const{wrapped:e}=s,i=this[t];!0!==e||this._$AL.has(t)||void 0===i||this.C(t,void 0,s,i)}}let e=!1;const t=this._$AL;try{e=this.shouldUpdate(t),e?(this.willUpdate(t),this._$EO?.forEach(e=>e.hostUpdate?.()),this.update(t)):this._$EM()}catch(t){throw e=!1,this._$EM(),t}e&&this._$AE(t)}willUpdate(e){}_$AE(e){this._$EO?.forEach(e=>e.hostUpdated?.()),this.hasUpdated||(this.hasUpdated=!0,this.firstUpdated(e)),this.updated(e)}_$EM(){this._$AL=new Map,this.isUpdatePending=!1}get updateComplete(){return this.getUpdateComplete()}getUpdateComplete(){return this._$ES}shouldUpdate(e){return!0}update(e){this._$Eq&&=this._$Eq.forEach(e=>this._$ET(e,this[e])),this._$EM()}updated(e){}firstUpdated(e){}};A.elementStyles=[],A.shadowRootOptions={mode:"open"},A[v("elementProperties")]=new Map,A[v("finalized")]=new Map,_?.({ReactiveElement:A}),(f.reactiveElementVersions??=[]).push("2.1.2");const k=globalThis,S=e=>e,C=k.trustedTypes,E=C?C.createPolicy("lit-html",{createHTML:e=>e}):void 0,M="$lit$",L=`lit$${Math.random().toFixed(9).slice(2)}$`,O="?"+L,z=`<${O}>`,j=document,P=()=>j.createComment(""),N=e=>null===e||"object"!=typeof e&&"function"!=typeof e,T=Array.isArray,D="[ \t\n\f\r]",H=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,U=/-->/g,R=/>/g,I=RegExp(`>|${D}(?:([^\\s"'>=/]+)(${D}*=${D}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`,"g"),B=/'/g,F=/"/g,W=/^(?:script|style|textarea|title)$/i,q=(e=>(t,...s)=>({_$litType$:e,strings:t,values:s}))(1),V=Symbol.for("lit-noChange"),K=Symbol.for("lit-nothing"),Z=new WeakMap,G=j.createTreeWalker(j,129);function J(e,t){if(!T(e)||!e.hasOwnProperty("raw"))throw Error("invalid template strings array");return void 0!==E?E.createHTML(t):t}const Y=(e,t)=>{const s=e.length-1,i=[];let o,r=2===t?"<svg>":3===t?"<math>":"",n=H;for(let t=0;t<s;t++){const s=e[t];let a,l,d=-1,c=0;for(;c<s.length&&(n.lastIndex=c,l=n.exec(s),null!==l);)c=n.lastIndex,n===H?"!--"===l[1]?n=U:void 0!==l[1]?n=R:void 0!==l[2]?(W.test(l[2])&&(o=RegExp("</"+l[2],"g")),n=I):void 0!==l[3]&&(n=I):n===I?">"===l[0]?(n=o??H,d=-1):void 0===l[1]?d=-2:(d=n.lastIndex-l[2].length,a=l[1],n=void 0===l[3]?I:'"'===l[3]?F:B):n===F||n===B?n=I:n===U||n===R?n=H:(n=I,o=void 0);const h=n===I&&e[t+1].startsWith("/>")?" ":"";r+=n===H?s+z:d>=0?(i.push(a),s.slice(0,d)+M+s.slice(d)+L+h):s+L+(-2===d?t:h)}return[J(e,r+(e[s]||"<?>")+(2===t?"</svg>":3===t?"</math>":"")),i]};class Q{constructor({strings:e,_$litType$:t},s){let i;this.parts=[];let o=0,r=0;const n=e.length-1,a=this.parts,[l,d]=Y(e,t);if(this.el=Q.createElement(l,s),G.currentNode=this.el.content,2===t||3===t){const e=this.el.content.firstChild;e.replaceWith(...e.childNodes)}for(;null!==(i=G.nextNode())&&a.length<n;){if(1===i.nodeType){if(i.hasAttributes())for(const e of i.getAttributeNames())if(e.endsWith(M)){const t=d[r++],s=i.getAttribute(e).split(L),n=/([.?@])?(.*)/.exec(t);a.push({type:1,index:o,name:n[2],strings:s,ctor:"."===n[1]?ie:"?"===n[1]?oe:"@"===n[1]?re:se}),i.removeAttribute(e)}else e.startsWith(L)&&(a.push({type:6,index:o}),i.removeAttribute(e));if(W.test(i.tagName)){const e=i.textContent.split(L),t=e.length-1;if(t>0){i.textContent=C?C.emptyScript:"";for(let s=0;s<t;s++)i.append(e[s],P()),G.nextNode(),a.push({type:2,index:++o});i.append(e[t],P())}}}else if(8===i.nodeType)if(i.data===O)a.push({type:2,index:o});else{let e=-1;for(;-1!==(e=i.data.indexOf(L,e+1));)a.push({type:7,index:o}),e+=L.length-1}o++}}static createElement(e,t){const s=j.createElement("template");return s.innerHTML=e,s}}function X(e,t,s=e,i){if(t===V)return t;let o=void 0!==i?s._$Co?.[i]:s._$Cl;const r=N(t)?void 0:t._$litDirective$;return o?.constructor!==r&&(o?._$AO?.(!1),void 0===r?o=void 0:(o=new r(e),o._$AT(e,s,i)),void 0!==i?(s._$Co??=[])[i]=o:s._$Cl=o),void 0!==o&&(t=X(e,o._$AS(e,t.values),o,i)),t}class ee{constructor(e,t){this._$AV=[],this._$AN=void 0,this._$AD=e,this._$AM=t}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(e){const{el:{content:t},parts:s}=this._$AD,i=(e?.creationScope??j).importNode(t,!0);G.currentNode=i;let o=G.nextNode(),r=0,n=0,a=s[0];for(;void 0!==a;){if(r===a.index){let t;2===a.type?t=new te(o,o.nextSibling,this,e):1===a.type?t=new a.ctor(o,a.name,a.strings,this,e):6===a.type&&(t=new ne(o,this,e)),this._$AV.push(t),a=s[++n]}r!==a?.index&&(o=G.nextNode(),r++)}return G.currentNode=j,i}p(e){let t=0;for(const s of this._$AV)void 0!==s&&(void 0!==s.strings?(s._$AI(e,s,t),t+=s.strings.length-2):s._$AI(e[t])),t++}}class te{get _$AU(){return this._$AM?._$AU??this._$Cv}constructor(e,t,s,i){this.type=2,this._$AH=K,this._$AN=void 0,this._$AA=e,this._$AB=t,this._$AM=s,this.options=i,this._$Cv=i?.isConnected??!0}get parentNode(){let e=this._$AA.parentNode;const t=this._$AM;return void 0!==t&&11===e?.nodeType&&(e=t.parentNode),e}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(e,t=this){e=X(this,e,t),N(e)?e===K||null==e||""===e?(this._$AH!==K&&this._$AR(),this._$AH=K):e!==this._$AH&&e!==V&&this._(e):void 0!==e._$litType$?this.$(e):void 0!==e.nodeType?this.T(e):(e=>T(e)||"function"==typeof e?.[Symbol.iterator])(e)?this.k(e):this._(e)}O(e){return this._$AA.parentNode.insertBefore(e,this._$AB)}T(e){this._$AH!==e&&(this._$AR(),this._$AH=this.O(e))}_(e){this._$AH!==K&&N(this._$AH)?this._$AA.nextSibling.data=e:this.T(j.createTextNode(e)),this._$AH=e}$(e){const{values:t,_$litType$:s}=e,i="number"==typeof s?this._$AC(e):(void 0===s.el&&(s.el=Q.createElement(J(s.h,s.h[0]),this.options)),s);if(this._$AH?._$AD===i)this._$AH.p(t);else{const e=new ee(i,this),s=e.u(this.options);e.p(t),this.T(s),this._$AH=e}}_$AC(e){let t=Z.get(e.strings);return void 0===t&&Z.set(e.strings,t=new Q(e)),t}k(e){T(this._$AH)||(this._$AH=[],this._$AR());const t=this._$AH;let s,i=0;for(const o of e)i===t.length?t.push(s=new te(this.O(P()),this.O(P()),this,this.options)):s=t[i],s._$AI(o),i++;i<t.length&&(this._$AR(s&&s._$AB.nextSibling,i),t.length=i)}_$AR(e=this._$AA.nextSibling,t){for(this._$AP?.(!1,!0,t);e!==this._$AB;){const t=S(e).nextSibling;S(e).remove(),e=t}}setConnected(e){void 0===this._$AM&&(this._$Cv=e,this._$AP?.(e))}}class se{get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}constructor(e,t,s,i,o){this.type=1,this._$AH=K,this._$AN=void 0,this.element=e,this.name=t,this._$AM=i,this.options=o,s.length>2||""!==s[0]||""!==s[1]?(this._$AH=Array(s.length-1).fill(new String),this.strings=s):this._$AH=K}_$AI(e,t=this,s,i){const o=this.strings;let r=!1;if(void 0===o)e=X(this,e,t,0),r=!N(e)||e!==this._$AH&&e!==V,r&&(this._$AH=e);else{const i=e;let n,a;for(e=o[0],n=0;n<o.length-1;n++)a=X(this,i[s+n],t,n),a===V&&(a=this._$AH[n]),r||=!N(a)||a!==this._$AH[n],a===K?e=K:e!==K&&(e+=(a??"")+o[n+1]),this._$AH[n]=a}r&&!i&&this.j(e)}j(e){e===K?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,e??"")}}class ie extends se{constructor(){super(...arguments),this.type=3}j(e){this.element[this.name]=e===K?void 0:e}}class oe extends se{constructor(){super(...arguments),this.type=4}j(e){this.element.toggleAttribute(this.name,!!e&&e!==K)}}class re extends se{constructor(e,t,s,i,o){super(e,t,s,i,o),this.type=5}_$AI(e,t=this){if((e=X(this,e,t,0)??K)===V)return;const s=this._$AH,i=e===K&&s!==K||e.capture!==s.capture||e.once!==s.once||e.passive!==s.passive,o=e!==K&&(s===K||i);i&&this.element.removeEventListener(this.name,this,s),o&&this.element.addEventListener(this.name,this,e),this._$AH=e}handleEvent(e){"function"==typeof this._$AH?this._$AH.call(this.options?.host??this.element,e):this._$AH.handleEvent(e)}}class ne{constructor(e,t,s){this.element=e,this.type=6,this._$AN=void 0,this._$AM=t,this.options=s}get _$AU(){return this._$AM._$AU}_$AI(e){X(this,e)}}const ae=k.litHtmlPolyfillSupport;ae?.(Q,te),(k.litHtmlVersions??=[]).push("3.3.3");const le=globalThis;class de extends A{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0}createRenderRoot(){const e=super.createRenderRoot();return this.renderOptions.renderBefore??=e.firstChild,e}update(e){const t=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(e),this._$Do=((e,t,s)=>{const i=s?.renderBefore??t;let o=i._$litPart$;if(void 0===o){const e=s?.renderBefore??null;i._$litPart$=o=new te(t.insertBefore(P(),e),e,void 0,s??{})}return o._$AI(e),o})(t,this.renderRoot,this.renderOptions)}connectedCallback(){super.connectedCallback(),this._$Do?.setConnected(!0)}disconnectedCallback(){super.disconnectedCallback(),this._$Do?.setConnected(!1)}render(){return V}}de._$litElement$=!0,de.finalized=!0,le.litElementHydrateSupport?.({LitElement:de});const ce=le.litElementPolyfillSupport;ce?.({LitElement:de}),(le.litElementVersions??=[]).push("4.2.2");const he=e=>(t,s)=>{void 0!==s?s.addInitializer(()=>{customElements.define(e,t)}):customElements.define(e,t)},ue={attribute:!0,type:String,converter:$,reflect:!1,hasChanged:w},pe=(e=ue,t,s)=>{const{kind:i,metadata:o}=s;let r=globalThis.litPropertyMetadata.get(o);if(void 0===r&&globalThis.litPropertyMetadata.set(o,r=new Map),"setter"===i&&((e=Object.create(e)).wrapped=!0),r.set(s.name,e),"accessor"===i){const{name:i}=s;return{set(s){const o=t.get.call(this);t.set.call(this,s),this.requestUpdate(i,o,e,!0,s)},init(t){return void 0!==t&&this.C(i,void 0,e,t),t}}}if("setter"===i){const{name:i}=s;return function(s){const o=this[i];t.call(this,s),this.requestUpdate(i,o,e,!0,s)}}throw Error("Unsupported decorator location: "+i)};function me(e){return(t,s)=>"object"==typeof s?pe(e,t,s):((e,t,s)=>{const i=t.hasOwnProperty(s);return t.constructor.createProperty(s,e),i?Object.getOwnPropertyDescriptor(t,s):void 0})(e,t,s)}function ge(e){return me({...e,state:!0,attribute:!1})}function fe(e){switch(e.locale?.time_format){case"12":return!0;case"24":return!1;default:return}}function be(e){return e.locale?.language||e.language||"en"}function ye(e){const[t,s]=e.split(":").map(Number);return 60*(t||0)+(s||0)}function _e(e=new Date){return 60*e.getHours()+e.getMinutes()}function ve(e,t){if(!e)return t;if(!0!==fe(e))return t;const s=new Date;return s.setHours(Math.floor(ye(t)/60),ye(t)%60,0,0),new Intl.DateTimeFormat(be(e),{hour:"numeric",minute:"2-digit",hour12:!0}).format(s)}function $e(e){if(!e||"object"!=typeof e)return null;const t=e,s=(Array.isArray(t.periods)?t.periods:[]).map(e=>e).filter(e=>"string"==typeof e?.start&&"string"==typeof e?.end).map((e,t)=>({index:Number(e.index??t+1),start:String(e.start),end:String(e.end),startMinutes:ye(String(e.start)),endMinutes:ye(String(e.end))}));if(!s.length)return null;const i=(Array.isArray(t.breaks)?t.breaks:[]).map(e=>e).filter(e=>"string"==typeof e?.start&&"string"==typeof e?.end).map(e=>({after:Number(e.after??0),start:String(e.start),end:String(e.end),minutes:Number(e.minutes??0)})),o={};for(const[e,s]of Object.entries(t.subjects??{}))"string"==typeof s&&(o[e]=s);return{periods:s,breaks:i,subjects:o}}function we(e){return function(e){const t={};if(!e||"object"!=typeof e)return t;for(const[s,i]of Object.entries(e)){const e=Number(s);if(!Number.isInteger(e)||e<0||e>6||!Array.isArray(i))continue;const o=i.map(e=>e).filter(e=>Boolean(e)&&"string"==typeof e.subject).map(e=>({period:Number(e.period??0),subject:String(e.subject),room:"string"==typeof e.room&&e.room?e.room:null})).sort((e,t)=>e.period-t.period);o.length&&(t[e]=o)}return t}(e?.attributes?.timetable)}function xe(e){return t=e?.attributes?.outlook,Array.isArray(t)?t.map(e=>e).filter(e=>Boolean(e)&&"string"==typeof e.date).map(e=>({date:String(e.date),weekday:Number(e.weekday??0),mode:"care"===e.mode||"free"===e.mode?e.mode:"school",label:"string"==typeof e.label&&e.label?e.label:null})).sort((e,t)=>e.date.localeCompare(t.date)):[];var t}function Ae(e,t,s){const i=e.filter(e=>e.weekday===t);if(!s)return i[0];const o=function(e=new Date){const t=String(e.getMonth()+1).padStart(2,"0"),s=String(e.getDate()).padStart(2,"0");return`${e.getFullYear()}-${t}-${s}`}();return i.find(e=>e.date>=o)??i[i.length-1]}function ke(e,t,s){return(e[t]??[]).find(e=>e.period===s)}function Se(e,t=_e()){return e.periods.find(e=>t>=e.startMinutes&&t<e.endMinutes)}function Ce(e){return!0===e.attributes?.schoolday_board}function Ee(e,s){let i;if(s){if(i=e.states[s],!i)return null}else if(i=Object.values(e.states).find(Ce),!i)return null;const o=i.attributes,r=(Array.isArray(o.members)?o.members:[]).map((e,s)=>{const i=e;return{id:String(i.id??s),name:String(i.name??""),color:i.color||t[s%t.length],avatar:i.avatar??null,order:i.order??s}});return r.sort((e,t)=>e.order-t.order||e.name.localeCompare(t.name)),{entityId:i.entity_id,members:r,timetable:$e(o.timetable),schoolToday:!1!==o.school_today,noSchoolReason:"string"==typeof o.no_school_reason?o.no_school_reason:null}}function Me(e,t){return Object.values(e.states).find(e=>e.attributes?.member_id===t)}const Le={"board.missing":"No Schoolday board found. Add the Schoolday integration.","routines.nothing_today":"Nothing today","routines.auto":"Automatic (by time of day)","routines.morning":"Morning","routines.evening":"Evening","routines.both":"Both","routines.none_configured":"No routines for today. Add them under Configure → Edit routines in the Schoolday integration.","timetable.no_periods":"No lesson times yet. Add them under Configure → School timetable in the Schoolday integration.","timetable.none_configured":"Nobody has a timetable yet. Add one under Configure → School timetable in the Schoolday integration.","timetable.break":"Break","timetable.no_school":"No school","timetable.free":"Holiday","timetable.care":"Holiday care","timetable.now":"Now","timetable.next":"Next","timetable.remaining":"{minutes} min left","timetable.done_for_today":"School is out for today.","timetable.layout_auto":"Automatic (week, one day when narrow)","timetable.layout_week":"Whole week","timetable.layout_day":"One day","timetable.days_auto":"Automatic (as the timetable needs)","timetable.days_school":"Monday to Friday","timetable.days_week":"All seven days","editor.block":"Which block to show","editor.evening_from":"Evening starts at (hour)","editor.show_empty":"Show members with nothing on today","editor.members":"Limit to these members","editor.member":"Family member","editor.layout":"Layout","editor.week_days":"Days shown","editor.show_rooms":"Show rooms","editor.show_times":"Show lesson times","editor.show_breaks":"Show breaks","editor.hide_empty_periods":"Hide periods nobody has","editor.highlight":"Mark today and the running lesson","editor.roll_days":"Roll past weekdays on to next week","editor.weather_entity":"Weather entity","editor.greeting":"Greeting","editor.show_seconds":"Show seconds"},Oe={en:Le,de:{"board.missing":"Kein Schoolday-Board gefunden. Füge die Schoolday-Integration hinzu.","routines.nothing_today":"Heute nichts","routines.auto":"Automatisch (nach Tageszeit)","routines.morning":"Morgen","routines.evening":"Abend","routines.both":"Beide","routines.none_configured":"Für heute sind keine Routinen hinterlegt. Trage sie in der Schoolday-Integration unter „Konfigurieren → Routinen bearbeiten“ ein.","timetable.no_periods":"Noch keine Stundenzeiten. Trage sie in der Schoolday-Integration unter „Konfigurieren → Stundenplan“ ein.","timetable.none_configured":"Noch hat niemand einen Stundenplan. Lege ihn in der Schoolday-Integration unter „Konfigurieren → Stundenplan“ an.","timetable.break":"Pause","timetable.no_school":"Schulfrei","timetable.free":"Ferien","timetable.care":"Ferienbetreuung","timetable.now":"Jetzt","timetable.next":"Danach","timetable.remaining":"noch {minutes} min","timetable.done_for_today":"Für heute ist Schule aus.","timetable.layout_auto":"Automatisch (Woche, schmal ein Tag)","timetable.layout_week":"Ganze Woche","timetable.layout_day":"Ein Tag","timetable.days_auto":"Automatisch (wie der Stundenplan es braucht)","timetable.days_school":"Montag bis Freitag","timetable.days_week":"Alle sieben Tage","editor.block":"Welcher Block angezeigt wird","editor.evening_from":"Abend beginnt um (Stunde)","editor.show_empty":"Mitglieder ohne Routine heute anzeigen","editor.members":"Auf diese Mitglieder beschränken","editor.member":"Familienmitglied","editor.layout":"Darstellung","editor.week_days":"Angezeigte Tage","editor.show_rooms":"Räume anzeigen","editor.show_times":"Stundenzeiten anzeigen","editor.show_breaks":"Pausen anzeigen","editor.hide_empty_periods":"Stunden ausblenden, die niemand hat","editor.highlight":"Heute und laufende Stunde hervorheben","editor.roll_days":"Vergangene Wochentage auf nächste Woche weiterrollen","editor.weather_entity":"Wetter-Entität","editor.greeting":"Begrüßung","editor.show_seconds":"Sekunden anzeigen"}};function ze(e,t,s){const i=Oe[function(e){return(e?.locale?.language||e?.language||"en").toLowerCase().split("-")[0]}(e)]??Le;let o=i[t]??Le[t]??t;if(s)for(const[e,t]of Object.entries(s))o=o.replace(`{${e}}`,String(t));return o}const je=e=>({name:e,selector:{boolean:{}}}),Pe=(e,t,s=!1)=>({name:e,selector:{select:{options:t,multiple:s,mode:s?"list":"dropdown"}}});class Ne extends de{constructor(){super(...arguments),this._config={type:""},this._label=e=>ze(this.hass,`editor.${e.name}`)}setConfig(e){this._config={...e}}_valueChanged(e){e.stopPropagation();const t={...this._config,...e.detail?.value??{}};for(const[e,s]of Object.entries(t))(void 0===s||""===s||Array.isArray(s)&&!s.length)&&delete t[e];var s,i;s="config-changed",i={config:t},this.dispatchEvent(new CustomEvent(s,{detail:i,bubbles:!0,composed:!0}))}render(){return this.hass?q`
+const e="0.6.0",t=["#e0603a","#3a86c8","#4f9d69","#c9a227","#8e6bbf","#d1707f"];function s(e,t,s,i){var o,r=arguments.length,a=r<3?t:null===i?i=Object.getOwnPropertyDescriptor(t,s):i;if("object"==typeof Reflect&&"function"==typeof Reflect.decorate)a=Reflect.decorate(e,t,s,i);else for(var n=e.length-1;n>=0;n--)(o=e[n])&&(a=(r<3?o(a):r>3?o(t,s,a):o(t,s))||a);return r>3&&a&&Object.defineProperty(t,s,a),a}"function"==typeof SuppressedError&&SuppressedError;const i=globalThis,o=i.ShadowRoot&&(void 0===i.ShadyCSS||i.ShadyCSS.nativeShadow)&&"adoptedStyleSheets"in Document.prototype&&"replace"in CSSStyleSheet.prototype,r=Symbol(),a=new WeakMap;let n=class{constructor(e,t,s){if(this._$cssResult$=!0,s!==r)throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");this.cssText=e,this.t=t}get styleSheet(){let e=this.o;const t=this.t;if(o&&void 0===e){const s=void 0!==t&&1===t.length;s&&(e=a.get(t)),void 0===e&&((this.o=e=new CSSStyleSheet).replaceSync(this.cssText),s&&a.set(t,e))}return e}toString(){return this.cssText}};const d=(e,...t)=>{const s=1===e.length?e[0]:t.reduce((t,s,i)=>t+(e=>{if(!0===e._$cssResult$)return e.cssText;if("number"==typeof e)return e;throw Error("Value passed to 'css' function must be a 'css' function result: "+e+". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.")})(s)+e[i+1],e[0]);return new n(s,e,r)},l=o?e=>e:e=>e instanceof CSSStyleSheet?(e=>{let t="";for(const s of e.cssRules)t+=s.cssText;return(e=>new n("string"==typeof e?e:e+"",void 0,r))(t)})(e):e,{is:c,defineProperty:h,getOwnPropertyDescriptor:u,getOwnPropertyNames:m,getOwnPropertySymbols:p,getPrototypeOf:b}=Object,g=globalThis,f=g.trustedTypes,y=f?f.emptyScript:"",_=g.reactiveElementPolyfillSupport,v=(e,t)=>e,$={toAttribute(e,t){switch(t){case Boolean:e=e?y:null;break;case Object:case Array:e=null==e?e:JSON.stringify(e)}return e},fromAttribute(e,t){let s=e;switch(t){case Boolean:s=null!==e;break;case Number:s=null===e?null:Number(e);break;case Object:case Array:try{s=JSON.parse(e)}catch(e){s=null}}return s}},w=(e,t)=>!c(e,t),x={attribute:!0,type:String,converter:$,reflect:!1,useDefault:!1,hasChanged:w};Symbol.metadata??=Symbol("metadata"),g.litPropertyMetadata??=new WeakMap;let k=class extends HTMLElement{static addInitializer(e){this._$Ei(),(this.l??=[]).push(e)}static get observedAttributes(){return this.finalize(),this._$Eh&&[...this._$Eh.keys()]}static createProperty(e,t=x){if(t.state&&(t.attribute=!1),this._$Ei(),this.prototype.hasOwnProperty(e)&&((t=Object.create(t)).wrapped=!0),this.elementProperties.set(e,t),!t.noAccessor){const s=Symbol(),i=this.getPropertyDescriptor(e,s,t);void 0!==i&&h(this.prototype,e,i)}}static getPropertyDescriptor(e,t,s){const{get:i,set:o}=u(this.prototype,e)??{get(){return this[t]},set(e){this[t]=e}};return{get:i,set(t){const r=i?.call(this);o?.call(this,t),this.requestUpdate(e,r,s)},configurable:!0,enumerable:!0}}static getPropertyOptions(e){return this.elementProperties.get(e)??x}static _$Ei(){if(this.hasOwnProperty(v("elementProperties")))return;const e=b(this);e.finalize(),void 0!==e.l&&(this.l=[...e.l]),this.elementProperties=new Map(e.elementProperties)}static finalize(){if(this.hasOwnProperty(v("finalized")))return;if(this.finalized=!0,this._$Ei(),this.hasOwnProperty(v("properties"))){const e=this.properties,t=[...m(e),...p(e)];for(const s of t)this.createProperty(s,e[s])}const e=this[Symbol.metadata];if(null!==e){const t=litPropertyMetadata.get(e);if(void 0!==t)for(const[e,s]of t)this.elementProperties.set(e,s)}this._$Eh=new Map;for(const[e,t]of this.elementProperties){const s=this._$Eu(e,t);void 0!==s&&this._$Eh.set(s,e)}this.elementStyles=this.finalizeStyles(this.styles)}static finalizeStyles(e){const t=[];if(Array.isArray(e)){const s=new Set(e.flat(1/0).reverse());for(const e of s)t.unshift(l(e))}else void 0!==e&&t.push(l(e));return t}static _$Eu(e,t){const s=t.attribute;return!1===s?void 0:"string"==typeof s?s:"string"==typeof e?e.toLowerCase():void 0}constructor(){super(),this._$Ep=void 0,this.isUpdatePending=!1,this.hasUpdated=!1,this._$Em=null,this._$Ev()}_$Ev(){this._$ES=new Promise(e=>this.enableUpdating=e),this._$AL=new Map,this._$E_(),this.requestUpdate(),this.constructor.l?.forEach(e=>e(this))}addController(e){(this._$EO??=new Set).add(e),void 0!==this.renderRoot&&this.isConnected&&e.hostConnected?.()}removeController(e){this._$EO?.delete(e)}_$E_(){const e=new Map,t=this.constructor.elementProperties;for(const s of t.keys())this.hasOwnProperty(s)&&(e.set(s,this[s]),delete this[s]);e.size>0&&(this._$Ep=e)}createRenderRoot(){const e=this.shadowRoot??this.attachShadow(this.constructor.shadowRootOptions);return((e,t)=>{if(o)e.adoptedStyleSheets=t.map(e=>e instanceof CSSStyleSheet?e:e.styleSheet);else for(const s of t){const t=document.createElement("style"),o=i.litNonce;void 0!==o&&t.setAttribute("nonce",o),t.textContent=s.cssText,e.appendChild(t)}})(e,this.constructor.elementStyles),e}connectedCallback(){this.renderRoot??=this.createRenderRoot(),this.enableUpdating(!0),this._$EO?.forEach(e=>e.hostConnected?.())}enableUpdating(e){}disconnectedCallback(){this._$EO?.forEach(e=>e.hostDisconnected?.())}attributeChangedCallback(e,t,s){this._$AK(e,s)}_$ET(e,t){const s=this.constructor.elementProperties.get(e),i=this.constructor._$Eu(e,s);if(void 0!==i&&!0===s.reflect){const o=(void 0!==s.converter?.toAttribute?s.converter:$).toAttribute(t,s.type);this._$Em=e,null==o?this.removeAttribute(i):this.setAttribute(i,o),this._$Em=null}}_$AK(e,t){const s=this.constructor,i=s._$Eh.get(e);if(void 0!==i&&this._$Em!==i){const e=s.getPropertyOptions(i),o="function"==typeof e.converter?{fromAttribute:e.converter}:void 0!==e.converter?.fromAttribute?e.converter:$;this._$Em=i;const r=o.fromAttribute(t,e.type);this[i]=r??this._$Ej?.get(i)??r,this._$Em=null}}requestUpdate(e,t,s,i=!1,o){if(void 0!==e){const r=this.constructor;if(!1===i&&(o=this[e]),s??=r.getPropertyOptions(e),!((s.hasChanged??w)(o,t)||s.useDefault&&s.reflect&&o===this._$Ej?.get(e)&&!this.hasAttribute(r._$Eu(e,s))))return;this.C(e,t,s)}!1===this.isUpdatePending&&(this._$ES=this._$EP())}C(e,t,{useDefault:s,reflect:i,wrapped:o},r){s&&!(this._$Ej??=new Map).has(e)&&(this._$Ej.set(e,r??t??this[e]),!0!==o||void 0!==r)||(this._$AL.has(e)||(this.hasUpdated||s||(t=void 0),this._$AL.set(e,t)),!0===i&&this._$Em!==e&&(this._$Eq??=new Set).add(e))}async _$EP(){this.isUpdatePending=!0;try{await this._$ES}catch(e){Promise.reject(e)}const e=this.scheduleUpdate();return null!=e&&await e,!this.isUpdatePending}scheduleUpdate(){return this.performUpdate()}performUpdate(){if(!this.isUpdatePending)return;if(!this.hasUpdated){if(this.renderRoot??=this.createRenderRoot(),this._$Ep){for(const[e,t]of this._$Ep)this[e]=t;this._$Ep=void 0}const e=this.constructor.elementProperties;if(e.size>0)for(const[t,s]of e){const{wrapped:e}=s,i=this[t];!0!==e||this._$AL.has(t)||void 0===i||this.C(t,void 0,s,i)}}let e=!1;const t=this._$AL;try{e=this.shouldUpdate(t),e?(this.willUpdate(t),this._$EO?.forEach(e=>e.hostUpdate?.()),this.update(t)):this._$EM()}catch(t){throw e=!1,this._$EM(),t}e&&this._$AE(t)}willUpdate(e){}_$AE(e){this._$EO?.forEach(e=>e.hostUpdated?.()),this.hasUpdated||(this.hasUpdated=!0,this.firstUpdated(e)),this.updated(e)}_$EM(){this._$AL=new Map,this.isUpdatePending=!1}get updateComplete(){return this.getUpdateComplete()}getUpdateComplete(){return this._$ES}shouldUpdate(e){return!0}update(e){this._$Eq&&=this._$Eq.forEach(e=>this._$ET(e,this[e])),this._$EM()}updated(e){}firstUpdated(e){}};k.elementStyles=[],k.shadowRootOptions={mode:"open"},k[v("elementProperties")]=new Map,k[v("finalized")]=new Map,_?.({ReactiveElement:k}),(g.reactiveElementVersions??=[]).push("2.1.2");const A=globalThis,S=e=>e,C=A.trustedTypes,j=C?C.createPolicy("lit-html",{createHTML:e=>e}):void 0,E="$lit$",z=`lit$${Math.random().toFixed(9).slice(2)}$`,M="?"+z,O=`<${M}>`,L=document,N=()=>L.createComment(""),D=e=>null===e||"object"!=typeof e&&"function"!=typeof e,T=Array.isArray,R="[ \t\n\f\r]",P=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,H=/-->/g,U=/>/g,F=RegExp(`>|${R}(?:([^\\s"'>=/]+)(${R}*=${R}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`,"g"),I=/'/g,B=/"/g,W=/^(?:script|style|textarea|title)$/i,q=(e=>(t,...s)=>({_$litType$:e,strings:t,values:s}))(1),K=Symbol.for("lit-noChange"),Z=Symbol.for("lit-nothing"),V=new WeakMap,G=L.createTreeWalker(L,129);function J(e,t){if(!T(e)||!e.hasOwnProperty("raw"))throw Error("invalid template strings array");return void 0!==j?j.createHTML(t):t}const Y=(e,t)=>{const s=e.length-1,i=[];let o,r=2===t?"<svg>":3===t?"<math>":"",a=P;for(let t=0;t<s;t++){const s=e[t];let n,d,l=-1,c=0;for(;c<s.length&&(a.lastIndex=c,d=a.exec(s),null!==d);)c=a.lastIndex,a===P?"!--"===d[1]?a=H:void 0!==d[1]?a=U:void 0!==d[2]?(W.test(d[2])&&(o=RegExp("</"+d[2],"g")),a=F):void 0!==d[3]&&(a=F):a===F?">"===d[0]?(a=o??P,l=-1):void 0===d[1]?l=-2:(l=a.lastIndex-d[2].length,n=d[1],a=void 0===d[3]?F:'"'===d[3]?B:I):a===B||a===I?a=F:a===H||a===U?a=P:(a=F,o=void 0);const h=a===F&&e[t+1].startsWith("/>")?" ":"";r+=a===P?s+O:l>=0?(i.push(n),s.slice(0,l)+E+s.slice(l)+z+h):s+z+(-2===l?t:h)}return[J(e,r+(e[s]||"<?>")+(2===t?"</svg>":3===t?"</math>":"")),i]};class Q{constructor({strings:e,_$litType$:t},s){let i;this.parts=[];let o=0,r=0;const a=e.length-1,n=this.parts,[d,l]=Y(e,t);if(this.el=Q.createElement(d,s),G.currentNode=this.el.content,2===t||3===t){const e=this.el.content.firstChild;e.replaceWith(...e.childNodes)}for(;null!==(i=G.nextNode())&&n.length<a;){if(1===i.nodeType){if(i.hasAttributes())for(const e of i.getAttributeNames())if(e.endsWith(E)){const t=l[r++],s=i.getAttribute(e).split(z),a=/([.?@])?(.*)/.exec(t);n.push({type:1,index:o,name:a[2],strings:s,ctor:"."===a[1]?ie:"?"===a[1]?oe:"@"===a[1]?re:se}),i.removeAttribute(e)}else e.startsWith(z)&&(n.push({type:6,index:o}),i.removeAttribute(e));if(W.test(i.tagName)){const e=i.textContent.split(z),t=e.length-1;if(t>0){i.textContent=C?C.emptyScript:"";for(let s=0;s<t;s++)i.append(e[s],N()),G.nextNode(),n.push({type:2,index:++o});i.append(e[t],N())}}}else if(8===i.nodeType)if(i.data===M)n.push({type:2,index:o});else{let e=-1;for(;-1!==(e=i.data.indexOf(z,e+1));)n.push({type:7,index:o}),e+=z.length-1}o++}}static createElement(e,t){const s=L.createElement("template");return s.innerHTML=e,s}}function X(e,t,s=e,i){if(t===K)return t;let o=void 0!==i?s._$Co?.[i]:s._$Cl;const r=D(t)?void 0:t._$litDirective$;return o?.constructor!==r&&(o?._$AO?.(!1),void 0===r?o=void 0:(o=new r(e),o._$AT(e,s,i)),void 0!==i?(s._$Co??=[])[i]=o:s._$Cl=o),void 0!==o&&(t=X(e,o._$AS(e,t.values),o,i)),t}class ee{constructor(e,t){this._$AV=[],this._$AN=void 0,this._$AD=e,this._$AM=t}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(e){const{el:{content:t},parts:s}=this._$AD,i=(e?.creationScope??L).importNode(t,!0);G.currentNode=i;let o=G.nextNode(),r=0,a=0,n=s[0];for(;void 0!==n;){if(r===n.index){let t;2===n.type?t=new te(o,o.nextSibling,this,e):1===n.type?t=new n.ctor(o,n.name,n.strings,this,e):6===n.type&&(t=new ae(o,this,e)),this._$AV.push(t),n=s[++a]}r!==n?.index&&(o=G.nextNode(),r++)}return G.currentNode=L,i}p(e){let t=0;for(const s of this._$AV)void 0!==s&&(void 0!==s.strings?(s._$AI(e,s,t),t+=s.strings.length-2):s._$AI(e[t])),t++}}class te{get _$AU(){return this._$AM?._$AU??this._$Cv}constructor(e,t,s,i){this.type=2,this._$AH=Z,this._$AN=void 0,this._$AA=e,this._$AB=t,this._$AM=s,this.options=i,this._$Cv=i?.isConnected??!0}get parentNode(){let e=this._$AA.parentNode;const t=this._$AM;return void 0!==t&&11===e?.nodeType&&(e=t.parentNode),e}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(e,t=this){e=X(this,e,t),D(e)?e===Z||null==e||""===e?(this._$AH!==Z&&this._$AR(),this._$AH=Z):e!==this._$AH&&e!==K&&this._(e):void 0!==e._$litType$?this.$(e):void 0!==e.nodeType?this.T(e):(e=>T(e)||"function"==typeof e?.[Symbol.iterator])(e)?this.k(e):this._(e)}O(e){return this._$AA.parentNode.insertBefore(e,this._$AB)}T(e){this._$AH!==e&&(this._$AR(),this._$AH=this.O(e))}_(e){this._$AH!==Z&&D(this._$AH)?this._$AA.nextSibling.data=e:this.T(L.createTextNode(e)),this._$AH=e}$(e){const{values:t,_$litType$:s}=e,i="number"==typeof s?this._$AC(e):(void 0===s.el&&(s.el=Q.createElement(J(s.h,s.h[0]),this.options)),s);if(this._$AH?._$AD===i)this._$AH.p(t);else{const e=new ee(i,this),s=e.u(this.options);e.p(t),this.T(s),this._$AH=e}}_$AC(e){let t=V.get(e.strings);return void 0===t&&V.set(e.strings,t=new Q(e)),t}k(e){T(this._$AH)||(this._$AH=[],this._$AR());const t=this._$AH;let s,i=0;for(const o of e)i===t.length?t.push(s=new te(this.O(N()),this.O(N()),this,this.options)):s=t[i],s._$AI(o),i++;i<t.length&&(this._$AR(s&&s._$AB.nextSibling,i),t.length=i)}_$AR(e=this._$AA.nextSibling,t){for(this._$AP?.(!1,!0,t);e!==this._$AB;){const t=S(e).nextSibling;S(e).remove(),e=t}}setConnected(e){void 0===this._$AM&&(this._$Cv=e,this._$AP?.(e))}}class se{get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}constructor(e,t,s,i,o){this.type=1,this._$AH=Z,this._$AN=void 0,this.element=e,this.name=t,this._$AM=i,this.options=o,s.length>2||""!==s[0]||""!==s[1]?(this._$AH=Array(s.length-1).fill(new String),this.strings=s):this._$AH=Z}_$AI(e,t=this,s,i){const o=this.strings;let r=!1;if(void 0===o)e=X(this,e,t,0),r=!D(e)||e!==this._$AH&&e!==K,r&&(this._$AH=e);else{const i=e;let a,n;for(e=o[0],a=0;a<o.length-1;a++)n=X(this,i[s+a],t,a),n===K&&(n=this._$AH[a]),r||=!D(n)||n!==this._$AH[a],n===Z?e=Z:e!==Z&&(e+=(n??"")+o[a+1]),this._$AH[a]=n}r&&!i&&this.j(e)}j(e){e===Z?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,e??"")}}class ie extends se{constructor(){super(...arguments),this.type=3}j(e){this.element[this.name]=e===Z?void 0:e}}class oe extends se{constructor(){super(...arguments),this.type=4}j(e){this.element.toggleAttribute(this.name,!!e&&e!==Z)}}class re extends se{constructor(e,t,s,i,o){super(e,t,s,i,o),this.type=5}_$AI(e,t=this){if((e=X(this,e,t,0)??Z)===K)return;const s=this._$AH,i=e===Z&&s!==Z||e.capture!==s.capture||e.once!==s.once||e.passive!==s.passive,o=e!==Z&&(s===Z||i);i&&this.element.removeEventListener(this.name,this,s),o&&this.element.addEventListener(this.name,this,e),this._$AH=e}handleEvent(e){"function"==typeof this._$AH?this._$AH.call(this.options?.host??this.element,e):this._$AH.handleEvent(e)}}class ae{constructor(e,t,s){this.element=e,this.type=6,this._$AN=void 0,this._$AM=t,this.options=s}get _$AU(){return this._$AM._$AU}_$AI(e){X(this,e)}}const ne=A.litHtmlPolyfillSupport;ne?.(Q,te),(A.litHtmlVersions??=[]).push("3.3.3");const de=globalThis;class le extends k{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0}createRenderRoot(){const e=super.createRenderRoot();return this.renderOptions.renderBefore??=e.firstChild,e}update(e){const t=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(e),this._$Do=((e,t,s)=>{const i=s?.renderBefore??t;let o=i._$litPart$;if(void 0===o){const e=s?.renderBefore??null;i._$litPart$=o=new te(t.insertBefore(N(),e),e,void 0,s??{})}return o._$AI(e),o})(t,this.renderRoot,this.renderOptions)}connectedCallback(){super.connectedCallback(),this._$Do?.setConnected(!0)}disconnectedCallback(){super.disconnectedCallback(),this._$Do?.setConnected(!1)}render(){return K}}le._$litElement$=!0,le.finalized=!0,de.litElementHydrateSupport?.({LitElement:le});const ce=de.litElementPolyfillSupport;ce?.({LitElement:le}),(de.litElementVersions??=[]).push("4.2.2");const he=e=>(t,s)=>{void 0!==s?s.addInitializer(()=>{customElements.define(e,t)}):customElements.define(e,t)},ue={attribute:!0,type:String,converter:$,reflect:!1,hasChanged:w},me=(e=ue,t,s)=>{const{kind:i,metadata:o}=s;let r=globalThis.litPropertyMetadata.get(o);if(void 0===r&&globalThis.litPropertyMetadata.set(o,r=new Map),"setter"===i&&((e=Object.create(e)).wrapped=!0),r.set(s.name,e),"accessor"===i){const{name:i}=s;return{set(s){const o=t.get.call(this);t.set.call(this,s),this.requestUpdate(i,o,e,!0,s)},init(t){return void 0!==t&&this.C(i,void 0,e,t),t}}}if("setter"===i){const{name:i}=s;return function(s){const o=this[i];t.call(this,s),this.requestUpdate(i,o,e,!0,s)}}throw Error("Unsupported decorator location: "+i)};function pe(e){return(t,s)=>"object"==typeof s?me(e,t,s):((e,t,s)=>{const i=t.hasOwnProperty(s);return t.constructor.createProperty(s,e),i?Object.getOwnPropertyDescriptor(t,s):void 0})(e,t,s)}function be(e){return pe({...e,state:!0,attribute:!1})}function ge(e){switch(e.locale?.time_format){case"12":return!0;case"24":return!1;default:return}}function fe(e){return e.locale?.language||e.language||"en"}function ye(e){const[t,s]=e.split(":").map(Number);return 60*(t||0)+(s||0)}function _e(e=new Date){return 60*e.getHours()+e.getMinutes()}function ve(e,t){if(!e)return t;if(!0!==ge(e))return t;const s=new Date;return s.setHours(Math.floor(ye(t)/60),ye(t)%60,0,0),new Intl.DateTimeFormat(fe(e),{hour:"numeric",minute:"2-digit",hour12:!0}).format(s)}function $e(e){if(!e||"object"!=typeof e)return null;const t=e,s=(Array.isArray(t.periods)?t.periods:[]).map(e=>e).filter(e=>"string"==typeof e?.start&&"string"==typeof e?.end).map((e,t)=>({index:Number(e.index??t+1),start:String(e.start),end:String(e.end),startMinutes:ye(String(e.start)),endMinutes:ye(String(e.end))}));if(!s.length)return null;const i=(Array.isArray(t.breaks)?t.breaks:[]).map(e=>e).filter(e=>"string"==typeof e?.start&&"string"==typeof e?.end).map(e=>({after:Number(e.after??0),start:String(e.start),end:String(e.end),minutes:Number(e.minutes??0)})),o={};for(const[e,s]of Object.entries(t.subjects??{}))"string"==typeof s&&(o[e]=s);return{periods:s,breaks:i,subjects:o}}function we(e){return function(e){const t={};if(!e||"object"!=typeof e)return t;for(const[s,i]of Object.entries(e)){const e=Number(s);if(!Number.isInteger(e)||e<0||e>6||!Array.isArray(i))continue;const o=i.map(e=>e).filter(e=>Boolean(e)&&"string"==typeof e.subject).map(e=>({period:Number(e.period??0),subject:String(e.subject),room:"string"==typeof e.room&&e.room?e.room:null})).sort((e,t)=>e.period-t.period);o.length&&(t[e]=o)}return t}(e?.attributes?.timetable)}function xe(e){return t=e?.attributes?.outlook,Array.isArray(t)?t.map(e=>e).filter(e=>Boolean(e)&&"string"==typeof e.date).map(e=>({date:String(e.date),weekday:Number(e.weekday??0),mode:"care"===e.mode||"free"===e.mode?e.mode:"school",label:"string"==typeof e.label&&e.label?e.label:null})).sort((e,t)=>e.date.localeCompare(t.date)):[];var t}function ke(e,t,s){const i=e.filter(e=>e.weekday===t);if(!s)return i[0];const o=function(e=new Date){const t=String(e.getMonth()+1).padStart(2,"0"),s=String(e.getDate()).padStart(2,"0");return`${e.getFullYear()}-${t}-${s}`}();return i.find(e=>e.date>=o)??i[i.length-1]}function Ae(e,t,s){return(e[t]??[]).find(e=>e.period===s)}function Se(e,t=_e()){return e.periods.find(e=>t>=e.startMinutes&&t<e.endMinutes)}function Ce(e){return!0===e.attributes?.schoolday_board}function je(e,s){let i;if(s){if(i=e.states[s],!i)return null}else if(i=Object.values(e.states).find(Ce),!i)return null;const o=i.attributes,r=(Array.isArray(o.members)?o.members:[]).map((e,s)=>{const i=e;return{id:String(i.id??s),name:String(i.name??""),color:i.color||t[s%t.length],avatar:i.avatar??null,order:i.order??s}});return r.sort((e,t)=>e.order-t.order||e.name.localeCompare(t.name)),{entityId:i.entity_id,members:r,timetable:$e(o.timetable),schoolToday:!1!==o.school_today,noSchoolReason:"string"==typeof o.no_school_reason?o.no_school_reason:null}}function Ee(e,t){return Object.values(e.states).find(e=>e.attributes?.member_id===t)}const ze={"board.missing":"No Schoolday board found. Add the Schoolday integration.","routines.nothing_today":"Nothing today","routines.auto":"Automatic (by time of day)","routines.morning":"Morning","routines.evening":"Evening","routines.both":"Both","routines.none_configured":"No routines for today. Add them under Configure → Edit routines in the Schoolday integration.","timetable.no_periods":"No lesson times yet. Add them under Configure → School timetable in the Schoolday integration.","timetable.none_configured":"Nobody has a timetable yet. Add one under Configure → School timetable in the Schoolday integration.","timetable.break":"Break","timetable.no_school":"No school","timetable.free":"Holiday","timetable.care":"Holiday care","timetable.now":"Now","timetable.next":"Next","timetable.remaining":"{minutes} min left","timetable.done_for_today":"School is out for today.","timetable.layout_auto":"Automatic (week, one day when narrow)","timetable.layout_week":"Whole week","timetable.layout_day":"One day","timetable.days_auto":"Automatic (as the timetable needs)","timetable.days_school":"Monday to Friday","timetable.days_week":"All seven days","editor.block":"Which block to show","editor.evening_from":"Evening starts at (hour)","editor.show_empty":"Show members with nothing on today","editor.members":"Limit to these members","editor.member":"Family member","editor.layout":"Layout","editor.week_days":"Days shown","editor.show_rooms":"Show rooms","editor.show_times":"Show lesson times","editor.show_breaks":"Show breaks","editor.hide_empty_periods":"Hide periods nobody has","editor.highlight":"Mark today and the running lesson","editor.roll_days":"Roll past weekdays on to next week","editor.section":"Section to open on","admin.tab_timetable":"Timetable","admin.tab_routines":"Routines","admin.tab_family":"Family","admin.tab_subjects":"Subjects","admin.tab_holidays":"Days off","admin.save":"Save","admin.add":"Add","admin.clear":"Clear","admin.remove":"Remove","admin.remove_confirm":"Remove {name}? Their timetable and routines go too.","admin.add_member":"Add a family member","admin.periods":"Lesson times, one per line","admin.periods_first":"Set the lesson times first — the week hangs on them.","admin.no_members":"Nobody is set up yet. Add a family member first.","admin.no_subjects":"No subjects yet. They appear once a timetable has lessons in it.","admin.subject":"Subject","admin.room":"Room","admin.name":"Name","admin.color":"Colour","admin.calendar":"Own calendar","admin.avatar":"Avatar URL","admin.block_morning":"Morning","admin.block_evening":"Evening","admin.day_free":"Day off","admin.day_care":"Holiday care","admin.steps_hint":"One step per line","admin.school_calendars":"Calendars that close the school, one per line","admin.care_keywords":"Holiday-care keywords, one per line","admin.care_hint":"Holiday care","admin.colors_hint":"Every subject already has a colour taken from its name. This is only for correcting one.","admin.calendars_hint":"Any event running on these calendars means there is no school, so use calendars that hold nothing else.","editor.weather_entity":"Weather entity","editor.greeting":"Greeting","editor.show_seconds":"Show seconds"},Me={en:ze,de:{"board.missing":"Kein Schoolday-Board gefunden. Füge die Schoolday-Integration hinzu.","routines.nothing_today":"Heute nichts","routines.auto":"Automatisch (nach Tageszeit)","routines.morning":"Morgen","routines.evening":"Abend","routines.both":"Beide","routines.none_configured":"Für heute sind keine Routinen hinterlegt. Trage sie in der Schoolday-Integration unter „Konfigurieren → Routinen bearbeiten“ ein.","timetable.no_periods":"Noch keine Stundenzeiten. Trage sie in der Schoolday-Integration unter „Konfigurieren → Stundenplan“ ein.","timetable.none_configured":"Noch hat niemand einen Stundenplan. Lege ihn in der Schoolday-Integration unter „Konfigurieren → Stundenplan“ an.","timetable.break":"Pause","timetable.no_school":"Schulfrei","timetable.free":"Ferien","timetable.care":"Ferienbetreuung","timetable.now":"Jetzt","timetable.next":"Danach","timetable.remaining":"noch {minutes} min","timetable.done_for_today":"Für heute ist Schule aus.","timetable.layout_auto":"Automatisch (Woche, schmal ein Tag)","timetable.layout_week":"Ganze Woche","timetable.layout_day":"Ein Tag","timetable.days_auto":"Automatisch (wie der Stundenplan es braucht)","timetable.days_school":"Montag bis Freitag","timetable.days_week":"Alle sieben Tage","editor.block":"Welcher Block angezeigt wird","editor.evening_from":"Abend beginnt um (Stunde)","editor.show_empty":"Mitglieder ohne Routine heute anzeigen","editor.members":"Auf diese Mitglieder beschränken","editor.member":"Familienmitglied","editor.layout":"Darstellung","editor.week_days":"Angezeigte Tage","editor.show_rooms":"Räume anzeigen","editor.show_times":"Stundenzeiten anzeigen","editor.show_breaks":"Pausen anzeigen","editor.hide_empty_periods":"Stunden ausblenden, die niemand hat","editor.highlight":"Heute und laufende Stunde hervorheben","editor.roll_days":"Vergangene Wochentage auf nächste Woche weiterrollen","editor.section":"Bereich beim Öffnen","admin.tab_timetable":"Stundenplan","admin.tab_routines":"Routinen","admin.tab_family":"Familie","admin.tab_subjects":"Fächer","admin.tab_holidays":"Freie Tage","admin.save":"Speichern","admin.add":"Hinzufügen","admin.clear":"Leeren","admin.remove":"Entfernen","admin.remove_confirm":"{name} entfernen? Stundenplan und Routinen gehen mit.","admin.add_member":"Familienmitglied hinzufügen","admin.periods":"Stundenzeiten, eine pro Zeile","admin.periods_first":"Trage zuerst die Stundenzeiten ein — die Woche hängt daran.","admin.no_members":"Noch ist niemand angelegt. Lege zuerst ein Familienmitglied an.","admin.no_subjects":"Noch keine Fächer. Sie erscheinen, sobald ein Stundenplan Stunden hat.","admin.subject":"Fach","admin.room":"Raum","admin.name":"Name","admin.color":"Farbe","admin.calendar":"Eigener Kalender","admin.avatar":"Avatar-URL","admin.block_morning":"Morgens","admin.block_evening":"Abends","admin.day_free":"Freier Tag","admin.day_care":"Ferienbetreuung","admin.steps_hint":"Ein Schritt pro Zeile","admin.school_calendars":"Kalender, die die Schule schließen, einer pro Zeile","admin.care_keywords":"Betreuungs-Stichwörter, eines pro Zeile","admin.care_hint":"Ferienbetreuung","admin.colors_hint":"Jedes Fach hat schon eine Farbe, abgeleitet aus seinem Namen. Das hier ist nur zum Korrigieren.","admin.calendars_hint":"Jeder laufende Termin in diesen Kalendern bedeutet schulfrei — nimm also Kalender, in denen nichts anderes steht.","editor.weather_entity":"Wetter-Entität","editor.greeting":"Begrüßung","editor.show_seconds":"Sekunden anzeigen"}};function Oe(e,t,s){const i=Me[function(e){return(e?.locale?.language||e?.language||"en").toLowerCase().split("-")[0]}(e)]??ze;let o=i[t]??ze[t]??t;if(s)for(const[e,t]of Object.entries(s))o=o.replace(`{${e}}`,String(t));return o}const Le=e=>({name:e,selector:{boolean:{}}}),Ne=(e,t,s=!1)=>({name:e,selector:{select:{options:t,multiple:s,mode:s?"list":"dropdown"}}});class De extends le{constructor(){super(...arguments),this._config={type:""},this._label=e=>Oe(this.hass,`editor.${e.name}`)}setConfig(e){this._config={...e}}_valueChanged(e){e.stopPropagation();const t={...this._config,...e.detail?.value??{}};for(const[e,s]of Object.entries(t))(void 0===s||""===s||Array.isArray(s)&&!s.length)&&delete t[e];var s,i;s="config-changed",i={config:t},this.dispatchEvent(new CustomEvent(s,{detail:i,bubbles:!0,composed:!0}))}render(){return this.hass?q`
       <ha-form
         .hass=${this.hass}
         .data=${this._config}
@@ -6,7 +6,7 @@ const e="0.5.3",t=["#e0603a","#3a86c8","#4f9d69","#c9a227","#8e6bbf","#d1707f"];
         .computeLabel=${this._label}
         @value-changed=${this._valueChanged}
       ></ha-form>
-    `:q``}}s([me({attribute:!1})],Ne.prototype,"hass",void 0),s([ge()],Ne.prototype,"_config",void 0);let Te=class extends Ne{schema(){return[Pe("block",[{value:"auto",label:ze(this.hass,"routines.auto")},{value:"morning",label:ze(this.hass,"routines.morning")},{value:"evening",label:ze(this.hass,"routines.evening")},{value:"both",label:ze(this.hass,"routines.both")}]),(e="evening_from",t=0,s=23,{name:e,selector:{number:{min:t,max:s,mode:"box"}}}),je("show_empty")];var e,t,s}};Te=s([he("schoolday-routines-card-editor")],Te);let De=class extends Ne{schema(){const e=(Ee(this.hass)?.members??[]).map(e=>({value:e.id,label:e.name}));return[...e.length>1?[Pe("member",e)]:[],Pe("layout",[{value:"auto",label:ze(this.hass,"timetable.layout_auto")},{value:"week",label:ze(this.hass,"timetable.layout_week")},{value:"day",label:ze(this.hass,"timetable.layout_day")}]),Pe("week_days",[{value:"auto",label:ze(this.hass,"timetable.days_auto")},{value:"school",label:ze(this.hass,"timetable.days_school")},{value:"week",label:ze(this.hass,"timetable.days_week")}]),je("show_rooms"),je("show_times"),je("show_breaks"),je("hide_empty_periods"),je("highlight"),je("roll_days")]}};De=s([he("schoolday-timetable-card-editor")],De);let He=class extends Ne{schema(){return[{name:"weather_entity",selector:{entity:{domain:"weather"}}},{name:"greeting",selector:{text:{}}},je("show_seconds")]}};He=s([he("schoolday-header-card-editor")],He);const Ue=l`
+    `:q``}}s([pe({attribute:!1})],De.prototype,"hass",void 0),s([be()],De.prototype,"_config",void 0);let Te=class extends De{schema(){return[Ne("block",[{value:"auto",label:Oe(this.hass,"routines.auto")},{value:"morning",label:Oe(this.hass,"routines.morning")},{value:"evening",label:Oe(this.hass,"routines.evening")},{value:"both",label:Oe(this.hass,"routines.both")}]),(e="evening_from",t=0,s=23,{name:e,selector:{number:{min:t,max:s,mode:"box"}}}),Le("show_empty")];var e,t,s}};Te=s([he("schoolday-routines-card-editor")],Te);let Re=class extends De{schema(){const e=(je(this.hass)?.members??[]).map(e=>({value:e.id,label:e.name}));return[...e.length>1?[Ne("member",e)]:[],Ne("layout",[{value:"auto",label:Oe(this.hass,"timetable.layout_auto")},{value:"week",label:Oe(this.hass,"timetable.layout_week")},{value:"day",label:Oe(this.hass,"timetable.layout_day")}]),Ne("week_days",[{value:"auto",label:Oe(this.hass,"timetable.days_auto")},{value:"school",label:Oe(this.hass,"timetable.days_school")},{value:"week",label:Oe(this.hass,"timetable.days_week")}]),Le("show_rooms"),Le("show_times"),Le("show_breaks"),Le("hide_empty_periods"),Le("highlight"),Le("roll_days")]}};Re=s([he("schoolday-timetable-card-editor")],Re);let Pe=class extends De{schema(){return[Ne("section",[{value:"timetable",label:Oe(this.hass,"admin.tab_timetable")},{value:"routines",label:Oe(this.hass,"admin.tab_routines")},{value:"family",label:Oe(this.hass,"admin.tab_family")},{value:"subjects",label:Oe(this.hass,"admin.tab_subjects")},{value:"holidays",label:Oe(this.hass,"admin.tab_holidays")}])]}};Pe=s([he("schoolday-admin-card-editor")],Pe);let He=class extends De{schema(){return[{name:"weather_entity",selector:{entity:{domain:"weather"}}},{name:"greeting",selector:{text:{}}},Le("show_seconds")]}};He=s([he("schoolday-header-card-editor")],He);const Ue={members:[],routines:{},periods:[],colors:{},schoolCalendars:[],careKeywords:[]};function Fe(e){return Array.isArray(e)?e.filter(e=>"string"==typeof e):[]}function Ie(e){return function(e){if(!e||"object"!=typeof e)return Ue;const t=e,s=(Array.isArray(t.members)?t.members:[]).map(e=>e).filter(e=>"string"==typeof e?.id&&"string"==typeof e?.name).map(e=>({id:String(e.id),name:String(e.name),color:"string"==typeof e.color?e.color:"#3a86c8",avatar:"string"==typeof e.avatar&&e.avatar?e.avatar:null,order:Number(e.order??0),calendar:"string"==typeof e.calendar&&e.calendar?e.calendar:null})).sort((e,t)=>e.order-t.order),i={};for(const[e,s]of Object.entries(t.routines??{})){const t={};for(const[e,i]of Object.entries(s??{})){const s={};for(const[e,t]of Object.entries(i??{})){const i=Fe(t);i.length&&(s[e]=i)}t[e]=s}i[e]=t}const o={};for(const[e,s]of Object.entries(t.colors??{}))"string"==typeof s&&(o[e]=s);return{members:s,routines:i,periods:Fe(t.periods),colors:o,schoolCalendars:Fe(t.school_calendars),careKeywords:Fe(t.care_keywords)}}(e?.attributes?.admin)}function Be(e){return Object.keys(e.states).filter(e=>e.startsWith("calendar.")).sort()}const We=d`
   :host {
     --schoolday-gap: 8px;
     --schoolday-radius: 12px;
@@ -17,7 +17,7 @@ const e="0.5.3",t=["#e0603a","#3a86c8","#4f9d69","#c9a227","#8e6bbf","#d1707f"];
     --schoolday-surface-alt: rgba(127, 127, 127, 0.08);
     --schoolday-today: var(--primary-color, #03a9f4);
   }
-`,Re=l`
+`,qe=d`
   button {
     font: inherit;
     color: inherit;
@@ -67,25 +67,473 @@ const e="0.5.3",t=["#e0603a","#3a86c8","#4f9d69","#c9a227","#8e6bbf","#d1707f"];
     background: var(--schoolday-today);
     color: var(--text-primary-color, #fff);
   }
-`;let Ie=class extends de{constructor(){super(...arguments),this._config={type:""},this._now=new Date}static async getConfigElement(){return document.createElement("schoolday-header-card-editor")}static getStubConfig(){return{show_seconds:!1}}setConfig(e){this._config={...e}}getCardSize(){return 2}getGridOptions(){return{columns:"full",rows:"auto"}}connectedCallback(){super.connectedCallback();const e=this._config.show_seconds?1e3:2e4;this._timer=window.setInterval(()=>{this._now=new Date},e)}disconnectedCallback(){super.disconnectedCallback(),this._timer&&(window.clearInterval(this._timer),this._timer=void 0)}_weather(){const e=this._config.weather_entity;if(!e)return K;const t=this.hass.states[e];if(!t)return K;const s=t.attributes?.temperature,i=t.attributes?.temperature_unit??"",o=this.hass.formatEntityState(t);return q`
+`,Ke=["timetable","routines","family","subjects","holidays"],Ze=["morning","evening"],Ve=new Date(2024,0,1);let Ge=class extends le{constructor(){super(...arguments),this._config={type:""},this._section="timetable",this._block="morning",this._routineDay="0",this._draftSubject="",this._draftRoom="",this._busy=!1}static async getConfigElement(){return document.createElement("schoolday-admin-card-editor")}static getStubConfig(){return{section:"timetable"}}setConfig(e){this._config={...e},e.section&&Ke.includes(e.section)&&(this._section=e.section)}getCardSize(){return 10}getGridOptions(){return{columns:"full",rows:"auto"}}get _board(){return je(this.hass,this._config.board_entity)}_admin(){const e=this._board;return Ie(e?this.hass.states[e.entityId]:void 0)}_selected(e){return e.members.find(e=>e.id===this._memberId)??e.members[0]}async _call(e,t){if(!this._busy){this._busy=!0,this._error=void 0;try{await function(e,t,s){return e.callService("schoolday",t,s)}(this.hass,e,t)}catch(e){this._error=e instanceof Error?e.message:String(e)}finally{this._busy=!1}}}_weekdayName(e,t){const s=new Date(Ve);return s.setDate(s.getDate()+e),new Intl.DateTimeFormat(fe(this.hass),{weekday:t}).format(s)}_memberChips(e,t){return q`
+      <div class="chips">
+        ${e.members.map(e=>q`
+            <button
+              class="chip ${e.id===t?.id?"on":""}"
+              style=${`--member-color:${e.color}`}
+              @click=${()=>{this._memberId=e.id,this._cell=void 0}}
+            >
+              ${e.name}
+            </button>
+          `)}
+      </div>
+    `}_lines(e,t,s,i){return q`
+      <label class="field">
+        <span class="label">${e}</span>
+        <textarea
+          id=${`lines-${e}`}
+          rows=${Math.max(3,t.length+1)}
+          placeholder=${s}
+          .value=${t.join("\n")}
+        ></textarea>
+        <button
+          class="apply"
+          ?disabled=${this._busy}
+          @click=${e=>{const t=e.target.closest(".field"),s=t?.querySelector("textarea");i((s?.value??"").split("\n").map(e=>e.trim()).filter(Boolean))}}
+        >
+          ${Oe(this.hass,"admin.save")}
+        </button>
+      </label>
+    `}_renderTimetable(e){const t=this._selected(e),s=this._board?.timetable,i=t?we(Ee(this.hass,t.id)):{},o=[0,1,2,3,4,5,6].filter(e=>e<=4||(i[e]??[]).length>0);return q`
+      ${this._lines(Oe(this.hass,"admin.periods"),e.periods,"08:00-08:45",e=>this._call("set_periods",{periods:e}))}
+      ${s?.periods.length?t?q`
+              ${this._memberChips(e,t)}
+              <div
+                class="week"
+                style=${`grid-template-columns:max-content repeat(${o.length}, minmax(0, 1fr))`}
+              >
+                <div></div>
+                ${o.map(e=>q`<div class="head">${this._weekdayName(e,"short")}</div>`)}
+                ${s.periods.map(e=>q`
+                    <div class="no">${e.index}</div>
+                    ${o.map(t=>{const o=`${t}:${e.index}`,r=Ae(i,t,e.index);return q`
+                        <button
+                          class="slot ${r?"filled":""} ${this._cell===o?"open":""}"
+                          style=${r?`--subject:${s.subjects[r.subject]??"var(--schoolday-line)"}`:""}
+                          @click=${()=>{this._cell=this._cell===o?void 0:o,this._draftSubject=r?.subject??"",this._draftRoom=r?.room??""}}
+                        >
+                          <span class="subject">${r?.subject??"+"}</span>
+                          ${r?.room?q`<span class="room">${r.room}</span>`:Z}
+                        </button>
+                      `})}
+                  `)}
+              </div>
+              ${this._cell?this._renderCellEditor(t):Z}
+            `:q`<div class="notice">${Oe(this.hass,"admin.no_members")}</div>`:q`<div class="notice">${Oe(this.hass,"admin.periods_first")}</div>`}
+    `}_renderCellEditor(e){const[t,s]=this._cell.split(":").map(Number),i=Object.keys(this._board?.timetable?.subjects??{}).sort();return q`
+      <div class="editor">
+        <div class="editor-head">
+          ${e.name} · ${this._weekdayName(t,"long")} · ${s}.
+        </div>
+        <div class="row">
+          <label class="field grow">
+            <span class="label">${Oe(this.hass,"admin.subject")}</span>
+            <input
+              list="schoolday-subjects"
+              .value=${this._draftSubject}
+              @input=${e=>{this._draftSubject=e.target.value}}
+            />
+            <datalist id="schoolday-subjects">
+              ${i.map(e=>q`<option value=${e}></option>`)}
+            </datalist>
+          </label>
+          <label class="field grow">
+            <span class="label">${Oe(this.hass,"admin.room")}</span>
+            <input
+              .value=${this._draftRoom}
+              @input=${e=>{this._draftRoom=e.target.value}}
+            />
+          </label>
+        </div>
+        <div class="row">
+          <button
+            class="apply"
+            ?disabled=${this._busy}
+            @click=${async()=>{await this._call("set_lesson",{member:e.id,weekday:t,period:s,subject:this._draftSubject,room:this._draftRoom}),this._cell=void 0}}
+          >
+            ${Oe(this.hass,"admin.save")}
+          </button>
+          <button
+            class="danger"
+            ?disabled=${this._busy}
+            @click=${async()=>{await this._call("set_lesson",{member:e.id,weekday:t,period:s,subject:""}),this._cell=void 0}}
+          >
+            ${Oe(this.hass,"admin.clear")}
+          </button>
+        </div>
+      </div>
+    `}_renderRoutines(e){const t=this._selected(e);if(!t)return q`<div class="notice">${Oe(this.hass,"admin.no_members")}</div>`;const s=e=>"free"===e?Oe(this.hass,"admin.day_free"):"care"===e?Oe(this.hass,"admin.day_care"):this._weekdayName(Number(e),"short");return q`
+      ${this._memberChips(e,t)}
+      <div class="chips">
+        ${Ze.map(e=>q`
+            <button
+              class="chip ${e===this._block?"on":""}"
+              @click=${()=>{this._block=e}}
+            >
+              ${Oe(this.hass,`admin.block_${e}`)}
+            </button>
+          `)}
+      </div>
+      <div class="chips">
+        ${["0","1","2","3","4","5","6","free","care"].map(e=>q`
+            <button
+              class="chip ${e===this._routineDay?"on":""}"
+              @click=${()=>{this._routineDay=e}}
+            >
+              ${s(e)}
+            </button>
+          `)}
+      </div>
+      ${this._lines(`${t.name} · ${Oe(this.hass,`admin.block_${this._block}`)} · ${s(this._routineDay)}`,function(e,t,s,i){return e.routines[t]?.[s]?.[i]??[]}(e,t.id,this._block,this._routineDay),Oe(this.hass,"admin.steps_hint"),e=>this._call("set_routine",{member:t.id,block:this._block,day:this._routineDay,steps:e}))}
+    `}_renderFamily(e){const t=Be(this.hass),s=e=>{const t=e?.id??"new";return q`
+        <div class="member" style=${`--member-color:${e?.color??"#3a86c8"}`}>
+          <div class="row">
+            <label class="field grow">
+              <span class="label">${Oe(this.hass,"admin.name")}</span>
+              <input id=${`name-${t}`} .value=${e?.name??""} />
+            </label>
+            <label class="field">
+              <span class="label">${Oe(this.hass,"admin.color")}</span>
+              <input type="color" id=${`color-${t}`} .value=${e?.color??"#3a86c8"} />
+            </label>
+          </div>
+          <div class="row">
+            <label class="field grow">
+              <span class="label">${Oe(this.hass,"admin.calendar")}</span>
+              <input
+                id=${`calendar-${t}`}
+                list="schoolday-calendars"
+                .value=${e?.calendar??""}
+                placeholder="calendar.…"
+              />
+            </label>
+            <label class="field grow">
+              <span class="label">${Oe(this.hass,"admin.avatar")}</span>
+              <input id=${`avatar-${t}`} .value=${e?.avatar??""} />
+            </label>
+          </div>
+          <div class="row">
+            <button
+              class="apply"
+              ?disabled=${this._busy}
+              @click=${s=>{const i=s.target.closest(".member"),o=e=>i.querySelector(`#${e}-${t}`)?.value??"";this._call("set_member",{...e?{member:e.id}:{},name:o("name"),color:o("color"),calendar:o("calendar"),avatar:o("avatar")})}}
+            >
+              ${Oe(this.hass,e?"admin.save":"admin.add")}
+            </button>
+            ${e?q`
+                  <button
+                    class="danger"
+                    ?disabled=${this._busy}
+                    @click=${()=>{confirm(Oe(this.hass,"admin.remove_confirm",{name:e.name}))&&this._call("remove_member",{member:e.id})}}
+                  >
+                    ${Oe(this.hass,"admin.remove")}
+                  </button>
+                `:Z}
+          </div>
+        </div>
+      `};return q`
+      <datalist id="schoolday-calendars">
+        ${t.map(e=>q`<option value=${e}></option>`)}
+      </datalist>
+      ${e.members.map(e=>s(e))}
+      <div class="sub-head">${Oe(this.hass,"admin.add_member")}</div>
+      ${s(null)}
+    `}_renderSubjects(e){const t=Object.keys(this._board?.timetable?.subjects??{}).sort();return t.length?q`
+      <div class="notice quiet">${Oe(this.hass,"admin.colors_hint")}</div>
+      <div class="subjects">
+        ${t.map(t=>{const s=this._board?.timetable?.subjects[t]??"#888888",i=t in e.colors;return q`
+            <div class="subject-row">
+              <input
+                type="color"
+                .value=${s}
+                @change=${e=>this._call("set_subject_color",{subject:t,color:e.target.value})}
+              />
+              <span class="name">${t}</span>
+              ${i?q`
+                    <button
+                      class="link"
+                      ?disabled=${this._busy}
+                      @click=${()=>this._call("set_subject_color",{subject:t})}
+                    >
+                      ${Oe(this.hass,"admin.reset_color")}
+                    </button>
+                  `:Z}
+            </div>
+          `})}
+      </div>
+    `:q`<div class="notice">${Oe(this.hass,"admin.no_subjects")}</div>`}_renderHolidays(e){const t=Be(this.hass);return q`
+      <div class="notice quiet">${Oe(this.hass,"admin.calendars_hint")}</div>
+      <datalist id="schoolday-calendars">
+        ${t.map(e=>q`<option value=${e}></option>`)}
+      </datalist>
+      ${this._lines(Oe(this.hass,"admin.school_calendars"),e.schoolCalendars,"calendar.schulferien",e=>this._call("set_calendars",{school_calendars:e}))}
+      ${this._lines(Oe(this.hass,"admin.care_keywords"),e.careKeywords,Oe(this.hass,"admin.care_hint"),e=>this._call("set_calendars",{care_keywords:e}))}
+    `}render(){if(!this.hass)return q`<ha-card></ha-card>`;if(!this._board)return q`<ha-card><div class="notice">${Oe(this.hass,"board.missing")}</div></ha-card>`;const e=this._admin();return q`
+      <ha-card>
+        <div class="tabs">
+          ${Ke.map(e=>q`
+              <button
+                class="tab ${e===this._section?"on":""}"
+                @click=${()=>{this._section=e,this._cell=void 0,this._error=void 0}}
+              >
+                ${Oe(this.hass,`admin.tab_${e}`)}
+              </button>
+            `)}
+        </div>
+        ${this._error?q`<div class="notice error">${this._error}</div>`:Z}
+        <div class="body">
+          ${"timetable"===this._section?this._renderTimetable(e):"routines"===this._section?this._renderRoutines(e):"family"===this._section?this._renderFamily(e):"subjects"===this._section?this._renderSubjects(e):this._renderHolidays(e)}
+        </div>
+      </ha-card>
+    `}};Ge.styles=[We,qe,d`
+      :host {
+        display: block;
+      }
+
+      ha-card {
+        padding: 12px;
+      }
+
+      .tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 12px;
+      }
+
+      .tab,
+      .chip {
+        min-height: var(--schoolday-touch);
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: var(--schoolday-surface-alt);
+        font-size: 0.9rem;
+      }
+
+      .tab.on {
+        background: var(--schoolday-today);
+        color: var(--text-primary-color, #fff);
+        font-weight: 700;
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin: 8px 0;
+      }
+
+      .chip.on {
+        background: color-mix(in srgb, var(--member-color, var(--schoolday-today)) 30%, transparent);
+        font-weight: 700;
+      }
+
+      .body {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .field.grow {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .label {
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--schoolday-muted);
+      }
+
+      input,
+      textarea {
+        font: inherit;
+        color: inherit;
+        min-height: var(--schoolday-touch);
+        padding: 6px 10px;
+        box-sizing: border-box;
+        border-radius: 8px;
+        border: 1px solid var(--schoolday-line);
+        background: var(--schoolday-surface);
+      }
+
+      input[type='color'] {
+        width: 56px;
+        padding: 2px;
+      }
+
+      textarea {
+        resize: vertical;
+        line-height: 1.5;
+      }
+
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: flex-end;
+      }
+
+      .apply,
+      .danger,
+      .link {
+        align-self: flex-start;
+        min-height: var(--schoolday-touch);
+        padding: 6px 14px;
+        border-radius: 8px;
+        font-weight: 700;
+        background: var(--schoolday-surface-alt);
+      }
+
+      .apply {
+        background: color-mix(in srgb, var(--schoolday-today) 25%, transparent);
+      }
+
+      .danger {
+        color: var(--error-color, #d33);
+      }
+
+      .link {
+        background: none;
+        font-weight: 400;
+        text-decoration: underline;
+        color: var(--schoolday-muted);
+      }
+
+      button[disabled] {
+        opacity: 0.5;
+      }
+
+      .week {
+        display: grid;
+        row-gap: 4px;
+        column-gap: 8px;
+        align-items: stretch;
+      }
+
+      .head {
+        text-align: center;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--schoolday-muted);
+      }
+
+      .no {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        padding-right: 4px;
+        font-weight: 700;
+        color: var(--schoolday-muted);
+      }
+
+      .slot {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-height: var(--schoolday-touch);
+        padding: 4px 8px;
+        overflow: hidden;
+        border-radius: 8px;
+        border: 1px dashed var(--schoolday-line);
+        background: none;
+        color: var(--schoolday-muted);
+        font-size: 0.9rem;
+      }
+
+      .slot.filled {
+        border: none;
+        border-left: 3px solid var(--subject);
+        background: color-mix(in srgb, var(--subject) 22%, transparent);
+        color: inherit;
+        font-weight: 700;
+      }
+
+      .slot.open {
+        outline: 2px solid var(--schoolday-today);
+      }
+
+      .slot .room {
+        font-size: 0.75rem;
+        font-weight: 400;
+        color: var(--schoolday-muted);
+      }
+
+      .editor,
+      .member {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 10px;
+        border-radius: 10px;
+        background: var(--schoolday-surface-alt);
+        border-left: 3px solid var(--member-color, var(--schoolday-today));
+      }
+
+      .editor-head,
+      .sub-head {
+        font-weight: 700;
+      }
+
+      .subjects {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .subject-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .subject-row .name {
+        flex: 1;
+        font-weight: 700;
+      }
+
+      .notice {
+        padding: 10px;
+        border-radius: 10px;
+        background: var(--schoolday-surface-alt);
+        color: var(--schoolday-muted);
+      }
+
+      .notice.quiet {
+        font-size: 0.85rem;
+      }
+
+      .notice.error {
+        color: var(--error-color, #d33);
+        background: color-mix(in srgb, var(--error-color, #d33) 12%, transparent);
+      }
+    `],s([pe({attribute:!1})],Ge.prototype,"hass",void 0),s([be()],Ge.prototype,"_config",void 0),s([be()],Ge.prototype,"_section",void 0),s([be()],Ge.prototype,"_memberId",void 0),s([be()],Ge.prototype,"_block",void 0),s([be()],Ge.prototype,"_routineDay",void 0),s([be()],Ge.prototype,"_cell",void 0),s([be()],Ge.prototype,"_draftSubject",void 0),s([be()],Ge.prototype,"_draftRoom",void 0),s([be()],Ge.prototype,"_busy",void 0),s([be()],Ge.prototype,"_error",void 0),Ge=s([he("schoolday-admin-card")],Ge),window.customCards=window.customCards??[],window.customCards.push({type:"schoolday-admin-card",name:"Schoolday Admin",description:"Edit the timetable, routines, family and holidays from the dashboard.",preview:!1,documentationURL:"https://github.com/DomCim/HA-Schoolday"});let Je=class extends le{constructor(){super(...arguments),this._config={type:""},this._now=new Date}static async getConfigElement(){return document.createElement("schoolday-header-card-editor")}static getStubConfig(){return{show_seconds:!1}}setConfig(e){this._config={...e}}getCardSize(){return 2}getGridOptions(){return{columns:"full",rows:"auto"}}connectedCallback(){super.connectedCallback();const e=this._config.show_seconds?1e3:2e4;this._timer=window.setInterval(()=>{this._now=new Date},e)}disconnectedCallback(){super.disconnectedCallback(),this._timer&&(window.clearInterval(this._timer),this._timer=void 0)}_weather(){const e=this._config.weather_entity;if(!e)return Z;const t=this.hass.states[e];if(!t)return Z;const s=t.attributes?.temperature,i=t.attributes?.temperature_unit??"",o=this.hass.formatEntityState(t);return q`
       <div class="weather">
         <div class="temperature">
           ${"number"==typeof s?`${Math.round(s)}${i}`:"—"}
         </div>
         <div class="condition">${o}</div>
       </div>
-    `}render(){if(!this.hass)return q`<ha-card></ha-card>`;const e=be(this.hass),t=new Intl.DateTimeFormat(e,{hour:"2-digit",minute:"2-digit",...this._config.show_seconds?{second:"2-digit"}:{},hour12:fe(this.hass)}).format(this._now),s=new Intl.DateTimeFormat(e,{weekday:"long",day:"numeric",month:"long",year:"numeric"}).format(this._now);return q`
+    `}render(){if(!this.hass)return q`<ha-card></ha-card>`;const e=fe(this.hass),t=new Intl.DateTimeFormat(e,{hour:"2-digit",minute:"2-digit",...this._config.show_seconds?{second:"2-digit"}:{},hour12:ge(this.hass)}).format(this._now),s=new Intl.DateTimeFormat(e,{weekday:"long",day:"numeric",month:"long",year:"numeric"}).format(this._now);return q`
       <ha-card>
         <div class="bar">
           <div class="left">
             <div class="clock">${t}</div>
             <div class="date">${s}</div>
-            ${this._config.greeting?q`<div class="greeting">${this._config.greeting}</div>`:K}
+            ${this._config.greeting?q`<div class="greeting">${this._config.greeting}</div>`:Z}
           </div>
           ${this._weather()}
         </div>
       </ha-card>
-    `}};Ie.styles=[Ue,l`
+    `}};Je.styles=[We,d`
       ha-card {
         padding: 16px 20px;
         box-sizing: border-box;
@@ -134,14 +582,14 @@ const e="0.5.3",t=["#e0603a","#3a86c8","#4f9d69","#c9a227","#8e6bbf","#d1707f"];
         font-size: 0.9rem;
         color: var(--schoolday-muted);
       }
-    `],s([me({attribute:!1})],Ie.prototype,"hass",void 0),s([ge()],Ie.prototype,"_config",void 0),s([ge()],Ie.prototype,"_now",void 0),Ie=s([he("schoolday-header-card")],Ie),window.customCards=window.customCards||[],window.customCards.push({type:"schoolday-header-card",name:"Schoolday Header",description:"Clock, date and weather, sized to be read from across the room.",preview:!0,documentationURL:"https://github.com/DomCim/HA-Schoolday"});const Be="M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z",Fe="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M10,17L5,12L6.41,10.59L10,14.17L17.59,6.58L19,8L10,17Z",We="M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,2L14.39,5.42C13.65,5.15 12.84,5 12,5C11.16,5 10.35,5.15 9.61,5.42L12,2M3.34,7L7.5,6.65C6.9,7.16 6.36,7.78 5.94,8.5C5.5,9.24 5.25,10 5.11,10.79L3.34,7M3.36,17L5.12,13.23C5.26,14 5.53,14.78 5.95,15.5C6.37,16.24 6.91,16.86 7.5,17.37L3.36,17M20.65,7L18.88,10.79C18.74,10 18.47,9.23 18.05,8.5C17.63,7.78 17.1,7.15 16.5,6.64L20.65,7M20.64,17L16.5,17.36C17.09,16.85 17.62,16.22 18.04,15.5C18.46,14.77 18.73,14 18.87,13.21L20.64,17M12,22L9.59,18.56C10.33,18.83 11.14,19 12,19C12.82,19 13.63,18.83 14.37,18.56L12,22Z",qe="M17.75,4.09L15.22,6.03L16.13,9.09L13.5,7.28L10.87,9.09L11.78,6.03L9.25,4.09L12.44,4L13.5,1L14.56,4L17.75,4.09M21.25,11L19.61,12.25L20.2,14.23L18.5,13.06L16.8,14.23L17.39,12.25L15.75,11L17.81,10.95L18.5,9L19.19,10.95L21.25,11M18.97,15.95C19.8,15.87 20.69,17.05 20.16,17.8C19.84,18.25 19.5,18.67 19.08,19.07C15.17,23 8.84,23 4.94,19.07C1.03,15.17 1.03,8.83 4.94,4.93C5.34,4.53 5.76,4.17 6.21,3.85C6.96,3.32 8.14,4.21 8.06,5.04C7.79,7.9 8.75,10.87 10.95,13.06C13.14,15.26 16.1,16.22 18.97,15.95Z";let Ve=class extends de{constructor(){super(...arguments),this._config={type:""},this._pending=new Set}static async getConfigElement(){return document.createElement("schoolday-routines-card-editor")}static getStubConfig(){return{block:"auto",evening_from:14}}setConfig(e){this._config={...e}}getCardSize(){return 6}getGridOptions(){return{columns:"full",rows:"auto"}}get _blocks(){const e=this._config.block??"auto";if("morning"===e||"evening"===e)return[e];if("both"===e)return["morning","evening"];const t=this._config.evening_from??14;return[(new Date).getHours()<t?"morning":"evening"]}_steps(e,t){const s=Me(this.hass,e.id),i=s?.attributes?.[`routine_${t}`];return Array.isArray(i)?i.filter(e=>Boolean(e)&&"object"==typeof e).map(e=>({step:String(e.step??""),done:Boolean(e.done)})):[]}async _toggle(e,t,s){const i=`${e.id}|${t}|${s.step}`;this._pending=new Set(this._pending).add(i);try{await this.hass.callService("schoolday","set_routine_step",{member:e.id,block:t,step:s.step,done:!s.done})}catch(e){console.warn("[schoolday] could not update routine step",e)}finally{const e=new Set(this._pending);e.delete(i),this._pending=e}}_icon(e,t=""){return q`<svg class=${t} viewBox="0 0 24 24"><path d=${e} /></svg>`}_renderBlock(e,t){const s=this._steps(e,t),i=s.filter(e=>e.done).length,o=s.length>0&&i===s.length;return q`
+    `],s([pe({attribute:!1})],Je.prototype,"hass",void 0),s([be()],Je.prototype,"_config",void 0),s([be()],Je.prototype,"_now",void 0),Je=s([he("schoolday-header-card")],Je),window.customCards=window.customCards||[],window.customCards.push({type:"schoolday-header-card",name:"Schoolday Header",description:"Clock, date and weather, sized to be read from across the room.",preview:!0,documentationURL:"https://github.com/DomCim/HA-Schoolday"});const Ye="M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z",Qe="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M10,17L5,12L6.41,10.59L10,14.17L17.59,6.58L19,8L10,17Z",Xe="M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,2L14.39,5.42C13.65,5.15 12.84,5 12,5C11.16,5 10.35,5.15 9.61,5.42L12,2M3.34,7L7.5,6.65C6.9,7.16 6.36,7.78 5.94,8.5C5.5,9.24 5.25,10 5.11,10.79L3.34,7M3.36,17L5.12,13.23C5.26,14 5.53,14.78 5.95,15.5C6.37,16.24 6.91,16.86 7.5,17.37L3.36,17M20.65,7L18.88,10.79C18.74,10 18.47,9.23 18.05,8.5C17.63,7.78 17.1,7.15 16.5,6.64L20.65,7M20.64,17L16.5,17.36C17.09,16.85 17.62,16.22 18.04,15.5C18.46,14.77 18.73,14 18.87,13.21L20.64,17M12,22L9.59,18.56C10.33,18.83 11.14,19 12,19C12.82,19 13.63,18.83 14.37,18.56L12,22Z",et="M17.75,4.09L15.22,6.03L16.13,9.09L13.5,7.28L10.87,9.09L11.78,6.03L9.25,4.09L12.44,4L13.5,1L14.56,4L17.75,4.09M21.25,11L19.61,12.25L20.2,14.23L18.5,13.06L16.8,14.23L17.39,12.25L15.75,11L17.81,10.95L18.5,9L19.19,10.95L21.25,11M18.97,15.95C19.8,15.87 20.69,17.05 20.16,17.8C19.84,18.25 19.5,18.67 19.08,19.07C15.17,23 8.84,23 4.94,19.07C1.03,15.17 1.03,8.83 4.94,4.93C5.34,4.53 5.76,4.17 6.21,3.85C6.96,3.32 8.14,4.21 8.06,5.04C7.79,7.9 8.75,10.87 10.95,13.06C13.14,15.26 16.1,16.22 18.97,15.95Z";let tt=class extends le{constructor(){super(...arguments),this._config={type:""},this._pending=new Set}static async getConfigElement(){return document.createElement("schoolday-routines-card-editor")}static getStubConfig(){return{block:"auto",evening_from:14}}setConfig(e){this._config={...e}}getCardSize(){return 6}getGridOptions(){return{columns:"full",rows:"auto"}}get _blocks(){const e=this._config.block??"auto";if("morning"===e||"evening"===e)return[e];if("both"===e)return["morning","evening"];const t=this._config.evening_from??14;return[(new Date).getHours()<t?"morning":"evening"]}_steps(e,t){const s=Ee(this.hass,e.id),i=s?.attributes?.[`routine_${t}`];return Array.isArray(i)?i.filter(e=>Boolean(e)&&"object"==typeof e).map(e=>({step:String(e.step??""),done:Boolean(e.done)})):[]}async _toggle(e,t,s){const i=`${e.id}|${t}|${s.step}`;this._pending=new Set(this._pending).add(i);try{await this.hass.callService("schoolday","set_routine_step",{member:e.id,block:t,step:s.step,done:!s.done})}catch(e){console.warn("[schoolday] could not update routine step",e)}finally{const e=new Set(this._pending);e.delete(i),this._pending=e}}_icon(e,t=""){return q`<svg class=${t} viewBox="0 0 24 24"><path d=${e} /></svg>`}_renderBlock(e,t){const s=this._steps(e,t),i=s.filter(e=>e.done).length,o=s.length>0&&i===s.length;return q`
       <section class="block ${o?"complete":""}">
         <header class="block-head">
-          ${this._icon("morning"===t?We:qe,"block-icon")}
+          ${this._icon("morning"===t?Xe:et,"block-icon")}
           <span class="progress">${i}/${s.length}</span>
         </header>
 
-        ${0===s.length?q`<div class="empty">${ze(this.hass,"routines.nothing_today")}</div>`:q`
+        ${0===s.length?q`<div class="empty">${Oe(this.hass,"routines.nothing_today")}</div>`:q`
               <div class="bar">
                 <div
                   class="bar-fill"
@@ -153,17 +601,17 @@ const e="0.5.3",t=["#e0603a","#3a86c8","#4f9d69","#c9a227","#8e6bbf","#d1707f"];
                     class="step ${r?"done":""} ${o?"pending":""}"
                     @click=${()=>this._toggle(e,t,s)}
                   >
-                    ${this._icon(r?Fe:Be,"tick")}
+                    ${this._icon(r?Qe:Ye,"tick")}
                     <span class="label">${s.step}</span>
                   </button>
                 `})}
             `}
       </section>
-    `}render(){if(!this.hass)return q`<ha-card></ha-card>`;const e=Ee(this.hass,this._config.board_entity);if(!e)return q`<ha-card
-        ><div class="notice">${ze(this.hass,"board.missing")}</div></ha-card
+    `}render(){if(!this.hass)return q`<ha-card></ha-card>`;const e=je(this.hass,this._config.board_entity);if(!e)return q`<ha-card
+        ><div class="notice">${Oe(this.hass,"board.missing")}</div></ha-card
       >`;const t=this._blocks,s=this._config.members?.map(e=>e.toLowerCase()),i=e.members.filter(e=>!(s&&!s.includes(e.id.toLowerCase())&&!s.includes(e.name.toLowerCase()))&&(!0===this._config.show_empty||t.some(t=>this._steps(e,t).length>0)));return 0===i.length?q`
         <ha-card>
-          <div class="notice">${ze(this.hass,"routines.none_configured")}</div>
+          <div class="notice">${Oe(this.hass,"routines.none_configured")}</div>
         </ha-card>
       `:q`
       <ha-card>
@@ -171,7 +619,7 @@ const e="0.5.3",t=["#e0603a","#3a86c8","#4f9d69","#c9a227","#8e6bbf","#d1707f"];
           ${i.map(e=>q`
               <div class="person" style=${`--member-color:${e.color}`}>
                 <div class="person-name">
-                  ${e.avatar?q`<img class="avatar" src=${e.avatar} alt="" />`:K}
+                  ${e.avatar?q`<img class="avatar" src=${e.avatar} alt="" />`:Z}
                   <span>${e.name}</span>
                 </div>
                 ${t.map(t=>this._renderBlock(e,t))}
@@ -179,7 +627,7 @@ const e="0.5.3",t=["#e0603a","#3a86c8","#4f9d69","#c9a227","#8e6bbf","#d1707f"];
             `)}
         </div>
       </ha-card>
-    `}};Ve.styles=[Ue,Re,l`
+    `}};tt.styles=[We,qe,d`
       ha-card {
         padding: 12px;
         box-sizing: border-box;
@@ -305,7 +753,7 @@ const e="0.5.3",t=["#e0603a","#3a86c8","#4f9d69","#c9a227","#8e6bbf","#d1707f"];
         color: var(--schoolday-muted);
         font-size: 0.9rem;
       }
-    `],s([me({attribute:!1})],Ve.prototype,"hass",void 0),s([ge()],Ve.prototype,"_config",void 0),s([ge()],Ve.prototype,"_pending",void 0),Ve=s([he("schoolday-routines-card")],Ve),window.customCards=window.customCards||[],window.customCards.push({type:"schoolday-routines-card",name:"Schoolday Routines",description:"Daily routines per child and weekday, ticked off by the kids themselves.",preview:!0,documentationURL:"https://github.com/DomCim/HA-Schoolday"});const Ke=new Date(2024,0,1);let Ze=class extends de{constructor(){super(...arguments),this._config={type:""},this._narrow=!1,this._tick=0}static async getConfigElement(){return document.createElement("schoolday-timetable-card-editor")}static getStubConfig(){return{layout:"auto",week_days:"auto"}}setConfig(e){this._config={...e}}getCardSize(){return 8}getGridOptions(){return{columns:"full",rows:"auto"}}connectedCallback(){super.connectedCallback(),this._resizeObserver=new ResizeObserver(([e])=>{this._narrow=e.contentRect.width<560}),this._resizeObserver.observe(this),this._timer=setInterval(()=>{this._tick+=1},3e4)}disconnectedCallback(){this._resizeObserver?.disconnect(),this._resizeObserver=void 0,this._timer&&(clearInterval(this._timer),this._timer=void 0),super.disconnectedCallback()}_candidates(e){const t=(this._config.members??(this._config.member?[this._config.member]:[])).map(e=>e.toLowerCase());return e.filter(e=>!t.length||t.includes(e.id.toLowerCase())||t.includes(e.name.toLowerCase())).map(e=>{const t=Me(this.hass,e.id);return{member:e,week:we(t),outlook:xe(t)}}).filter(e=>{return t=e.week,Object.values(t).some(e=>e.length>0);var t})}_weekdays(e){const t=this._config.week_days??"auto";if("week"===t)return[0,1,2,3,4,5,6];if("school"===t)return[0,1,2,3,4];const s=Object.keys(e).map(Number).filter(t=>(e[t]??[]).length>0),i=Math.max(4,...s);return Array.from({length:i+1},(e,t)=>t)}_weekdayName(e,t){const s=new Date(Ke);return s.setDate(s.getDate()+e),new Intl.DateTimeFormat(be(this.hass),{weekday:t}).format(s)}_dayFor(e,t){return Ae(e,t,!1!==this._config.roll_days)}_columnDate(e,t){const s=function(e){if(!e)return null;const[t,s,i]=e.date.split("-").map(Number);return t&&s&&i?new Date(t,s-1,i):null}(this._dayFor(e,t));return s?new Intl.DateTimeFormat(be(this.hass),{day:"numeric",month:"numeric"}).format(s):null}_closure(e,t){const s=this._dayFor(e,t);return s&&"school"!==s.mode?s.label??ze(this.hass,"care"===s.mode?"timetable.care":"timetable.free"):null}_color(e,t){return e.subjects[t]??"var(--schoolday-line)"}_renderChips(e,t){return e.length<2?K:q`
+    `],s([pe({attribute:!1})],tt.prototype,"hass",void 0),s([be()],tt.prototype,"_config",void 0),s([be()],tt.prototype,"_pending",void 0),tt=s([he("schoolday-routines-card")],tt),window.customCards=window.customCards||[],window.customCards.push({type:"schoolday-routines-card",name:"Schoolday Routines",description:"Daily routines per child and weekday, ticked off by the kids themselves.",preview:!0,documentationURL:"https://github.com/DomCim/HA-Schoolday"});const st=new Date(2024,0,1);let it=class extends le{constructor(){super(...arguments),this._config={type:""},this._narrow=!1,this._tick=0}static async getConfigElement(){return document.createElement("schoolday-timetable-card-editor")}static getStubConfig(){return{layout:"auto",week_days:"auto"}}setConfig(e){this._config={...e}}getCardSize(){return 8}getGridOptions(){return{columns:"full",rows:"auto"}}connectedCallback(){super.connectedCallback(),this._resizeObserver=new ResizeObserver(([e])=>{this._narrow=e.contentRect.width<560}),this._resizeObserver.observe(this),this._timer=setInterval(()=>{this._tick+=1},3e4)}disconnectedCallback(){this._resizeObserver?.disconnect(),this._resizeObserver=void 0,this._timer&&(clearInterval(this._timer),this._timer=void 0),super.disconnectedCallback()}_candidates(e){const t=(this._config.members??(this._config.member?[this._config.member]:[])).map(e=>e.toLowerCase());return e.filter(e=>!t.length||t.includes(e.id.toLowerCase())||t.includes(e.name.toLowerCase())).map(e=>{const t=Ee(this.hass,e.id);return{member:e,week:we(t),outlook:xe(t)}}).filter(e=>{return t=e.week,Object.values(t).some(e=>e.length>0);var t})}_weekdays(e){const t=this._config.week_days??"auto";if("week"===t)return[0,1,2,3,4,5,6];if("school"===t)return[0,1,2,3,4];const s=Object.keys(e).map(Number).filter(t=>(e[t]??[]).length>0),i=Math.max(4,...s);return Array.from({length:i+1},(e,t)=>t)}_weekdayName(e,t){const s=new Date(st);return s.setDate(s.getDate()+e),new Intl.DateTimeFormat(fe(this.hass),{weekday:t}).format(s)}_dayFor(e,t){return ke(e,t,!1!==this._config.roll_days)}_columnDate(e,t){const s=function(e){if(!e)return null;const[t,s,i]=e.date.split("-").map(Number);return t&&s&&i?new Date(t,s-1,i):null}(this._dayFor(e,t));return s?new Intl.DateTimeFormat(fe(this.hass),{day:"numeric",month:"numeric"}).format(s):null}_closure(e,t){const s=this._dayFor(e,t);return s&&"school"!==s.mode?s.label??Oe(this.hass,"care"===s.mode?"timetable.care":"timetable.free"):null}_color(e,t){return e.subjects[t]??"var(--schoolday-line)"}_renderChips(e,t){return e.length<2?Z:q`
       <div class="chips">
         ${e.map(({member:e})=>q`
             <button
@@ -320,44 +768,44 @@ const e="0.5.3",t=["#e0603a","#3a86c8","#4f9d69","#c9a227","#8e6bbf","#d1707f"];
       </div>
     `}_renderNoSchool(e){return q`
       <div class="status">
-        <span class="pill closed">${ze(this.hass,"timetable.no_school")}</span>
-        ${e?q`<span class="status-text">${e}</span>`:K}
+        <span class="pill closed">${Oe(this.hass,"timetable.no_school")}</span>
+        ${e?q`<span class="status-text">${e}</span>`:Z}
       </div>
-    `}_renderStatus(e,t,s){if(!1===this._config.highlight)return K;const i=_e(),o=Se(e,i),r=o?ke(t,s,o.index):void 0;if(o&&r){const t=o.endMinutes-i;return q`
+    `}_renderStatus(e,t,s){if(!1===this._config.highlight)return Z;const i=_e(),o=Se(e,i),r=o?Ae(t,s,o.index):void 0;if(o&&r){const t=o.endMinutes-i;return q`
         <div class="status">
           <span class="pill" style=${`--subject:${this._color(e,r.subject)}`}
-            >${ze(this.hass,"timetable.now")}</span
+            >${Oe(this.hass,"timetable.now")}</span
           >
           <span class="status-text">
-            ${r.subject}${r.room?q` · ${r.room}`:K}
+            ${r.subject}${r.room?q` · ${r.room}`:Z}
           </span>
-          <span class="status-muted">${ze(this.hass,"timetable.remaining",{minutes:t})}</span>
+          <span class="status-muted">${Oe(this.hass,"timetable.remaining",{minutes:t})}</span>
         </div>
-      `}const n=function(e,t,s,i=_e()){for(const o of e.periods){if(o.startMinutes<=i)continue;const e=ke(t,s,o.index);if(e)return{lesson:e,period:o}}return null}(e,t,s,i);return n?q`
+      `}const a=function(e,t,s,i=_e()){for(const o of e.periods){if(o.startMinutes<=i)continue;const e=Ae(t,s,o.index);if(e)return{lesson:e,period:o}}return null}(e,t,s,i);return a?q`
         <div class="status">
-          <span class="pill next">${ze(this.hass,"timetable.next")}</span>
+          <span class="pill next">${Oe(this.hass,"timetable.next")}</span>
           <span class="status-text">
-            ${n.lesson.subject}${n.lesson.room?q` · ${n.lesson.room}`:K}
+            ${a.lesson.subject}${a.lesson.room?q` · ${a.lesson.room}`:Z}
           </span>
-          <span class="status-muted">${ve(this.hass,n.period.start)}</span>
+          <span class="status-muted">${ve(this.hass,a.period.start)}</span>
         </div>
       `:(t[s]??[]).length?q`<div class="status">
-        <span class="status-muted">${ze(this.hass,"timetable.done_for_today")}</span>
-      </div>`:K}_renderCell(e,t,s,i,o,r,n){const a=ke(t,s,i);if(!a)return q`<div class="cell free ${o?"now":""}" style=${n}></div>`;const l=!1!==this._config.show_rooms&&a.room;return q`
+        <span class="status-muted">${Oe(this.hass,"timetable.done_for_today")}</span>
+      </div>`:Z}_renderCell(e,t,s,i,o,r,a){const n=Ae(t,s,i);if(!n)return q`<div class="cell free ${o?"now":""}" style=${a}></div>`;const d=!1!==this._config.show_rooms&&n.room;return q`
       <div
         class="cell ${o?"now":""}"
-        style=${`--subject:${this._color(e,a.subject)};${n}`}
-        title=${a.room?`${a.subject} · ${a.room}`:a.subject}
+        style=${`--subject:${this._color(e,n.subject)};${a}`}
+        title=${n.room?`${n.subject} · ${n.room}`:n.subject}
       >
-        <span class="subject">${a.subject}</span>
-        ${l?q`<span class="room">${a.room}</span>`:K}
-        ${o&&null!==r?q`<div class="progress"><div style=${`width:${Math.round(100*r)}%`}></div></div>`:K}
+        <span class="subject">${n.subject}</span>
+        ${d?q`<span class="room">${n.room}</span>`:Z}
+        ${o&&null!==r?q`<div class="progress"><div style=${`width:${Math.round(100*r)}%`}></div></div>`:Z}
       </div>
-    `}render(){if(!this.hass)return q`<ha-card></ha-card>`;const e=Ee(this.hass,this._config.board_entity);if(!e)return q`<ha-card><div class="notice">${ze(this.hass,"board.missing")}</div></ha-card>`;const t=e.timetable;if(!t)return q`<ha-card
-        ><div class="notice">${ze(this.hass,"timetable.no_periods")}</div></ha-card
+    `}render(){if(!this.hass)return q`<ha-card></ha-card>`;const e=je(this.hass,this._config.board_entity);if(!e)return q`<ha-card><div class="notice">${Oe(this.hass,"board.missing")}</div></ha-card>`;const t=e.timetable;if(!t)return q`<ha-card
+        ><div class="notice">${Oe(this.hass,"timetable.no_periods")}</div></ha-card
       >`;const s=this._candidates(e.members);if(!s.length)return q`<ha-card
-        ><div class="notice">${ze(this.hass,"timetable.none_configured")}</div></ha-card
-      >`;const i=s.find(e=>e.member.id===this._memberId)??s[0],{member:o,week:r,outlook:n}=i,a=this._weekdays(r),l=function(e=new Date){return(e.getDay()+6)%7}(),d=!1!==this._config.highlight,c=this._config.layout??"auto",h="day"===c||"auto"===c&&this._narrow,u=void 0!==this._day&&a.includes(this._day)?this._day:a.includes(l)?l:a[0],p=h?[u]:a,m=p.filter(e=>null===this._closure(n,e)),g=function(e,t){const s=e.periods.filter(t),i=new Set(s.map(e=>e.index)),o=[];for(const t of s){o.push({kind:"period",period:t});const s=e.breaks.find(e=>e.after===t.index&&i.has(t.index+1));s&&o.push({kind:"break",gap:s})}return o}(t,e=>!1===this._config.hide_empty_periods||m.some(t=>void 0!==ke(r,t,e.index))),f=d&&e.schoolToday?Se(t):void 0,b=!1!==this._config.show_times,y=!1!==this._config.show_breaks?g:g.filter(e=>"period"===e.kind);return q`
+        ><div class="notice">${Oe(this.hass,"timetable.none_configured")}</div></ha-card
+      >`;const i=s.find(e=>e.member.id===this._memberId)??s[0],{member:o,week:r,outlook:a}=i,n=this._weekdays(r),d=function(e=new Date){return(e.getDay()+6)%7}(),l=!1!==this._config.highlight,c=this._config.layout??"auto",h="day"===c||"auto"===c&&this._narrow,u=void 0!==this._day&&n.includes(this._day)?this._day:n.includes(d)?d:n[0],m=h?[u]:n,p=m.filter(e=>null===this._closure(a,e)),b=function(e,t){const s=e.periods.filter(t),i=new Set(s.map(e=>e.index)),o=[];for(const t of s){o.push({kind:"period",period:t});const s=e.breaks.find(e=>e.after===t.index&&i.has(t.index+1));s&&o.push({kind:"break",gap:s})}return o}(t,e=>!1===this._config.hide_empty_periods||p.some(t=>void 0!==Ae(r,t,e.index))),g=l&&e.schoolToday?Se(t):void 0,f=!1!==this._config.show_times,y=!1!==this._config.show_breaks?b:b.filter(e=>"period"===e.kind);return q`
       <ha-card style=${`--member-color:${o.color}`}>
         <div class="head">
           <div class="title">
@@ -366,74 +814,74 @@ const e="0.5.3",t=["#e0603a","#3a86c8","#4f9d69","#c9a227","#8e6bbf","#d1707f"];
           </div>
           ${this._renderChips(s,o)}
         </div>
-        ${d&&!e.schoolToday?this._renderNoSchool(e.noSchoolReason):d&&a.includes(l)?this._renderStatus(t,r,l):K}
+        ${l&&!e.schoolToday?this._renderNoSchool(e.noSchoolReason):l&&n.includes(d)?this._renderStatus(t,r,d):Z}
         ${h?q`
               <div class="days">
-                ${a.map(e=>q`
+                ${n.map(e=>q`
                     <button
-                      class="chip day ${e===l&&d?"is-today":""}"
+                      class="chip day ${e===d&&l?"is-today":""}"
                       aria-pressed=${e===u}
                       @click=${()=>{this._day=e}}
                     >
                       ${this._weekdayName(e,"short")}
-                      ${this._columnDate(n,e)?q`<span class="chip-date"
-                            >${this._columnDate(n,e)}</span
-                          >`:K}
+                      ${this._columnDate(a,e)?q`<span class="chip-date"
+                            >${this._columnDate(a,e)}</span
+                          >`:Z}
                     </button>
                   `)}
               </div>
-            `:K}
+            `:Z}
 
         <div
           class="grid"
-          style=${`grid-template-columns:${b?"max-content":"min-content"} repeat(${p.length}, minmax(0, 1fr))`}
+          style=${`grid-template-columns:${f?"max-content":"min-content"} repeat(${m.length}, minmax(0, 1fr))`}
         >
           <!-- One surface per day, behind everything else in that column. Drawn first
                so the cells paint on top of it without needing a stacking context. -->
-          ${p.map((e,t)=>q`<div class="day-panel" style=${`grid-column:${t+2};grid-row:1 / -1`}></div>`)}
+          ${m.map((e,t)=>q`<div class="day-panel" style=${`grid-column:${t+2};grid-row:1 / -1`}></div>`)}
           <div class="corner" style="grid-column:1;grid-row:1"></div>
-          ${p.map((e,t)=>{const s=this._closure(n,e);return q`
+          ${m.map((e,t)=>{const s=this._closure(a,e);return q`
               <div
-                class="col-head ${d&&e===l?"today":""} ${null!==s?"closed":""}"
+                class="col-head ${l&&e===d?"today":""} ${null!==s?"closed":""}"
                 style=${`grid-column:${t+2};grid-row:1`}
               >
                 <span class="col-day"
                   >${this._weekdayName(e,h?"long":"short")}</span
                 >
-                ${this._columnDate(n,e)?q`<span class="col-date">${this._columnDate(n,e)}</span>`:K}
-                ${s?q`<span class="col-closed" title=${s}>${s}</span>`:K}
+                ${this._columnDate(a,e)?q`<span class="col-date">${this._columnDate(a,e)}</span>`:Z}
+                ${s?q`<span class="col-closed" title=${s}>${s}</span>`:Z}
               </div>
             `})}
           ${y.map((e,s)=>{const i=s+2;if("break"===e.kind){const t=`${ve(this.hass,e.gap.start)}–${ve(this.hass,e.gap.end)}`;return q`
                 <div
                   class="t-break"
                   style=${`grid-column:1;grid-row:${i}`}
-                  title=${`${ze(this.hass,"timetable.break")} · ${t}`}
+                  title=${`${Oe(this.hass,"timetable.break")} · ${t}`}
                 >
-                  ${ze(this.hass,"timetable.break")}
+                  ${Oe(this.hass,"timetable.break")}
                 </div>
-                ${p.map((e,s)=>q`
+                ${m.map((e,s)=>q`
                     <div
                       class="d-break"
                       style=${`grid-column:${s+2};grid-row:${i}`}
-                      title=${`${ze(this.hass,"timetable.break")} · ${t}`}
+                      title=${`${Oe(this.hass,"timetable.break")} · ${t}`}
                     ></div>
                   `)}
-              `}const{period:o}=e,a=d?function(e,t=_e()){if(t<e.startMinutes||t>=e.endMinutes)return null;const s=e.endMinutes-e.startMinutes;return s>0?(t-e.startMinutes)/s:0}(o):null;return q`
+              `}const{period:o}=e,n=l?function(e,t=_e()){if(t<e.startMinutes||t>=e.endMinutes)return null;const s=e.endMinutes-e.startMinutes;return s>0?(t-e.startMinutes)/s:0}(o):null;return q`
               <div class="time" style=${`grid-column:1;grid-row:${i}`}>
                 <span class="no">${o.index}</span>
-                ${b?q`<span class="span"
+                ${f?q`<span class="span"
                       >${ve(this.hass,o.start)}<br />${ve(this.hass,o.end)}</span
-                    >`:K}
+                    >`:Z}
               </div>
-              ${p.map((e,s)=>null!==this._closure(n,e)?q`<div
+              ${m.map((e,s)=>null!==this._closure(a,e)?q`<div
                       class="cell closed"
                       style=${`grid-column:${s+2};grid-row:${i}`}
-                    ></div>`:this._renderCell(t,r,e,o.index,d&&e===l&&f?.index===o.index,a,`grid-column:${s+2};grid-row:${i}`))}
+                    ></div>`:this._renderCell(t,r,e,o.index,l&&e===d&&g?.index===o.index,n,`grid-column:${s+2};grid-row:${i}`))}
             `})}
         </div>
       </ha-card>
-    `}};Ze.styles=[Ue,Re,l`
+    `}};it.styles=[We,qe,d`
       /* The card measures itself to decide between the week and a single day, and an
          inline host has no width worth measuring. */
       :host {
@@ -692,4 +1140,4 @@ const e="0.5.3",t=["#e0603a","#3a86c8","#4f9d69","#c9a227","#8e6bbf","#d1707f"];
         color: var(--schoolday-muted);
         font-size: 0.9rem;
       }
-    `],s([me({attribute:!1})],Ze.prototype,"hass",void 0),s([ge()],Ze.prototype,"_config",void 0),s([ge()],Ze.prototype,"_memberId",void 0),s([ge()],Ze.prototype,"_day",void 0),s([ge()],Ze.prototype,"_narrow",void 0),s([ge()],Ze.prototype,"_tick",void 0),Ze=s([he("schoolday-timetable-card")],Ze),window.customCards=window.customCards||[],window.customCards.push({type:"schoolday-timetable-card",name:"Schoolday Timetable",description:"The school timetable per child, colour-coded by subject, with the running lesson marked.",preview:!0,documentationURL:"https://github.com/DomCim/HA-Schoolday"}),console.info(`%c SCHOOLDAY %c ${e} `,"color:#fff;background:#3a86c8;font-weight:700;border-radius:3px 0 0 3px;padding:2px 6px","color:#3a86c8;background:#16212b;font-weight:700;border-radius:0 3px 3px 0;padding:2px 6px");export{e as SCHOOLDAY_VERSION};
+    `],s([pe({attribute:!1})],it.prototype,"hass",void 0),s([be()],it.prototype,"_config",void 0),s([be()],it.prototype,"_memberId",void 0),s([be()],it.prototype,"_day",void 0),s([be()],it.prototype,"_narrow",void 0),s([be()],it.prototype,"_tick",void 0),it=s([he("schoolday-timetable-card")],it),window.customCards=window.customCards||[],window.customCards.push({type:"schoolday-timetable-card",name:"Schoolday Timetable",description:"The school timetable per child, colour-coded by subject, with the running lesson marked.",preview:!0,documentationURL:"https://github.com/DomCim/HA-Schoolday"}),console.info(`%c SCHOOLDAY %c ${e} `,"color:#fff;background:#3a86c8;font-weight:700;border-radius:3px 0 0 3px;padding:2px 6px","color:#3a86c8;background:#16212b;font-weight:700;border-radius:0 3px 3px 0;padding:2px 6px");export{e as SCHOOLDAY_VERSION};

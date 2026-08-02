@@ -373,5 +373,32 @@ check(
     f"{len(made)} Quellen, unbekannt: {sorted(n for n in made if n not in sensor_src)}",
 )
 
+# --- the brand images must stay within the sizes home-assistant/brands allows ---
+# Dimensions only, from the PNG header, so this needs nothing but the standard library.
+# Trimming is the render script's job; getting the size wrong is the likely mistake,
+# and a brands pull request is rejected for it without much explanation.
+import struct  # noqa: E402
+
+BRANDS = pathlib.Path("brands/custom_integrations/schoolday")
+
+
+def png_size(path):
+    with open(path, "rb") as fh:
+        return struct.unpack(">II", fh.read(24)[16:24])
+
+
+sizes = {name: png_size(BRANDS / name) for name in
+         ("icon.png", "icon@2x.png", "logo.png", "logo@2x.png")}
+check(
+    "Icons sind quadratisch, 256 und 512",
+    sizes["icon.png"] == (256, 256) and sizes["icon@2x.png"] == (512, 512),
+    str({k: v for k, v in sizes.items() if k.startswith("icon")}),
+)
+check(
+    "Logos: kuerzeste Seite 128..256 bzw. 256..512",
+    128 <= min(sizes["logo.png"]) <= 256 and 256 <= min(sizes["logo@2x.png"]) <= 512,
+    f"{min(sizes['logo.png'])} / {min(sizes['logo@2x.png'])}",
+)
+
 print(f"\n{'alle bestanden' if not fails else str(fails) + ' fehlgeschlagen'}")
 sys.exit(1 if fails else 0)

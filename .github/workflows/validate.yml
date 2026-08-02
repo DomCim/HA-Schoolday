@@ -28,7 +28,9 @@ jobs:
       - uses: hacs/action@main
         with:
           category: integration
-          # brands:      not published to the HA brands repository, and not intended to be.
+          # brands:      the images are ready under brands/, but the pull request to
+          #              home-assistant/brands has not been merged yet. Drop this from
+          #              the ignore list the day it is.
           # topics /
           # description: required only for inclusion in the HACS default store. This is
           #              installed as a custom repository, where neither is checked.

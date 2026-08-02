@@ -141,6 +141,37 @@ function memberState(entityId, name, memberId, color) {
   };
 }
 
+// One homework list per child, as todo.py publishes it. Dates are around the frozen
+// "now" (Wednesday 5 August 2026) so every bucket the card draws is represented.
+const HOMEWORK = {
+  m1: [
+    { uid: 'h1', summary: 'Mathe Seite 42', due: '2026-08-03', done: false },
+    { uid: 'h2', summary: 'Deutsch Aufsatz', due: '2026-08-05', done: false },
+    { uid: 'h3', summary: 'Vokabeln lernen', due: '2026-08-06', done: false },
+    { uid: 'h4', summary: 'Referat vorbereiten', due: '2026-08-20', done: false },
+    { uid: 'h5', summary: 'Lesen üben', due: null, done: false },
+    { uid: 'h6', summary: 'HSU Arbeitsblatt', due: '2026-08-04', done: true },
+  ],
+  m2: [],
+  m3: [{ uid: 'h7', summary: 'Bild fertig malen', due: '2026-08-06', done: false }],
+};
+
+function homeworkState(entityId, name, memberId) {
+  const items = HOMEWORK[memberId] ?? [];
+  return {
+    entity_id: entityId,
+    state: String(items.filter((item) => !item.done).length),
+    attributes: {
+      friendly_name: `Hausaufgaben ${name}`,
+      member_id: memberId,
+      open: items.filter((item) => !item.done).length,
+      homework: items.map((item) => ({ ...item })),
+    },
+    last_changed: STAMP,
+    last_updated: STAMP,
+  };
+}
+
 window.__calls = { services: [] };
 
 const CALENDAR = (entityId, name) => ({
@@ -201,6 +232,9 @@ const hass = {
     'sensor.schoolday_ben': memberState('sensor.schoolday_ben', 'Ben', 'm1', '#e0603a'),
     'sensor.schoolday_jan': memberState('sensor.schoolday_jan', 'Jan', 'm2', '#3a86c8'),
     'sensor.schoolday_nik': memberState('sensor.schoolday_nik', 'Nik', 'm3', '#4f9d69'),
+    'todo.hausaufgaben_ben': homeworkState('todo.hausaufgaben_ben', 'Ben', 'm1'),
+    'todo.hausaufgaben_jan': homeworkState('todo.hausaufgaben_jan', 'Jan', 'm2'),
+    'todo.hausaufgaben_nik': homeworkState('todo.hausaufgaben_nik', 'Nik', 'm3'),
     'person.ben': {
       entity_id: 'person.ben',
       state: 'home',
@@ -235,6 +269,23 @@ const hass = {
 
   async callService(domain, service, data) {
     window.__calls.services.push({ domain, service, data });
+
+    if (domain === 'todo' && service === 'update_item') {
+      const sensorId = Object.keys(hass.states).find(
+        (id) => id === data.entity_id,
+      );
+      const memberId = hass.states[sensorId]?.attributes?.member_id;
+      const entry = (HOMEWORK[memberId] ?? []).find((item) => item.uid === data.item);
+      if (entry) entry.done = data.status === 'completed';
+      if (sensorId) {
+        hass.states[sensorId] = homeworkState(
+          sensorId,
+          hass.states[sensorId].attributes.friendly_name.replace('Hausaufgaben ', ''),
+          memberId,
+        );
+      }
+      window.__pushHass();
+    }
 
     if (domain === 'schoolday' && service === 'set_routine_step') {
       const block = ROUTINES[data.member]?.[data.block] ?? [];

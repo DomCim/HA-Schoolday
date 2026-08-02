@@ -22,6 +22,7 @@ from homeassistant.helpers.event import async_track_time_change
 from .const import (
     DATA_ABSENCE,
     DATA_FRONTEND_REGISTERED,
+    DATA_HOMEWORK,
     DATA_STORE,
     FRONTEND_DIR,
     FRONTEND_URL_BASE,
@@ -29,11 +30,11 @@ from .const import (
     VERSION,
 )
 from .services import async_register_services
-from .store import AbsenceStore, RoutineStore
+from .store import AbsenceStore, HomeworkStore, RoutineStore
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.SWITCH]
+PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.SWITCH, Platform.TODO]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -51,6 +52,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await absence.async_load()
         hass.data[DATA_ABSENCE] = absence
 
+    if DATA_HOMEWORK not in hass.data:
+        homework = HomeworkStore(hass)
+        await homework.async_load()
+        hass.data[DATA_HOMEWORK] = homework
+
     async_register_services(hass)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))
@@ -61,6 +67,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async def _handle_midnight(_now: Any) -> None:
         await hass.data[DATA_STORE].async_handle_midnight()
         await hass.data[DATA_ABSENCE].async_handle_midnight()
+        await hass.data[DATA_HOMEWORK].async_handle_midnight()
 
     entry.async_on_unload(
         async_track_time_change(hass, _handle_midnight, hour=0, minute=0, second=10)

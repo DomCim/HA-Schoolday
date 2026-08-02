@@ -161,6 +161,11 @@
       "sick": {
         "name": "{name} ist krank"
       }
+    },
+    "todo": {
+      "homework": {
+        "name": "Hausaufgaben {name}"
+      }
     }
   },
   "selector": {

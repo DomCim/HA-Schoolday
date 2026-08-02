@@ -31,3 +31,156 @@ reset_routine:
       example: Ben
       selector:
         text:
+
+# --- the configuration itself ----------------------------------------------
+# What the options dialog offers, so a card can offer it too. Each of these
+# validates exactly what the options flow validates.
+
+set_periods:
+  fields:
+    periods:
+      required: true
+      example: ["08:00-08:45", "08:45-09:30"]
+      selector:
+        object:
+
+set_lesson:
+  fields:
+    member:
+      required: true
+      example: Ben
+      selector:
+        text:
+    weekday:
+      required: true
+      example: 0
+      selector:
+        number:
+          min: 0
+          max: 6
+          mode: box
+    period:
+      required: true
+      example: 1
+      selector:
+        number:
+          min: 1
+          max: 20
+          mode: box
+    subject:
+      required: false
+      example: Mathe
+      selector:
+        text:
+    room:
+      required: false
+      example: 1.OG 5
+      selector:
+        text:
+
+set_day:
+  fields:
+    member:
+      required: true
+      example: Ben
+      selector:
+        text:
+    weekday:
+      required: true
+      example: 0
+      selector:
+        number:
+          min: 0
+          max: 6
+          mode: box
+    lessons:
+      required: true
+      example: [{ period: 1, subject: Mathe, room: 1.OG 5 }]
+      selector:
+        object:
+
+set_routine:
+  fields:
+    member:
+      required: true
+      example: Ben
+      selector:
+        text:
+    block:
+      required: true
+      default: morning
+      selector:
+        select:
+          options:
+            - morning
+            - evening
+    day:
+      required: true
+      example: "0"
+      selector:
+        text:
+    steps:
+      required: true
+      example: ["Zähne putzen", "Ranzen packen"]
+      selector:
+        object:
+
+set_subject_color:
+  fields:
+    subject:
+      required: true
+      example: Mathe
+      selector:
+        text:
+    color:
+      required: false
+      selector:
+        color_rgb:
+
+set_member:
+  fields:
+    member:
+      required: false
+      example: Ben
+      selector:
+        text:
+    name:
+      required: true
+      example: Ben
+      selector:
+        text:
+    color:
+      required: false
+      selector:
+        color_rgb:
+    calendar:
+      required: false
+      selector:
+        entity:
+          domain: calendar
+    avatar:
+      required: false
+      selector:
+        text:
+
+remove_member:
+  fields:
+    member:
+      required: true
+      example: Ben
+      selector:
+        text:
+
+set_calendars:
+  fields:
+    school_calendars:
+      required: false
+      selector:
+        entity:
+          domain: calendar
+          multiple: true
+    care_keywords:
+      required: false
+      example: ["Ferienbetreuung", "Hort"]
+      selector:
+        object:

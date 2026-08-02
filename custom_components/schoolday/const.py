@@ -175,6 +175,29 @@ SIGNAL_ROUTINE_UPDATED: Final = f"{DOMAIN}_routine_updated"
 SERVICE_SET_ROUTINE_STEP: Final = "set_routine_step"
 SERVICE_RESET_ROUTINE: Final = "reset_routine"
 
+# Services that write the configuration itself, so a card can offer what the options
+# flow offers. They validate exactly what the options flow validates — a card must not
+# be able to write a timetable the sensors can no longer read.
+SERVICE_SET_PERIODS: Final = "set_periods"
+SERVICE_SET_LESSON: Final = "set_lesson"
+SERVICE_SET_DAY: Final = "set_day"
+SERVICE_SET_ROUTINE: Final = "set_routine"
+SERVICE_SET_SUBJECT_COLOR: Final = "set_subject_color"
+SERVICE_SET_MEMBER: Final = "set_member"
+SERVICE_REMOVE_MEMBER: Final = "remove_member"
+SERVICE_SET_CALENDARS: Final = "set_calendars"
+
+ATTR_WEEKDAY_FIELD: Final = "weekday"
+ATTR_SUBJECT_FIELD: Final = "subject"
+ATTR_ROOM_FIELD: Final = "room"
+ATTR_LESSONS: Final = "lessons"
+ATTR_STEPS: Final = "steps"
+ATTR_DAY: Final = "day"
+ATTR_PERIODS: Final = "periods"
+ATTR_NAME: Final = "name"
+ATTR_KEYWORDS: Final = "care_keywords"
+ATTR_CALENDAR_FIELD: Final = "school_calendars"
+
 ATTR_MEMBER: Final = "member"
 ATTR_BLOCK: Final = "block"
 ATTR_STEP: Final = "step"

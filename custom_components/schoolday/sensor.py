@@ -121,6 +121,7 @@ def _async_remove_orphans(
         _board_unique_id(entry),
         *(_member_unique_id(entry, member.id) for member in config.members),
         *(sick_unique_id(entry, member.id) for member in config.members),
+        *(homework_unique_id(entry, member.id) for member in config.members),
     }
     for registry_entry in er.async_entries_for_config_entry(registry, entry.entry_id):
         if registry_entry.unique_id not in expected:
@@ -138,6 +139,11 @@ def _member_unique_id(entry: ConfigEntry, member_id: str) -> str:
 def sick_unique_id(entry: ConfigEntry, member_id: str) -> str:
     """The ill-today switch's unique id. Public because two platforms need to agree."""
     return f"{entry.entry_id}_{member_id}_sick"
+
+
+def homework_unique_id(entry: ConfigEntry, member_id: str) -> str:
+    """The homework list's unique id, for the same reason as above."""
+    return f"{entry.entry_id}_{member_id}_homework"
 
 
 def _device_info(entry: ConfigEntry) -> DeviceInfo:

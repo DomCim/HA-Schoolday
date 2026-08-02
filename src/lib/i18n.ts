@@ -27,6 +27,15 @@ const EN: Dict = {
   'timetable.event': 'No normal lessons',
   'timetable.changed': 'Changed',
 
+  // homework
+  'homework.nothing': 'Nothing to do',
+  'homework.all_done': 'No homework outstanding.',
+  'homework.overdue': 'Overdue',
+  'homework.today': 'Due today',
+  'homework.tomorrow': 'Due tomorrow',
+  'homework.later': 'Later',
+  'homework.someday': 'No date',
+
   // timetable
   'timetable.no_periods':
     'No lesson times yet. Add them under Configure → School timetable in the Schoolday integration.',
@@ -51,6 +60,7 @@ const EN: Dict = {
   'editor.block': 'Which block to show',
   'editor.evening_from': 'Evening starts at (hour)',
   'editor.show_empty': 'Show members with nothing on today',
+  'editor.show_done': 'Show what is already done',
   'editor.members': 'Limit to these members',
   'editor.member': 'Family member',
   'editor.layout': 'Layout',
@@ -132,6 +142,14 @@ const DE: Dict = {
   'timetable.event': 'Kein regulärer Unterricht',
   'timetable.changed': 'Geändert',
 
+  'homework.nothing': 'Nichts zu tun',
+  'homework.all_done': 'Keine offenen Hausaufgaben.',
+  'homework.overdue': 'Überfällig',
+  'homework.today': 'Heute fällig',
+  'homework.tomorrow': 'Morgen fällig',
+  'homework.later': 'Später',
+  'homework.someday': 'Ohne Datum',
+
   'timetable.no_periods':
     'Noch keine Stundenzeiten. Trage sie in der Schoolday-Integration unter „Konfigurieren → Stundenplan“ ein.',
   'timetable.none_configured':
@@ -154,6 +172,7 @@ const DE: Dict = {
   'editor.block': 'Welcher Block angezeigt wird',
   'editor.evening_from': 'Abend beginnt um (Stunde)',
   'editor.show_empty': 'Mitglieder ohne Routine heute anzeigen',
+  'editor.show_done': 'Bereits Erledigtes anzeigen',
   'editor.members': 'Auf diese Mitglieder beschränken',
   'editor.member': 'Familienmitglied',
   'editor.layout': 'Darstellung',

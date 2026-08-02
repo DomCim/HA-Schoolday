@@ -146,6 +146,18 @@ export class SchooldayTimetableCardEditor extends SchooldayCardEditor {
   }
 }
 
+@customElement('schoolday-homework-card-editor')
+export class SchooldayHomeworkCardEditor extends SchooldayCardEditor {
+  protected schema(): FormItem[] {
+    const members = memberOptions(this.hass);
+    return [
+      ...(members.length > 1 ? [select('member', members)] : []),
+      boolean('show_done'),
+      boolean('show_empty'),
+    ];
+  }
+}
+
 @customElement('schoolday-admin-card-editor')
 export class SchooldayAdminCardEditor extends SchooldayCardEditor {
   protected schema(): FormItem[] {
@@ -179,5 +191,6 @@ declare global {
     'schoolday-routines-card-editor': SchooldayRoutinesCardEditor;
     'schoolday-timetable-card-editor': SchooldayTimetableCardEditor;
     'schoolday-header-card-editor': SchooldayHeaderCardEditor;
+    'schoolday-homework-card-editor': SchooldayHomeworkCardEditor;
   }
 }

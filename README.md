@@ -21,6 +21,7 @@ version.
 | `schoolday-timetable-card` | The week per child, colour-coded by subject, with the running lesson marked |
 | `schoolday-routines-card` | Daily routines per child and weekday, ticked off by the kids |
 | `schoolday-header-card` | Clock, date and weather — the strip along the top of a wall panel |
+| `schoolday-homework-card` | What each child still has to do, grouped by when it is due |
 | `schoolday-admin-card` | Everything the options dialog can change, on the dashboard |
 
 The cards read `sensor.schoolday_board` and the per-member sensors, so no card has to be told who
@@ -178,6 +179,25 @@ Two services drive it, for automations and for the card:
 |---|---|
 | `schoolday.set_routine_step` | Tick a step off, or put it back. Takes a member name or id. |
 | `schoolday.reset_routine` | Clear today's ticks, for one member or everyone. |
+
+## Homework
+
+Each child gets a Home Assistant **todo list**:
+
+```
+todo.hausaufgaben_ben
+```
+
+A `todo` list rather than something of Schoolday's own, because Home Assistant already
+has a shape for "things still to do" — and it arrives with a voice interface, a card, a
+calendar view and an API that Schoolday would only have reinvented worse. Anything that
+can talk to a todo list can put homework on it: Assist, the built-in todo card, a phone.
+
+`schoolday-homework-card` is the reading end. It groups by **when it is due** — overdue,
+today, tomorrow, later, no date — because that is the only question anybody asks a
+homework list, and reading dates at seven in the morning is work while "today" is not.
+Finished work stays for a fortnight and is then swept: not for the child's benefit, but
+so that *"did you do the maths?"* on Thursday still has an answer on Friday.
 
 ## When one date is not like its weekday
 

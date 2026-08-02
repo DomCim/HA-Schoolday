@@ -656,6 +656,96 @@ check(
   byName.map((n) => n.trim()).join(','),
 );
 
+// --------------------------------------------------------------- homework card
+
+await page.evaluate(() =>
+  window.__mount({ type: 'custom:schoolday-homework-card' }, 'schoolday-homework-card'),
+);
+await page.waitForTimeout(400);
+
+const homeworkGroups = await page.evaluate(() => {
+  const root = document.querySelector('schoolday-homework-card').shadowRoot;
+  const ben = [...root.querySelectorAll('.person')].find((node) =>
+    node.textContent.includes('Ben'),
+  );
+  return [...ben.querySelectorAll('.bucket')].map((bucket) => ({
+    head: bucket.querySelector('.bucket-head')?.textContent.trim(),
+    items: [...bucket.querySelectorAll('.label')].map((n) => n.textContent.trim()),
+  }));
+});
+check(
+  'homework is grouped by when it is due, soonest group first',
+  JSON.stringify(homeworkGroups) ===
+    JSON.stringify([
+      { head: 'Überfällig', items: ['Mathe Seite 42'] },
+      { head: 'Heute fällig', items: ['Deutsch Aufsatz'] },
+      { head: 'Morgen fällig', items: ['Vokabeln lernen'] },
+      { head: 'Später', items: ['Referat vorbereiten'] },
+      { head: 'Ohne Datum', items: ['Lesen üben'] },
+    ]),
+  JSON.stringify(homeworkGroups),
+);
+
+const homeworkPeople = await page
+  .locator('schoolday-homework-card .person-name')
+  .allTextContents();
+check(
+  'a child with nothing to do is left off, and the count is what is left',
+  homeworkPeople.map((n) => n.replace(/\s+/g, ' ').trim()).join(',') === 'Ben 5,Nik 1',
+  homeworkPeople.map((n) => n.replace(/\s+/g, ' ').trim()).join(','),
+);
+
+// Finished work is out of the way by default: the card exists to say what is left.
+const doneShown = await page.evaluate(() => {
+  const root = document.querySelector('schoolday-homework-card').shadowRoot;
+  return [...root.querySelectorAll('.label')].some(
+    (n) => n.textContent.trim() === 'HSU Arbeitsblatt',
+  );
+});
+check('what is already done is left out unless asked for', !doneShown, String(doneShown));
+
+const hwBox = await page.locator('schoolday-homework-card .item').first().boundingBox();
+check('homework rows are touch-sized', hwBox.height >= 44, `${Math.round(hwBox.height)}px tall`);
+
+await page.locator('schoolday-homework-card .item', { hasText: 'Deutsch Aufsatz' }).click();
+await page.waitForTimeout(400);
+const hwCall = await page.evaluate(() =>
+  window.__calls.services.filter((c) => c.service === 'update_item').at(-1),
+);
+const benCount = await page.evaluate(() => {
+  const root = document.querySelector('schoolday-homework-card').shadowRoot;
+  const ben = [...root.querySelectorAll('.person')].find((node) =>
+    node.textContent.includes('Ben'),
+  );
+  return ben.querySelector('.count')?.textContent.trim();
+});
+check(
+  'ticking homework off calls todo.update_item on that child’s list',
+  hwCall?.domain === 'todo' &&
+    hwCall?.data?.entity_id === 'todo.hausaufgaben_ben' &&
+    hwCall?.data?.item === 'h2' &&
+    hwCall?.data?.status === 'completed' &&
+    benCount === '4',
+  `${JSON.stringify(hwCall?.data ?? null)} count=${benCount}`,
+);
+
+await page.evaluate(() =>
+  window.__mount(
+    { type: 'custom:schoolday-homework-card', member: 'Nik', show_done: true },
+    'schoolday-homework-card',
+  ),
+);
+await page.waitForTimeout(300);
+const onlyNikHomework = await page
+  .locator('schoolday-homework-card .person-name')
+  .allTextContents();
+check(
+  'the homework card narrows to one child like the others',
+  onlyNikHomework.map((n) => n.replace(/\s+/g, ' ').trim()).join(',') === 'Nik 1',
+  onlyNikHomework.map((n) => n.replace(/\s+/g, ' ').trim()).join(','),
+);
+await page.screenshot({ path: join(SHOTS, 'homework.png') });
+
 // ------------------------------------------------------------------ header card
 
 await page.evaluate(() =>
@@ -736,6 +826,7 @@ check(
 const CARD_TYPES = [
   'schoolday-timetable-card',
   'schoolday-routines-card',
+  'schoolday-homework-card',
   'schoolday-header-card',
   'schoolday-admin-card',
 ];
@@ -1199,7 +1290,8 @@ const registered = await page.evaluate(() => window.customCards.map((c) => c.typ
 check(
   'every card registers itself in the picker',
   registered.join(',') ===
-    'schoolday-admin-card,schoolday-header-card,schoolday-routines-card,schoolday-timetable-card',
+    'schoolday-admin-card,schoolday-header-card,schoolday-homework-card,' +
+      'schoolday-routines-card,schoolday-timetable-card',
   registered.join(','),
 );
 

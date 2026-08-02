@@ -12,6 +12,7 @@ import { SCHOOLDAY_VERSION } from './lib/const';
 import './editors/schoolday-card-editors';
 import './cards/schoolday-admin-card';
 import './cards/schoolday-header-card';
+import './cards/schoolday-homework-card';
 import './cards/schoolday-routines-card';
 import './cards/schoolday-timetable-card';
 

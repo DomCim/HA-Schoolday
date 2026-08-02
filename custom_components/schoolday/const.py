@@ -219,6 +219,27 @@ STORAGE_KEY_ABSENCE: Final = f"{DOMAIN}.absence"
 DATA_ABSENCE: Final = f"{DOMAIN}_absence"
 SIGNAL_ABSENCE_UPDATED: Final = f"{DOMAIN}_absence_updated"
 
+# --- Homework -----------------------------------------------------------------
+
+# Also out of the config entry: homework is written and ticked off daily, and the one
+# thing it must never do is rewrite the household's configuration.
+#
+# A `todo` list rather than an attribute of Schoolday's own: Home Assistant already has
+# a shape for "things still to do", and it comes with a voice interface, a card, a
+# calendar view and an API Schoolday would otherwise have to invent worse versions of.
+STORAGE_KEY_HOMEWORK: Final = f"{DOMAIN}.homework"
+
+DATA_HOMEWORK: Final = f"{DOMAIN}_homework"
+SIGNAL_HOMEWORK_UPDATED: Final = f"{DOMAIN}_homework_updated"
+
+# On the todo entity, so a card can find the right list and draw it without asking for
+# the items over the service API.
+ATTR_HOMEWORK: Final = "homework"
+ATTR_HOMEWORK_OPEN: Final = "open"
+ATTR_DUE: Final = "due"
+ATTR_UID: Final = "uid"
+ATTR_SUMMARY: Final = "summary"
+
 SERVICE_SET_ABSENT: Final = "set_absent"
 ATTR_ABSENT: Final = "absent"
 ATTR_UNTIL: Final = "until"

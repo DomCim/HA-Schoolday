@@ -10,6 +10,7 @@ import { SCHOOLDAY_VERSION } from './lib/const';
 // Cards are imported for their side effect: each module defines its custom element
 // and pushes an entry onto window.customCards.
 import './editors/schoolday-card-editors';
+import './cards/schoolday-admin-card';
 import './cards/schoolday-header-card';
 import './cards/schoolday-routines-card';
 import './cards/schoolday-timetable-card';

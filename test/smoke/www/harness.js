@@ -133,6 +133,14 @@ function memberState(entityId, name, memberId, color) {
 
 window.__calls = { services: [] };
 
+const CALENDAR = (entityId, name) => ({
+  entity_id: entityId,
+  state: 'off',
+  attributes: { friendly_name: name },
+  last_changed: STAMP,
+  last_updated: STAMP,
+});
+
 const hass = {
   states: {
     'sensor.schoolday_board': {
@@ -147,6 +155,23 @@ const hass = {
         ],
         routine_blocks: ['morning', 'evening'],
         timetable: TIMETABLE,
+        // What the management card edits, exactly as the board sensor publishes it.
+        admin: {
+          members: [
+            { id: 'm1', name: 'Ben', color: '#e0603a', avatar: null, order: 0, calendar: 'calendar.ben' },
+            { id: 'm2', name: 'Jan', color: '#3a86c8', avatar: null, order: 1, calendar: null },
+            { id: 'm3', name: 'Nik', color: '#4f9d69', avatar: null, order: 2, calendar: null },
+          ],
+          routines: {
+            m1: { morning: { 0: ['Zähne putzen', 'Sportsachen einpacken'], care: ['Brotdose'] }, evening: {} },
+            m2: { morning: {}, evening: {} },
+            m3: { morning: { 2: ['Zähne putzen'] }, evening: {} },
+          },
+          periods: TIMETABLE.periods.map((period) => `${period.start}-${period.end}`),
+          colors: { Deutsch: '#ff4015' },
+          school_calendars: ['calendar.ferien'],
+          care_keywords: ['Ferienbetreuung'],
+        },
         version: '0.5.0',
       },
       last_changed: STAMP,
@@ -155,6 +180,8 @@ const hass = {
     'sensor.schoolday_ben': memberState('sensor.schoolday_ben', 'Ben', 'm1', '#e0603a'),
     'sensor.schoolday_jan': memberState('sensor.schoolday_jan', 'Jan', 'm2', '#3a86c8'),
     'sensor.schoolday_nik': memberState('sensor.schoolday_nik', 'Nik', 'm3', '#4f9d69'),
+    'calendar.ferien': CALENDAR('calendar.ferien', 'Schulferien'),
+    'calendar.ben': CALENDAR('calendar.ben', 'Ben'),
     'weather.forecast_goldammerweg': {
       entity_id: 'weather.forecast_goldammerweg',
       state: 'sunny',

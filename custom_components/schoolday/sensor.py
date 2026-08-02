@@ -28,6 +28,7 @@ from homeassistant.helpers.event import (
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    ATTR_ADMIN,
     ATTR_AVATAR,
     ATTR_BOARD,
     ATTR_COLOR,
@@ -257,6 +258,9 @@ class SchooldayBoardSensor(SchooldayBaseSensor):
             ATTR_TIMETABLE: self._config.timetable.as_card_dict(),
             ATTR_SCHOOL_TODAY: reason is None,
             ATTR_NO_SCHOOL: reason,
+            # What the management card edits. Only it reads this; the display cards
+            # take their smaller shapes above.
+            ATTR_ADMIN: self._config.as_admin_dict(),
             ATTR_VERSION: VERSION,
         }
 

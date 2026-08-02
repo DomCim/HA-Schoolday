@@ -136,6 +136,21 @@ export class SchooldayTimetableCardEditor extends SchooldayCardEditor {
   }
 }
 
+@customElement('schoolday-admin-card-editor')
+export class SchooldayAdminCardEditor extends SchooldayCardEditor {
+  protected schema(): FormItem[] {
+    return [
+      select('section', [
+        { value: 'timetable', label: t(this.hass, 'admin.tab_timetable') },
+        { value: 'routines', label: t(this.hass, 'admin.tab_routines') },
+        { value: 'family', label: t(this.hass, 'admin.tab_family') },
+        { value: 'subjects', label: t(this.hass, 'admin.tab_subjects') },
+        { value: 'holidays', label: t(this.hass, 'admin.tab_holidays') },
+      ]),
+    ];
+  }
+}
+
 @customElement('schoolday-header-card-editor')
 export class SchooldayHeaderCardEditor extends SchooldayCardEditor {
   protected schema(): FormItem[] {

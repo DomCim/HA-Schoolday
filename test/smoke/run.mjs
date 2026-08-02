@@ -553,6 +553,7 @@ const CARD_TYPES = [
   'schoolday-timetable-card',
   'schoolday-routines-card',
   'schoolday-header-card',
+  'schoolday-admin-card',
 ];
 
 const editors = await page.evaluate(async (types) => {
@@ -571,7 +572,8 @@ const editors = await page.evaluate(async (types) => {
 }, CARD_TYPES);
 check(
   'every card offers a defined visual editor',
-  editors.length === 3 && editors.every((e) => e.defined && e.tag === `${e.type}-editor`),
+  editors.length === CARD_TYPES.length &&
+    editors.every((e) => e.defined && e.tag === `${e.type}-editor`),
   editors.map((e) => `${e.tag}:${e.defined ? 'ok' : 'MISSING'}`).join(' '),
 );
 check(
@@ -633,12 +635,156 @@ check(
   JSON.stringify(editorEvent),
 );
 
+// ---------------------------------------------------------------- admin card
+
+// Everything the options dialog offers, from the dashboard. The card never writes the
+// configuration itself — it calls a service — so what is checked here is that the right
+// call goes out with the right payload.
+
+await page.evaluate(() =>
+  window.__mount({ type: 'custom:schoolday-admin-card' }, 'schoolday-admin-card'),
+);
+await page.waitForTimeout(400);
+
+const adminTabs = await page.locator('schoolday-admin-card .tab').allTextContents();
+check(
+  'the admin card offers every part of the options dialog',
+  adminTabs.map((tab) => tab.trim()).join(',') ===
+    'Stundenplan,Routinen,Familie,Fächer,Freie Tage',
+  adminTabs.map((tab) => tab.trim()).join(','),
+);
+
+const adminPeriods = await page
+  .locator('schoolday-admin-card textarea')
+  .first()
+  .inputValue();
+check(
+  'the lesson times come from the configuration, not from the grid',
+  adminPeriods.split('\n').length === 7 && adminPeriods.startsWith('08:00-08:45'),
+  adminPeriods.replace(/\n/g, ' | '),
+);
+
+// Tapping a cell opens it with what is already there, and saving sends set_lesson.
+await page.locator('schoolday-admin-card .slot.filled').first().click();
+await page.waitForTimeout(200);
+const adminOpenSubject = await page.locator('schoolday-admin-card .editor input').first().inputValue();
+check(
+  'tapping a lesson opens it with the subject already in it',
+  adminOpenSubject.trim().length > 0,
+  adminOpenSubject,
+);
+
+await page.evaluate(() => {
+  const card = document.querySelector('schoolday-admin-card');
+  const input = card.shadowRoot.querySelector('.editor input');
+  input.value = 'Chemie';
+  input.dispatchEvent(new Event('input'));
+});
+await page.locator('schoolday-admin-card .editor .apply').click();
+await page.waitForTimeout(300);
+
+const adminLessonCall = await page.evaluate(
+  () => window.__calls.services.filter((c) => c.service === 'set_lesson').pop() ?? null,
+);
+check(
+  'saving a cell calls set_lesson for that member, day and period',
+  adminLessonCall?.domain === 'schoolday' &&
+    adminLessonCall?.data.subject === 'Chemie' &&
+    typeof adminLessonCall?.data.weekday === 'number' &&
+    typeof adminLessonCall?.data.period === 'number',
+  JSON.stringify(adminLessonCall?.data ?? null),
+);
+
+// Clearing is its own path: an empty subject, which is how a period is emptied.
+await page.locator('schoolday-admin-card .slot.filled').first().click();
+await page.waitForTimeout(200);
+await page.locator('schoolday-admin-card .editor .danger').click();
+await page.waitForTimeout(300);
+const adminClearCall = await page.evaluate(
+  () => window.__calls.services.filter((c) => c.service === 'set_lesson').pop() ?? null,
+);
+check(
+  'clearing a cell sends an empty subject',
+  adminClearCall?.data.subject === '',
+  JSON.stringify(adminClearCall?.data ?? null),
+);
+
+// Routines: every day is editable, including the two that are not weekdays.
+await page.locator('schoolday-admin-card .tab', { hasText: 'Routinen' }).click();
+await page.waitForTimeout(300);
+const adminRoutineDays = await page.locator('schoolday-admin-card .chips').last().locator('.chip').allTextContents();
+check(
+  'routines offer the seven weekdays plus a day off and holiday care',
+  adminRoutineDays.length === 9 &&
+    /Freier Tag/.test(adminRoutineDays[7]) &&
+    /Ferienbetreuung/.test(adminRoutineDays[8]),
+  adminRoutineDays.map((d) => d.trim()).join(','),
+);
+
+const adminRoutineSteps = await page.locator('schoolday-admin-card textarea').first().inputValue();
+check(
+  "Monday's steps are the ones already configured",
+  adminRoutineSteps.split('\n').join(' | ') === 'Zähne putzen | Sportsachen einpacken',
+  adminRoutineSteps.replace(/\n/g, ' | '),
+);
+
+await page.locator('schoolday-admin-card .chip', { hasText: 'Ferienbetreuung' }).click();
+await page.waitForTimeout(200);
+const adminCareSteps = await page.locator('schoolday-admin-card textarea').first().inputValue();
+check(
+  'holiday care has its own list, not the weekday one',
+  adminCareSteps.trim() === 'Brotdose',
+  adminCareSteps.replace(/\n/g, ' | '),
+);
+
+await page.evaluate(() => {
+  const card = document.querySelector('schoolday-admin-card');
+  const box = card.shadowRoot.querySelector('textarea');
+  box.value = 'Brotdose\nBadesachen';
+  card.shadowRoot.querySelector('.apply').click();
+});
+await page.waitForTimeout(300);
+const adminRoutineCall = await page.evaluate(
+  () => window.__calls.services.filter((c) => c.service === 'set_routine').pop() ?? null,
+);
+check(
+  'saving steps calls set_routine for that block and day',
+  adminRoutineCall?.data.day === 'care' &&
+    adminRoutineCall?.data.block === 'morning' &&
+    adminRoutineCall?.data.steps.join(',') === 'Brotdose,Badesachen',
+  JSON.stringify(adminRoutineCall?.data ?? null),
+);
+
+// Family: a member carries their own calendar, which no display card ever sees.
+await page.locator('schoolday-admin-card .tab', { hasText: 'Familie' }).click();
+await page.waitForTimeout(300);
+const adminMemberForms = await page.locator('schoolday-admin-card .member').count();
+const adminBenCalendar = await page.locator('schoolday-admin-card #calendar-m1').inputValue();
+check(
+  'every member is editable, plus one empty form to add another',
+  adminMemberForms === 4 && adminBenCalendar === 'calendar.ben',
+  `${adminMemberForms} forms, Ben: ${adminBenCalendar}`,
+);
+
+// Days off: the calendars and the keywords, each saved on its own.
+await page.locator('schoolday-admin-card .tab', { hasText: 'Freie Tage' }).click();
+await page.waitForTimeout(300);
+const adminHolidayBoxes = await page.locator('schoolday-admin-card textarea').all();
+const adminCalendarText = await adminHolidayBoxes[0].inputValue();
+const adminKeywordText = await adminHolidayBoxes[1].inputValue();
+check(
+  'days off show the calendars and the care keywords separately',
+  adminCalendarText.trim() === 'calendar.ferien' && adminKeywordText.trim() === 'Ferienbetreuung',
+  `${adminCalendarText.trim()} / ${adminKeywordText.trim()}`,
+);
+
 // --------------------------------------------------------------- card registry
 
 const registered = await page.evaluate(() => window.customCards.map((c) => c.type).sort());
 check(
   'every card registers itself in the picker',
-  registered.join(',') === 'schoolday-header-card,schoolday-routines-card,schoolday-timetable-card',
+  registered.join(',') ===
+    'schoolday-admin-card,schoolday-header-card,schoolday-routines-card,schoolday-timetable-card',
   registered.join(','),
 );
 

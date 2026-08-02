@@ -34,6 +34,13 @@ It is built for one thing: a tablet on the kitchen wall that a family walks past
 2. **[Set it up](installation.md#setting-it-up)** — family members, lesson times, one week per child.
 3. **[Put the cards on a dashboard](cards.md)** — a card with no options at all is the normal case.
 
+## Something not working, or missing
+
+Something broken goes in an [issue](https://github.com/DomCim/HA-Schoolday/issues/new/choose) — the
+form asks for the version and the log, which is what makes it answerable. Questions and ideas go in
+[Discussions](https://github.com/DomCim/HA-Schoolday/discussions), and an idea becomes an issue once
+there is a plan.
+
 ## What it is not
 
 Not a school-management system, not a homework nag, and not a reward chart. Routines are

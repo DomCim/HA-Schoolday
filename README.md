@@ -41,9 +41,10 @@ Requires Home Assistant **2025.1** or newer.
 
 ## Contributing
 
-Issues and ideas are welcome — there are
-[templates](https://github.com/DomCim/HA-Schoolday/issues/new/choose) for both. For working on the
-code, see [Development](https://domcim.github.io/HA-Schoolday/development.html).
+Something broken goes in an [issue](https://github.com/DomCim/HA-Schoolday/issues/new/choose);
+questions and ideas go in [Discussions](https://github.com/DomCim/HA-Schoolday/discussions), and an
+idea becomes an issue once there is a plan. [CONTRIBUTING.md](CONTRIBUTING.md) has the whole of it,
+including how to build and test.
 
 ## Licence
 

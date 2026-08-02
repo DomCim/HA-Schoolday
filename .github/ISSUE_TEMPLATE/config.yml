@@ -1,8 +1,13 @@
+# Ideas and questions go to Discussions; issues are for things that are broken or
+# already decided. One door per kind of thing, so nobody has to guess which.
 blank_issues_enabled: true
 contact_links:
   - name: Documentation
     url: https://domcim.github.io/HA-Schoolday/
     about: Setting up the timetable, routines, homework, days off and the cards.
-  - name: Question or idea
-    url: https://github.com/DomCim/HA-Schoolday/discussions
-    about: For anything that is not yet a bug or a concrete request.
+  - name: Question — how do I …?
+    url: https://github.com/DomCim/HA-Schoolday/discussions/new?category=q-a
+    about: Something is unclear rather than broken.
+  - name: Idea — Schoolday should be able to …
+    url: https://github.com/DomCim/HA-Schoolday/discussions/new?category=ideas
+    about: Ideas start here and become issues once there is a plan.

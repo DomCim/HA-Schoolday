@@ -275,6 +275,25 @@ def lessons_from_text(text: str | None, period_count: int) -> list[Lesson]:
     return lessons
 
 
+def unify_subjects(week: dict[int, list[Lesson]]) -> None:
+    """Settle on one spelling per subject within a week, in place.
+
+    Subject names are free text — anything can be a subject, and nothing here knows
+    what a school teaches. That makes them exact strings everywhere downstream: the
+    sensor state, the colour, and whatever an automation compares against. Typing
+    "Sport" on Monday and "sport" on Wednesday would therefore be two subjects, two
+    colours, and an announcement that catches half the week.
+
+    The first spelling in the week wins, which is the one the household meant. Only
+    within the week being saved: unifying across members would quietly undo a
+    deliberate rename.
+    """
+    canonical: dict[str, str] = {}
+    for weekday in sorted(week):
+        for lesson in week[weekday]:
+            lesson.subject = canonical.setdefault(lesson.subject.casefold(), lesson.subject)
+
+
 def text_from_lessons(lessons: list[Lesson]) -> str:
     """Render one weekday back into the field it was typed in.
 

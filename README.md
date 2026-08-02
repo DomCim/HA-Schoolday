@@ -151,6 +151,24 @@ actions:
         {% endif %}
 ```
 
+### Subject names
+
+Subject names are free text. `Werken`, `AG Robotik`, `Bläserklasse` — nothing here knows what a
+school teaches, and no list of subjects is kept anywhere, so the automation above works whatever the
+subject is called.
+
+The flip side is that comparisons are exact: `'Sport' in today_subjects` matches neither `sport` nor
+`Sportunterricht`. Within one child's week Schoolday settles that for you — save a week with `Sport`
+on Monday and `sport` on Wednesday and both become the first spelling. Across children it
+deliberately does not, because that would undo a rename; two spellings then show up as two entries
+in the subject-colour step, which is where you notice.
+
+To not have to care at all, match loosely:
+
+```jinja
+{{ state_attr('sensor.schoolday_ben', 'today_subjects') | select('search', '(?i)sport') | list | count > 0 }}
+```
+
 School holidays are the one thing Schoolday does not know: the timetable has no calendar behind it.
 If you have a holiday calendar in Home Assistant, add it as a second condition — otherwise the
 announcement is cheerfully wrong for six weeks in summer.

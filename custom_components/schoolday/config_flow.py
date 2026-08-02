@@ -48,7 +48,9 @@ from .models import (
     text_from_lessons,
     text_from_periods,
     text_from_steps,
+    unify_subjects,
 )
+
 
 class SchooldayConfigFlow(ConfigFlow, domain=DOMAIN):
     """Create the single Schoolday entry. Everything else happens in the options flow."""
@@ -346,6 +348,7 @@ class SchooldayOptionsFlow(OptionsFlow):
                 lessons = lessons_from_text(user_input.get(day), len(timetable.periods))
                 if lessons:
                     week[int(day)] = lessons
+            unify_subjects(week)
             if week:
                 timetable.lessons[self._member_id] = week
             else:

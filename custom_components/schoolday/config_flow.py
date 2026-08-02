@@ -174,11 +174,23 @@ class SchooldayOptionsFlow(OptionsFlow):
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Show the main menu."""
+        """Show the main menu.
+
+        One flat list rather than a timetable submenu: every entry here is a thing
+        the household actually sets, and burying the two it touches most — the times
+        and someone's week — behind another tap only made the common case longer.
+        The list stays short by revealing each entry when it has something to edit.
+        """
         options = ["add_member"]
         if self._members:
-            options += ["edit_member", "remove_member", "routines", "timetable"]
-        options.append("done")
+            options += ["edit_member", "remove_member", "routines"]
+        options.append("timetable_times")
+        timetable = self._timetable
+        if self._members and timetable.periods:
+            options.append("timetable_lessons")
+        if timetable.subjects:
+            options.append("timetable_colors")
+        options += ["timetable_calendars", "done"]
         return self.async_show_menu(step_id="init", menu_options=options)
 
     async def async_step_done(
@@ -265,23 +277,6 @@ class SchooldayOptionsFlow(OptionsFlow):
 
     # --- timetable ----------------------------------------------------------
 
-    async def async_step_timetable(
-        self, _user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """The timetable menu.
-
-        Lessons only become editable once the times exist, which is also the order
-        the household thinks in: first when a period is, then what is in it.
-        """
-        timetable = self._timetable
-        options = ["timetable_times"]
-        if timetable.periods:
-            options.append("timetable_lessons")
-        if timetable.subjects:
-            options.append("timetable_colors")
-        options += ["timetable_calendars", "init"]
-        return self.async_show_menu(step_id="timetable", menu_options=options)
-
     async def async_step_timetable_times(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
@@ -306,7 +301,7 @@ class SchooldayOptionsFlow(OptionsFlow):
                 )
             timetable.periods = periods
             self._persist(**{CONF_TIMETABLE: timetable.as_options()})
-            return await self.async_step_timetable()
+            return await self.async_step_init()
 
         return self.async_show_form(
             step_id="timetable_times",
@@ -347,7 +342,7 @@ class SchooldayOptionsFlow(OptionsFlow):
                     ),
                 }
             )
-            return await self.async_step_timetable()
+            return await self.async_step_init()
 
         schema = vol.Schema(
             {
@@ -427,7 +422,7 @@ class SchooldayOptionsFlow(OptionsFlow):
             else:
                 timetable.lessons.pop(self._member_id, None)
             self._persist(**{CONF_TIMETABLE: timetable.as_options()})
-            return await self.async_step_timetable()
+            return await self.async_step_init()
 
         stored = timetable.week(self._member_id)
         suggested = {day: text_from_lessons(stored.get(int(day), [])) for day in WEEKDAYS}
@@ -464,7 +459,7 @@ class SchooldayOptionsFlow(OptionsFlow):
         timetable = self._timetable
         subjects = timetable.subjects
         if not subjects:
-            return await self.async_step_timetable()
+            return await self.async_step_init()
 
         if user_input is not None:
             timetable.colors = {
@@ -473,7 +468,7 @@ class SchooldayOptionsFlow(OptionsFlow):
                 if (hex_value := color_to_hex(user_input.get(subject)))
             }
             self._persist(**{CONF_TIMETABLE: timetable.as_options()})
-            return await self.async_step_timetable()
+            return await self.async_step_init()
 
         schema = vol.Schema(
             {

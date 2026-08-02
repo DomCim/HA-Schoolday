@@ -20,7 +20,10 @@
           "edit_member": "Familienmitglied bearbeiten",
           "remove_member": "Familienmitglied entfernen",
           "routines": "Routinen bearbeiten",
-          "timetable": "Stundenplan",
+          "timetable_times": "Stundenzeiten",
+          "timetable_lessons": "Stundenplan eines Kindes bearbeiten",
+          "timetable_colors": "Fächerfarben",
+          "timetable_calendars": "Freie Tage und Ferienbetreuung",
           "done": "Fertig"
         }
       },
@@ -90,17 +93,6 @@
           "care": "Ferienbetreuung"
         }
       },
-      "timetable": {
-        "title": "Stundenplan",
-        "description": "Die Stundenzeiten gelten für den ganzen Haushalt. Die Stunden selbst gehören zu einem Familienmitglied und erscheinen in dessen Farbe auf der Karte „Schoolday Stundenplan“.",
-        "menu_options": {
-          "timetable_times": "Stundenzeiten",
-          "timetable_lessons": "Stundenplan eines Kindes bearbeiten",
-          "timetable_colors": "Fächerfarben",
-          "timetable_calendars": "Freie Tage und Ferienbetreuung",
-          "init": "Zurück"
-        }
-      },
       "timetable_times": {
         "title": "Stundenzeiten",
         "description": "Eine Stunde pro Zeile, als HH:MM-HH:MM:\n\n08:00-08:45\n08:45-09:30\n09:50-10:35\n\nPausen trägst du nirgends ein: Jede Lücke von fünf Minuten oder mehr zwischen zwei Stunden wird von selbst als Pause gezeichnet.",
@@ -113,7 +105,7 @@
       },
       "timetable_lessons": {
         "title": "Wessen Stundenplan?",
-        "description": "Wähle das Familienmitglied. Im nächsten Schritt trägst du die ganze Woche ein.",
+        "description": "Wähle das Familienmitglied. Im nächsten Schritt trägst du die ganze Woche ein. Die Stunden erscheinen in der Farbe des Mitglieds auf der Karte „Schoolday Stundenplan“.",
         "data": {
           "id": "Familienmitglied"
         }

@@ -25,6 +25,7 @@ import {
   lessonAt,
   nextLesson,
   nowMinutes,
+  dayFor,
   outlookDate,
   outlookOf,
   periodProgress,
@@ -67,6 +68,11 @@ export interface SchooldayTimetableCardConfig extends LovelaceCardConfig {
   hide_empty_periods?: boolean;
   /** Mark today, the running lesson and what is coming next. */
   highlight?: boolean;
+  /**
+   * Point each weekday at the next one it can mean, rolling days that have been on to
+   * next week. Off shows the week as it stands, past days included.
+   */
+  roll_days?: boolean;
 }
 
 @customElement('schoolday-timetable-card')
@@ -181,8 +187,13 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
    * once Monday's column has rolled on to next week the reader has no way to tell
    * which one without seeing it.
    */
+  /** The dated day a column stands for, honouring the roll switch in one place. */
+  private _dayFor(outlook: Outlook, weekday: number) {
+    return dayFor(outlook, weekday, this._config.roll_days !== false);
+  }
+
   private _columnDate(outlook: Outlook, weekday: number): string | null {
-    const date = outlookDate(outlook[weekday]);
+    const date = outlookDate(this._dayFor(outlook, weekday));
     if (!date) {
       return null;
     }
@@ -194,7 +205,7 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
 
   /** What closes this day, or null when lessons are happening. */
   private _closure(outlook: Outlook, weekday: number): string | null {
-    const day = outlook[weekday];
+    const day = this._dayFor(outlook, weekday);
     if (!day || day.mode === 'school') {
       return null;
     }

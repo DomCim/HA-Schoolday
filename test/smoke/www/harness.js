@@ -88,16 +88,19 @@ const WEEKS = {
 // exactly as the integration publishes them. Monday and Tuesday have already been this
 // week, so they resolve to the 10th and 11th — which is the whole point of the outlook.
 const OUTLOOK = (() => {
-  const start = new Date(2026, 7, 5);
-  const days = {};
-  for (let offset = 0; offset < 7; offset += 1) {
-    const day = new Date(start);
-    day.setDate(day.getDate() + offset);
-    const weekday = (day.getDay() + 6) % 7;
+  // Monday of the frozen week (3 August 2026) through seven days from Wednesday the
+  // 5th, exactly the window the integration publishes.
+  const today = new Date(2026, 7, 5);
+  const first = new Date(today);
+  first.setDate(first.getDate() - ((today.getDay() + 6) % 7));
+  const last = new Date(today);
+  last.setDate(last.getDate() + 6);
+  const days = [];
+  for (const day = new Date(first); day <= last; day.setDate(day.getDate() + 1)) {
     const iso = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(
       day.getDate(),
     ).padStart(2, '0')}`;
-    days[weekday] = { date: iso, mode: 'school', label: null };
+    days.push({ date: iso, weekday: (day.getDay() + 6) % 7, mode: 'school', label: null });
   }
   return days;
 })();

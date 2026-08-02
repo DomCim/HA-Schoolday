@@ -131,6 +131,7 @@ export class SchooldayTimetableCardEditor extends SchooldayCardEditor {
       boolean('show_breaks'),
       boolean('hide_empty_periods'),
       boolean('highlight'),
+      boolean('roll_days'),
     ];
   }
 }

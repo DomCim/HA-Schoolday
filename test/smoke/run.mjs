@@ -264,27 +264,43 @@ check(
 );
 
 // A day the child is not at school says so in its own column, and shows no lessons:
-// during the summer holidays the grid must not still promise Monday's German.
-await page.evaluate(() => {
-  const host = document.getElementById('host');
-  host.innerHTML = '';
-  const card = document.createElement('schoolday-timetable-card');
-  card.setConfig({ type: 'custom:schoolday-timetable-card', member: 'Ben', layout: 'week' });
-  const sensor = Object.values(window.__hass.states).find(
-    (state) => state.attributes?.friendly_name === 'Schoolday Ben',
-  );
-  const outlook = JSON.parse(JSON.stringify(sensor.attributes.outlook));
-  outlook[0] = { ...outlook[0], mode: 'free', label: 'Sommerferien Bayern' };
-  outlook[1] = { ...outlook[1], mode: 'care', label: 'Ben Ferienbetreuung' };
-  card.hass = {
-    ...window.__hass,
-    states: {
-      ...window.__hass.states,
-      [sensor.entity_id]: { ...sensor, attributes: { ...sensor.attributes, outlook } },
+// during the summer holidays the grid must not still promise Monday's German. Marked
+// by date, because with rolling on, the Monday column is next Monday's.
+const closeDays = async (config) =>
+  page.evaluate(
+    ({ config, closures }) => {
+      const host = document.getElementById('host');
+      host.innerHTML = '';
+      const card = document.createElement('schoolday-timetable-card');
+      card.setConfig(config);
+      const sensor = Object.values(window.__hass.states).find(
+        (state) => state.attributes?.friendly_name === 'Schoolday Ben',
+      );
+      const outlook = sensor.attributes.outlook.map((day) =>
+        closures[day.date] ? { ...day, ...closures[day.date] } : { ...day },
+      );
+      card.hass = {
+        ...window.__hass,
+        states: {
+          ...window.__hass.states,
+          [sensor.entity_id]: { ...sensor, attributes: { ...sensor.attributes, outlook } },
+        },
+      };
+      host.appendChild(card);
     },
-  };
-  host.appendChild(card);
-});
+    {
+      config,
+      closures: {
+        // Next Monday and this Thursday — the two the rolling view actually shows.
+        '2026-08-10': { mode: 'free', label: 'Sommerferien Bayern' },
+        '2026-08-06': { mode: 'care', label: 'Ben Ferienbetreuung' },
+        // This Monday, which only the non-rolling view shows.
+        '2026-08-03': { mode: 'free', label: 'Beweglicher Ferientag' },
+      },
+    },
+  );
+
+await closeDays({ type: 'custom:schoolday-timetable-card', member: 'Ben', layout: 'week' });
 await page.waitForTimeout(400);
 
 const closedLabels = await page
@@ -305,6 +321,32 @@ check(
   'a closed day shows no lessons at all',
   closedCells > 0 && closedSubjects === 0,
   `${closedCells} closed cells, ${closedSubjects} subjects in them`,
+);
+
+// Rolling off shows the week as it stands: Monday is this Monday again, with the day
+// off that only this week has, and the date follows it.
+await closeDays({
+  type: 'custom:schoolday-timetable-card',
+  member: 'Ben',
+  layout: 'week',
+  roll_days: false,
+});
+await page.waitForTimeout(400);
+
+const staticDates = await page
+  .locator('schoolday-timetable-card .col-head .col-date')
+  .allTextContents();
+const staticClosed = await page
+  .locator('schoolday-timetable-card .col-head .col-closed')
+  .allTextContents();
+check(
+  'rolling off shows the week as it stands, past days included',
+  staticDates.map((text) => text.trim()).join(' ') === '3.8. 4.8. 5.8. 6.8. 7.8.' &&
+    staticClosed.map((text) => text.trim()).join(' | ') ===
+      'Beweglicher Ferientag | Ben Ferienbetreuung',
+  `${staticDates.map((t) => t.trim()).join(' ')} / ${staticClosed
+    .map((t) => t.trim())
+    .join(' | ')}`,
 );
 
 // A holiday keeps the week on screen — it is still the plan — but nothing is running.

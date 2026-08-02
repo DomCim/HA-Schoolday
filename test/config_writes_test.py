@@ -167,5 +167,61 @@ check("Ausgangs-Optionen bleiben unveraendert",
       and BASE["members"][0]["name"] == "Ben" and BASE["routines"] == {},
       str(BASE["members"][0]))
 
+# --- every registered service handler must run on the event loop ------------
+# A synchronous handler is run by Home Assistant in a worker thread, and touching
+# async_update_entry from there is refused outright. This is a static check because
+# the failure only ever showed up at the moment somebody pressed Save.
+import ast  # noqa: E402
+
+services_src = pathlib.Path(
+    "/home/user/HA-Schoolday/custom_components/schoolday/services.py"
+).read_text()
+tree = ast.parse(services_src)
+
+registered = set()
+for node in ast.walk(tree):
+    if (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "async_register"
+    ):
+        for arg in node.args[2:3]:
+            if isinstance(arg, ast.Name):
+                registered.add(arg.id)
+# Handlers registered inside a `for service, handler, schema in (...)` loop are named
+# by the loop variable, so resolve those to the real functions and drop the variable.
+for node in ast.walk(tree):
+    if isinstance(node, ast.For) and isinstance(node.target, ast.Tuple):
+        registered -= {
+            element.id for element in node.target.elts if isinstance(element, ast.Name)
+        }
+        for element in getattr(node.iter, "elts", []):
+            if isinstance(element, ast.Tuple) and len(element.elts) >= 2:
+                handler = element.elts[1]
+                if isinstance(handler, ast.Name):
+                    registered.add(handler.id)
+
+coroutines = {
+    node.name for node in ast.walk(tree) if isinstance(node, ast.AsyncFunctionDef)
+}
+guarded = {
+    node.name
+    for node in ast.walk(tree)
+    if isinstance(node, ast.FunctionDef)
+    and any(
+        isinstance(d, ast.Name) and d.id == "_guard" for d in node.decorator_list
+    )
+}
+check(
+    "jeder registrierte Service laeuft auf dem Event-Loop",
+    registered and registered <= (coroutines | guarded),
+    f"{len(registered)} registriert, ungedeckt: {sorted(registered - coroutines - guarded)}",
+)
+check(
+    "_guard liefert eine Coroutine, keine synchrone Funktion",
+    "async def wrapped" in services_src,
+    "async def wrapped" if "async def wrapped" in services_src else "def wrapped",
+)
+
 print(f"\n{'alle bestanden' if not fails else str(fails) + ' fehlgeschlagen'}")
 sys.exit(1 if fails else 0)

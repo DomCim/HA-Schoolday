@@ -805,6 +805,26 @@ check(
   `${adminCalendarText.trim()} / ${adminKeywordText.trim()}`,
 );
 
+// A refused value has to say why. Home Assistant rejects with a plain object rather
+// than an Error, and "[object Object]" is the one thing an error message must not be.
+const adminErrorText = await page.evaluate(async () => {
+  const card = document.querySelector('schoolday-admin-card');
+  card.hass = {
+    ...window.__hass,
+    callService: () =>
+      Promise.reject({ code: 'invalid_format', message: '08:00-07:00 ist keine Stundenzeit.' }),
+  };
+  await new Promise((r) => setTimeout(r, 100));
+  card.shadowRoot.querySelector('.apply').click();
+  await new Promise((r) => setTimeout(r, 300));
+  return card.shadowRoot.querySelector('.notice.error')?.textContent ?? null;
+});
+check(
+  'a refused value shows the reason, not [object Object]',
+  adminErrorText?.includes('keine Stundenzeit') && !adminErrorText.includes('object Object'),
+  String(adminErrorText).trim(),
+);
+
 // --------------------------------------------------------------- card registry
 
 const registered = await page.evaluate(() => window.customCards.map((c) => c.type).sort());

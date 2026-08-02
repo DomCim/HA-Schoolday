@@ -16,6 +16,7 @@ import {
   adminOf,
   calendarEntities,
   callSchoolday,
+  messageOf,
   personEntities,
   stepsFor,
   type AdminConfig,
@@ -119,7 +120,7 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
     try {
       await callSchoolday(this.hass!, service, data);
     } catch (err) {
-      this._error = err instanceof Error ? err.message : String(err);
+      this._error = messageOf(err);
     } finally {
       this._busy = false;
     }

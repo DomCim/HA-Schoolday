@@ -303,16 +303,17 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
     periodIndex: number,
     isNow: boolean,
     progress: number | null,
+    place: string,
   ): TemplateResult {
     const lesson = lessonAt(week, weekday, periodIndex);
     if (!lesson) {
-      return html`<div class="cell free ${isNow ? 'now' : ''}"></div>`;
+      return html`<div class="cell free ${isNow ? 'now' : ''}" style=${place}></div>`;
     }
     const showRoom = this._config.show_rooms !== false && lesson.room;
     return html`
       <div
         class="cell ${isNow ? 'now' : ''}"
-        style=${`--subject:${this._color(grid, lesson.subject)}`}
+        style=${`--subject:${this._color(grid, lesson.subject)};${place}`}
         title=${lesson.room ? `${lesson.subject} · ${lesson.room}` : lesson.subject}
       >
         <span class="subject">${lesson.subject}</span>
@@ -378,6 +379,9 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
     const running = highlight && board.schoolToday ? currentPeriod(grid) : undefined;
     const showTimes = this._config.show_times !== false;
     const showBreaks = this._config.show_breaks !== false;
+    // Every item is placed explicitly below, so the rows have to be settled first:
+    // a hidden break must not leave a numbered gap behind.
+    const visibleRows = showBreaks ? rows : rows.filter((row) => row.kind === 'period');
 
     return html`
       <ha-card style=${`--member-color:${member.color}`}>
@@ -424,16 +428,21 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
           class="grid"
           style=${`grid-template-columns:${showTimes ? 'max-content' : 'min-content'} repeat(${columns.length}, minmax(0, 1fr))`}
         >
-          <div class="corner"></div>
+          <!-- One surface per day, behind everything else in that column. Drawn first
+               so the cells paint on top of it without needing a stacking context. -->
           ${columns.map(
-            (weekday) => html`
+            (_weekday, index) =>
+              html`<div class="day-panel" style=${`grid-column:${index + 2};grid-row:1 / -1`}></div>`,
+          )}
+          <div class="corner" style="grid-column:1;grid-row:1"></div>
+          ${columns.map((weekday, index) => {
+            const closed = this._closure(outlook, weekday);
+            return html`
               <div
-                class="col-head ${highlight && weekday === today ? 'today' : ''} ${this._closure(
-                  outlook,
-                  weekday,
-                ) !== null
+                class="col-head ${highlight && weekday === today ? 'today' : ''} ${closed !== null
                   ? 'closed'
                   : ''}"
+                style=${`grid-column:${index + 2};grid-row:1`}
               >
                 <span class="col-day"
                   >${this._weekdayName(weekday, dayView ? 'long' : 'short')}</span
@@ -441,37 +450,41 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
                 ${this._columnDate(outlook, weekday)
                   ? html`<span class="col-date">${this._columnDate(outlook, weekday)}</span>`
                   : nothing}
-                ${this._closure(outlook, weekday)
-                  ? html`<span class="col-closed" title=${this._closure(outlook, weekday)!}
-                      >${this._closure(outlook, weekday)}</span
-                    >`
-                  : nothing}
+                ${closed ? html`<span class="col-closed" title=${closed}>${closed}</span>` : nothing}
               </div>
-            `,
-          )}
-          ${rows.map((row) => {
+            `;
+          })}
+          ${visibleRows.map((row, rowIndex) => {
+            const line = rowIndex + 2;
             if (row.kind === 'break') {
-              return showBreaks
-                ? html`
-                    <div class="break">
-                      <span class="line"></span>
-                      <span
-                        >${t(this.hass, 'timetable.break')} ·
-                        ${formatTime(this.hass, row.gap.start)}–${formatTime(
-                          this.hass,
-                          row.gap.end,
-                        )}</span
-                      >
-                      <span class="line"></span>
-                    </div>
-                  `
-                : nothing;
+              const span = `${formatTime(this.hass, row.gap.start)}\u2013${formatTime(
+                this.hass,
+                row.gap.end,
+              )}`;
+              return html`
+                <div
+                  class="t-break"
+                  style=${`grid-column:1;grid-row:${line}`}
+                  title=${`${t(this.hass, 'timetable.break')} \u00b7 ${span}`}
+                >
+                  ${t(this.hass, 'timetable.break')}
+                </div>
+                ${columns.map(
+                  (_weekday, index) => html`
+                    <div
+                      class="d-break"
+                      style=${`grid-column:${index + 2};grid-row:${line}`}
+                      title=${`${t(this.hass, 'timetable.break')} \u00b7 ${span}`}
+                    ></div>
+                  `,
+                )}
+              `;
             }
 
             const { period } = row;
             const progress = highlight ? periodProgress(period) : null;
             return html`
-              <div class="time">
+              <div class="time" style=${`grid-column:1;grid-row:${line}`}>
                 <span class="no">${period.index}</span>
                 ${showTimes
                   ? html`<span class="span"
@@ -482,9 +495,12 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
                     >`
                   : nothing}
               </div>
-              ${columns.map((weekday) =>
+              ${columns.map((weekday, index) =>
                 this._closure(outlook, weekday) !== null
-                  ? html`<div class="cell closed"></div>`
+                  ? html`<div
+                      class="cell closed"
+                      style=${`grid-column:${index + 2};grid-row:${line}`}
+                    ></div>`
                   : this._renderCell(
                       grid,
                       week,
@@ -492,6 +508,7 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
                       period.index,
                       highlight && weekday === today && running?.index === period.index,
                       progress,
+                      `grid-column:${index + 2};grid-row:${line}`,
                     ),
               )}
             `;
@@ -617,8 +634,30 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
 
       .grid {
         display: grid;
-        gap: 4px;
+        /* Wider between the days than between the periods: the eye needs a bigger gap
+           across than down to read five columns as five days rather than one field. */
+        row-gap: 4px;
+        column-gap: 10px;
         align-items: stretch;
+      }
+
+      /* One unbroken surface per day, spanning the head and every period. This is what
+         lets the eye take a column as one day instead of a run of loose chips — and it
+         has to sit behind them, which is why nothing in this grid is auto-placed. */
+      /* A day that is not happening keeps its place in the grid so the rows still line
+         up, but carries nothing: stated outright rather than left to an undefined
+         --subject quietly invalidating the chip's own background. */
+      .cell.closed {
+        background: none;
+        border-left: none;
+      }
+
+      .day-panel {
+        border-radius: 12px;
+        background: var(--schoolday-surface-alt);
+        /* Vertical only. Widening it would eat into the column gap that separates one
+           day from the next, and the last day would push the grid into a scrollbar. */
+        margin: -6px 0;
       }
 
       .col-head {
@@ -663,7 +702,7 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
         overflow: hidden;
         border-radius: 10px;
         border-left: 3px solid var(--subject);
-        background: color-mix(in srgb, var(--subject) 18%, transparent);
+        background: color-mix(in srgb, var(--subject) 22%, transparent);
       }
 
       .cell .subject {
@@ -704,14 +743,30 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
         background: var(--schoolday-today);
       }
 
-      .break {
-        grid-column: 1 / -1;
+      .t-break {
         display: flex;
         align-items: center;
-        gap: 8px;
-        padding: 1px 0;
-        font-size: 0.7rem;
+        justify-content: flex-end;
+        padding: 1px 4px 1px 0;
+        font-size: 0.65rem;
+        line-height: 1;
         color: var(--schoolday-muted);
+        white-space: nowrap;
+      }
+
+      .d-break {
+        display: flex;
+        align-items: center;
+        padding: 1px 0;
+        min-height: 0.65rem;
+      }
+
+      .d-break::before {
+        content: '';
+        flex: 1;
+        height: 1px;
+        margin: 0 10px;
+        background: var(--schoolday-line);
       }
 
       .break .line {

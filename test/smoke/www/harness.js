@@ -84,6 +84,24 @@ const WEEKS = {
   },
 };
 
+// The seven days from the frozen "now" (Wednesday 5 August 2026), keyed by weekday
+// exactly as the integration publishes them. Monday and Tuesday have already been this
+// week, so they resolve to the 10th and 11th — which is the whole point of the outlook.
+const OUTLOOK = (() => {
+  const start = new Date(2026, 7, 5);
+  const days = {};
+  for (let offset = 0; offset < 7; offset += 1) {
+    const day = new Date(start);
+    day.setDate(day.getDate() + offset);
+    const weekday = (day.getDay() + 6) % 7;
+    const iso = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(
+      day.getDate(),
+    ).padStart(2, '0')}`;
+    days[weekday] = { date: iso, mode: 'school', label: null };
+  }
+  return days;
+})();
+
 // One sensor per member, matching what custom_components/schoolday/sensor.py publishes:
 // the running subject as the state, the day and the routines as attributes.
 function memberState(entityId, name, memberId, color) {
@@ -98,6 +116,7 @@ function memberState(entityId, name, memberId, color) {
       routine_morning: ROUTINES[memberId]?.morning ?? [],
       routine_evening: ROUTINES[memberId]?.evening ?? [],
       timetable: WEEKS[memberId] ?? {},
+      outlook: JSON.parse(JSON.stringify(OUTLOOK)),
       today: [],
       today_subjects: [],
       today_summary: '',

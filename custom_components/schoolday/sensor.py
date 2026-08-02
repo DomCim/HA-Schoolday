@@ -9,7 +9,8 @@ wake up exactly at those and sleep in between.
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime, timedelta
+from collections.abc import Iterable, Mapping
+from datetime import date, datetime, time, timedelta
 from typing import Any
 
 from homeassistant.components.sensor import SensorEntity
@@ -30,13 +31,17 @@ from .const import (
     ATTR_AVATAR,
     ATTR_BOARD,
     ATTR_COLOR,
+    ATTR_DATE,
     ATTR_DAY_MODE,
+    ATTR_LABEL,
     ATTR_LESSON_NEXT,
     ATTR_LESSON_NOW,
     ATTR_MEMBER,
     ATTR_MEMBER_ID,
     ATTR_MEMBERS,
+    ATTR_MODE,
     ATTR_NO_SCHOOL,
+    ATTR_OUTLOOK,
     ATTR_PERIOD,
     ATTR_ROOM,
     ATTR_ROUTINE_BLOCKS,
@@ -58,6 +63,7 @@ from .const import (
     MODE_CARE,
     MODE_FREE,
     MODE_SCHOOL,
+    OUTLOOK_DAYS,
     ROUTINE_BLOCKS,
     SIGNAL_ROUTINE_UPDATED,
     STATE_FREE,
@@ -143,6 +149,42 @@ def _no_school_reason(hass: HomeAssistant, config: SchooldayConfig) -> str | Non
             or entity_id
         )
     return None
+
+
+def _event_days(event: Mapping[str, Any]) -> Iterable[date]:
+    """Every date an event actually runs on.
+
+    Two conventions meet here and both end a day early if taken literally. An all-day
+    event ends on the morning it is over, so a holiday `2026-08-03` to `2026-09-15`
+    runs through the 14th. A timed event that ends at midnight belongs to the day
+    before, not to the one it brushes. Getting either wrong shows a holiday on the
+    first day back.
+    """
+    raw_start = str(event.get("start") or "")
+    raw_end = str(event.get("end") or "")
+    if not raw_start:
+        return ()
+
+    if (start_at := dt_util.parse_datetime(raw_start)) is not None:
+        first = dt_util.as_local(start_at).date()
+        end_at = dt_util.parse_datetime(raw_end) if raw_end else None
+        if end_at is None:
+            last = first
+        else:
+            ends = dt_util.as_local(end_at)
+            last = ends.date()
+            if ends.time() == time.min and last > first:
+                last -= timedelta(days=1)
+    else:
+        first = dt_util.parse_date(raw_start)
+        if first is None:
+            return ()
+        end_on = dt_util.parse_date(raw_end) if raw_end else None
+        last = end_on - timedelta(days=1) if end_on else first
+
+    if last < first:
+        last = first
+    return (first + timedelta(days=offset) for offset in range((last - first).days + 1))
 
 
 def _lesson_dict(lesson: Lesson, period: Period) -> dict[str, Any]:
@@ -244,9 +286,9 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         #: The lesson considered running, so a boundary knows what just ended.
         self._running: dict[str, Any] | None = None
         self._unsub_boundary: Any = None
-        #: Whether this member is in holiday care today, and when that was decided.
-        self._care_today = False
-        self._care_date: date | None = None
+        #: The next seven days keyed by weekday, and the day that was built for.
+        self._outlook: dict[int, dict[str, Any]] = {}
+        self._outlook_date: date | None = None
 
     async def async_added_to_hass(self) -> None:
         """Follow the routine ticks and the holidays, and wake at the next boundary."""
@@ -265,7 +307,7 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
                 )
             )
 
-        await self._async_refresh_care()
+        await self._async_refresh_outlook()
         # Adopt whatever is running without announcing it: Home Assistant restarting
         # mid-morning must not fire "PE has started" into the kitchen.
         self._running = self._lesson_now()
@@ -280,60 +322,109 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         now = dt_util.now()
         return now.weekday(), now.hour * 60 + now.minute
 
-    async def _async_refresh_care(self) -> None:
-        """Ask this member's calendar whether today is a holiday-care day.
+    async def _async_read_events(
+        self, entity_ids: list[str], start: datetime, end: datetime
+    ) -> dict[str, list[Mapping[str, Any]]]:
+        """Fetch a window from several calendars in one call.
 
-        The whole day is fetched rather than read off the calendar entity's state: a
-        child's calendar holds the dentist and football too, and the entity only ever
-        describes one event at a time. The keywords are the household's own words —
-        Schoolday has no opinion on what holiday care is called.
+        The whole window is fetched rather than read off the calendar entities' states:
+        a state only ever describes what is running right now, and this has to answer
+        for days that have not happened yet.
         """
-        self._care_date = dt_util.now().date()
-        self._care_today = False
-
-        keywords = [keyword.casefold() for keyword in self._config.care_keywords]
-        if not keywords or not self._member.calendar:
-            return
-
-        start = dt_util.start_of_local_day()
+        if not entity_ids:
+            return {}
         try:
             response = await self.hass.services.async_call(
                 "calendar",
                 "get_events",
                 {
                     "start_date_time": start.isoformat(),
-                    "end_date_time": (start + timedelta(days=1)).isoformat(),
+                    "end_date_time": end.isoformat(),
                 },
-                target={"entity_id": self._member.calendar},
+                target={"entity_id": entity_ids},
                 blocking=True,
                 return_response=True,
             )
         except HomeAssistantError as err:
             # A calendar that has gone away must not take the sensor with it.
             _LOGGER.warning(
-                "Could not read %s for %s: %s", self._member.calendar, self._member.name, err
+                "Could not read %s for %s: %s",
+                ", ".join(entity_ids),
+                self._member.name,
+                err,
             )
-            return
+            return {}
+        return {
+            entity_id: (data or {}).get("events") or []
+            for entity_id, data in (response or {}).items()
+        }
 
-        events = ((response or {}).get(self._member.calendar) or {}).get("events") or []
-        self._care_today = any(
-            keyword in str(event.get("summary") or "").casefold()
-            for event in events
-            for keyword in keywords
-        )
+    async def _async_refresh_outlook(self) -> None:
+        """Work out what each of the next seven days holds for this member.
+
+        Seven days from today is exactly one of every weekday, so the weekday a card
+        draws maps to precisely one date — and it is always the next one, because a
+        Tuesday that has already been is of no use to anybody.
+        """
+        today = dt_util.now().date()
+        self._outlook_date = today
+        days = [today + timedelta(days=offset) for offset in range(OUTLOOK_DAYS)]
+        outlook: dict[int, dict[str, Any]] = {
+            day.weekday(): {
+                ATTR_DATE: day.isoformat(),
+                ATTR_MODE: MODE_SCHOOL,
+                ATTR_LABEL: None,
+            }
+            for day in days
+        }
+        wanted = {day: day.weekday() for day in days}
+
+        start = dt_util.start_of_local_day()
+        end = start + timedelta(days=OUTLOOK_DAYS)
+        calendars = list(self._config.school_calendars)
+        if self._member.calendar and self._member.calendar not in calendars:
+            calendars.append(self._member.calendar)
+        events = await self._async_read_events(calendars, start, end)
+
+        # Holidays first: any event on these calendars closes the school, which is why
+        # the option asks for calendars that hold nothing else.
+        for entity_id in self._config.school_calendars:
+            for event in events.get(entity_id, []):
+                summary = str(event.get("summary") or "").strip() or None
+                for day in _event_days(event):
+                    if (weekday := wanted.get(day)) is None:
+                        continue
+                    if outlook[weekday][ATTR_MODE] == MODE_SCHOOL:
+                        outlook[weekday][ATTR_MODE] = MODE_FREE
+                        outlook[weekday][ATTR_LABEL] = summary
+
+        # Then care, which wins over a plain holiday: a child in holiday care is not at
+        # home. Matched on the member's own calendar, which also holds the dentist and
+        # football, so only the household's own keywords count.
+        keywords = [keyword.casefold() for keyword in self._config.care_keywords]
+        if keywords and self._member.calendar:
+            for event in events.get(self._member.calendar, []):
+                summary = str(event.get("summary") or "").strip()
+                if not any(keyword in summary.casefold() for keyword in keywords):
+                    continue
+                for day in _event_days(event):
+                    if (weekday := wanted.get(day)) is None:
+                        continue
+                    outlook[weekday][ATTR_MODE] = MODE_CARE
+                    outlook[weekday][ATTR_LABEL] = summary or None
+
+        self._outlook = outlook
 
     @property
     def _day_mode(self) -> str:
-        """What kind of day this is for this member.
+        """What kind of day today is for this member.
 
-        Care wins over a plain holiday, and both win over the timetable: a child in
-        holiday care is not having lessons, whatever the grid says.
+        Read out of the outlook rather than worked out again: today is simply the
+        first of the seven days, and having one answer keeps the card and the
+        announcement from ever disagreeing.
         """
-        if self._care_today:
-            return MODE_CARE
-        if _no_school_reason(self.hass, self._config) is not None:
-            return MODE_FREE
-        return MODE_SCHOOL
+        entry = self._outlook.get(dt_util.now().weekday())
+        return str(entry[ATTR_MODE]) if entry else MODE_SCHOOL
 
     @property
     def _school_today(self) -> bool:
@@ -399,9 +490,9 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
     async def _handle_boundary(self, _now: datetime | None = None) -> None:
         """A lesson started, a lesson ended, or the day rolled over."""
         self._unsub_boundary = None
-        # Only the day rolling over can change whether today is a care day.
-        if self._care_date != dt_util.now().date():
-            await self._async_refresh_care()
+        # Only the day rolling over moves the seven-day window along.
+        if self._outlook_date != dt_util.now().date():
+            await self._async_refresh_outlook()
         self._apply_boundary()
         self._schedule_boundary()
 
@@ -462,7 +553,7 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         what makes the events honest — a holiday entered mid-morning ends the lesson
         that was running instead of dropping it silently.
         """
-        await self._async_refresh_care()
+        await self._async_refresh_outlook()
         self._apply_boundary()
 
     # --- state --------------------------------------------------------------
@@ -485,6 +576,7 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
             ATTR_MEMBER_ID: self._member.id,
             ATTR_COLOR: self._member.color,
             ATTR_DAY_MODE: self._day_mode,
+            ATTR_OUTLOOK: self._outlook,
             ATTR_AVATAR: self._member.avatar,
             ATTR_ROUTINE_MORNING: self._routine(BLOCK_MORNING),
             ATTR_ROUTINE_EVENING: self._routine(BLOCK_EVENING),

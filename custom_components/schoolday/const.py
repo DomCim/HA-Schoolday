@@ -137,6 +137,19 @@ ATTR_NO_SCHOOL: Final = "no_school_reason"
 # What kind of day this member is having: school, care or free.
 ATTR_DAY_MODE: Final = "day_mode"
 
+# The next seven days, one per weekday, keyed by weekday so a card can look up the
+# column it is drawing. A timetable repeats forever, but holidays and holiday care do
+# not: without this the grid can only ever say what a Tuesday is usually like, never
+# what the Tuesday you are looking at actually holds.
+ATTR_OUTLOOK: Final = "outlook"
+ATTR_DATE: Final = "date"
+ATTR_MODE: Final = "mode"
+ATTR_LABEL: Final = "label"
+
+# How far ahead the outlook reaches. Seven days is exactly one of every weekday, which
+# is what makes "the next Tuesday" a question with one answer.
+OUTLOOK_DAYS: Final = 7
+
 # The state of a member sensor when no lesson is running: a plain token rather than
 # a translated word, because automations compare against it.
 STATE_FREE: Final = "free"

@@ -39,6 +39,8 @@ const ICONS = {
 
 export interface SchooldayRoutinesCardConfig extends LovelaceCardConfig {
   board_entity?: string;
+  /** Show only this member, by id or name. Unset shows everyone with steps. */
+  member?: string;
   /** Restrict to these members, by id or name. Defaults to everyone with steps. */
   members?: string[];
   /** Which block to show. "auto" switches by time of day; "both" shows both. */
@@ -181,10 +183,18 @@ export class SchooldayRoutinesCard extends LitElement implements LovelaceCard {
     }
 
     const blocks = this._blocks;
-    const wanted = this._config.members?.map((value) => value.toLowerCase());
+    // No child picked means the whole family, side by side — that is what a wall panel
+    // is for. Picking one narrows the card to that child, so the same card can also be
+    // put on a page of their own. Same rule, and same option name, as the timetable.
+    const wanted = (this._config.members ?? (this._config.member ? [this._config.member] : []))
+      .map((value) => value.toLowerCase());
 
     const members = board.members.filter((member) => {
-      if (wanted && !wanted.includes(member.id.toLowerCase()) && !wanted.includes(member.name.toLowerCase())) {
+      if (
+        wanted.length &&
+        !wanted.includes(member.id.toLowerCase()) &&
+        !wanted.includes(member.name.toLowerCase())
+      ) {
         return false;
       }
       if (this._config.show_empty === true) {

@@ -245,6 +245,47 @@ check(
   ttNotice.trim().slice(0, 60),
 );
 
+// A holiday keeps the week on screen — it is still the plan — but nothing is running.
+await page.evaluate(() => {
+  const host = document.getElementById('host');
+  host.innerHTML = '';
+  const card = document.createElement('schoolday-timetable-card');
+  card.setConfig({ type: 'custom:schoolday-timetable-card', member: 'Ben' });
+  const board = window.__hass.states['sensor.schoolday_board'];
+  card.hass = {
+    ...window.__hass,
+    states: {
+      ...window.__hass.states,
+      'sensor.schoolday_board': {
+        ...board,
+        attributes: {
+          ...board.attributes,
+          school_today: false,
+          no_school_reason: 'Sommerferien',
+        },
+      },
+    },
+  };
+  host.appendChild(card);
+});
+await page.waitForTimeout(300);
+const holiday = await page.evaluate(() => {
+  const root = document.querySelector('schoolday-timetable-card').shadowRoot;
+  return {
+    status: root.querySelector('.status')?.textContent.replace(/\s+/g, ' ').trim(),
+    marked: root.querySelectorAll('.cell.now').length,
+    lessons: root.querySelectorAll('.cell .subject').length,
+  };
+});
+check(
+  'a holiday says so and marks nothing, without hiding the week',
+  /Schulfrei/.test(holiday.status) &&
+    /Sommerferien/.test(holiday.status) &&
+    holiday.marked === 0 &&
+    holiday.lessons > 0,
+  JSON.stringify(holiday),
+);
+
 // ---------------------------------------------------------------- routines card
 
 await page.evaluate(() =>

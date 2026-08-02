@@ -91,6 +91,7 @@
           "timetable_times": "Stundenzeiten",
           "timetable_lessons": "Stundenplan eines Kindes bearbeiten",
           "timetable_colors": "Fächerfarben",
+          "timetable_calendars": "Ferien und schulfreie Tage",
           "init": "Zurück"
         }
       },
@@ -127,6 +128,16 @@
       "timetable_colors": {
         "title": "Fächerfarben",
         "description": "Jedes Fach hat schon eine Farbe, abgeleitet aus seinem Namen – und zwar bei jedem Kind dieselbe. Ändere die, die dir nicht gefallen."
+      },
+      "timetable_calendars": {
+        "title": "Ferien und schulfreie Tage",
+        "description": "Ein Stundenplan wiederholt sich ewig, Ferien nicht. Trage die Kalender ein, die die Schule schließen – einen abonnierten Schulferienkalender oder einen eigenen für bewegliche Ferientage.\n\nJeder laufende Termin in diesen Kalendern bedeutet: heute keine Schule. Die Woche bleibt als Plan auf der Karte stehen, aber die heutigen Stunden verstummen, der Sensor steht auf `free`, und es werden keine Stunden-Events ausgelöst. Nimm dafür Kalender, in denen nichts anderes steht – ein Schulfest um 15 Uhr würde sonst den Nachmittag schulfrei machen.",
+        "data": {
+          "school_calendars": "Kalender"
+        },
+        "data_description": {
+          "school_calendars": "Leer lassen, wenn du die Ferien lieber in der Automation selbst behandelst."
+        }
       }
     },
     "error": {

@@ -5,7 +5,7 @@ timetable, hands it to its own Lovelace cards, and exposes it to your automation
 
 A timetable is fixed for a school year, which is why Schoolday stores it rather than reading it from
 a calendar: forty recurring events a week is not a calendar anybody wants to maintain. Everything is
-typed in once, in three short steps, and every card and every automation reads it from there.
+typed in once, in four short steps, and every card and every automation reads it from there.
 
 > **Status: early development.** Installable through HACS as a custom repository, but not submitted to
 > the HACS default store — it is not listed or advertised anywhere.
@@ -27,7 +27,8 @@ your family is. **Adding a card with no options at all is the normal case.**
 
 ## Timetable
 
-**Configure → School timetable**, in three steps.
+**Configure → School timetable**, in four steps — the last one is what a stored timetable cannot
+work out for itself.
 
 **Lesson times** — one period per line, for the whole household:
 
@@ -57,6 +58,19 @@ no school.
 **Subject colours** — every subject already has one, derived from its name, so Maths is the same
 colour on every child's card and stays that colour when the week is rewritten. This step only exists
 to change the ones you do not like, and it is a colour picker per subject.
+
+**Holidays and days off** — a timetable repeats forever, holidays do not. Point this at the
+calendars that close the school: a subscribed school-holiday calendar, plus a local one for teacher
+training days if you keep one.
+
+Any event running on those calendars means today has no school. The week stays on the card as the
+plan it is, marked **Schulfrei / No school** with the event's name, but today's lessons go quiet:
+`today` empties, the sensor reads `free`, and no lesson events fire. Nothing else has to know about
+it — the morning announcement below falls silent by itself, with no second condition to maintain.
+
+Use calendars that hold nothing but days off. The rule is deliberately blunt — *any* event closes
+the school — so a "Schulfest, 15:00" sitting on the same calendar would take the afternoon off with
+it.
 
 ### The card
 
@@ -169,9 +183,17 @@ To not have to care at all, match loosely:
 {{ state_attr('sensor.schoolday_ben', 'today_subjects') | select('search', '(?i)sport') | list | count > 0 }}
 ```
 
-School holidays are the one thing Schoolday does not know: the timetable has no calendar behind it.
-If you have a holiday calendar in Home Assistant, add it as a second condition — otherwise the
-announcement is cheerfully wrong for six weeks in summer.
+No holiday condition is needed: on a day one of the holiday calendars covers, `today_subjects` is
+empty and the automation stops at the condition. Without those calendars configured it would be
+cheerfully wrong for six weeks every summer.
+
+The board sensor says the same thing outright, for automations that want it directly:
+
+```
+sensor.schoolday_board
+  school_today: false
+  no_school_reason: "Sommerferien"
+```
 
 Two events fire at every lesson boundary, carrying `member`, `member_id`, `subject`, `room`,
 `period`, `start` and `end`:
@@ -203,8 +225,10 @@ actions:
 ## Requirements
 
 - Home Assistant 2025.1 or newer
+- Optionally a `calendar.*` entity holding the school holidays — any source will do: a subscribed
+  iCal feed, `local_calendar`, CalDAV, Google
 
-That is the whole list. Schoolday reads no other integration.
+Nothing else. Without a holiday calendar every weekday is a school day.
 
 ## Installation
 
@@ -225,7 +249,7 @@ the integration under **Settings → Devices & Services**.
 ## Setting it up
 
 1. **Settings → Devices & Services → Schoolday → Configure** — add each family member with a colour.
-2. **School timetable** — the lesson times once, then a week per child.
+2. **School timetable** — the lesson times once, then a week per child, then the holiday calendars.
 3. **Edit routines** — morning and evening per child, per weekday.
 4. Add the cards to a dashboard. Every card has a visual editor, and they read the setup from
    `sensor.schoolday_board`, so no card needs to be told who your family is.

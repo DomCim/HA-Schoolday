@@ -18,7 +18,10 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
-from homeassistant.helpers.event import async_track_point_in_time
+from homeassistant.helpers.event import (
+    async_track_point_in_time,
+    async_track_state_change_event,
+)
 from homeassistant.util import dt as dt_util
 
 from .const import (
@@ -30,11 +33,13 @@ from .const import (
     ATTR_MEMBER,
     ATTR_MEMBER_ID,
     ATTR_MEMBERS,
+    ATTR_NO_SCHOOL,
     ATTR_PERIOD,
     ATTR_ROOM,
     ATTR_ROUTINE_BLOCKS,
     ATTR_ROUTINE_EVENING,
     ATTR_ROUTINE_MORNING,
+    ATTR_SCHOOL_TODAY,
     ATTR_SUBJECT,
     ATTR_TIMETABLE,
     ATTR_TODAY,
@@ -112,6 +117,26 @@ def _device_info(entry: ConfigEntry) -> DeviceInfo:
     )
 
 
+def _no_school_reason(hass: HomeAssistant, config: SchooldayConfig) -> str | None:
+    """What is keeping school shut right now, or None when it is a normal day.
+
+    A calendar entity is `on` while one of its events is running, and a holiday is an
+    all-day event, so the entity state answers this without a single API call. The
+    contract is deliberately blunt — any event on these calendars closes the school —
+    which is why the option asks for calendars that hold nothing but days off.
+    """
+    for entity_id in config.school_calendars:
+        state = hass.states.get(entity_id)
+        if state is None or state.state != "on":
+            continue
+        return (
+            state.attributes.get("message")
+            or state.attributes.get("friendly_name")
+            or entity_id
+        )
+    return None
+
+
 def _lesson_dict(lesson: Lesson, period: Period) -> dict[str, Any]:
     """One lesson, in the shape both the attributes and the events use."""
     return {
@@ -150,6 +175,19 @@ class SchooldayBoardSensor(SchooldayBaseSensor):
         self._config = config
         self._attr_unique_id = _board_unique_id(entry)
 
+    async def async_added_to_hass(self) -> None:
+        """Follow the holiday calendars, so a holiday starting shows up at once."""
+        if calendars := self._config.school_calendars:
+            self.async_on_remove(
+                async_track_state_change_event(
+                    self.hass, calendars, self._handle_change
+                )
+            )
+
+    @callback
+    def _handle_change(self, _event: Any = None) -> None:
+        self.async_write_ha_state()
+
     @property
     def native_value(self) -> int:
         """Number of configured family members."""
@@ -158,6 +196,7 @@ class SchooldayBoardSensor(SchooldayBaseSensor):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """The full Schoolday configuration."""
+        reason = _no_school_reason(self.hass, self._config)
         return {
             ATTR_BOARD: True,
             ATTR_MEMBERS: [member.as_card_dict() for member in self._config.members],
@@ -165,6 +204,8 @@ class SchooldayBoardSensor(SchooldayBaseSensor):
             # The lesson grid only: each member's own week rides on their sensor, so
             # neither attribute set grows with the size of the family.
             ATTR_TIMETABLE: self._config.timetable.as_card_dict(),
+            ATTR_SCHOOL_TODAY: reason is None,
+            ATTR_NO_SCHOOL: reason,
             ATTR_VERSION: VERSION,
         }
 
@@ -197,12 +238,18 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         self._unsub_boundary: Any = None
 
     async def async_added_to_hass(self) -> None:
-        """Follow the routine ticks, and wake up at the next lesson boundary."""
+        """Follow the routine ticks and the holidays, and wake at the next boundary."""
         self.async_on_remove(
             async_dispatcher_connect(
                 self.hass, SIGNAL_ROUTINE_UPDATED, self._handle_change
             )
         )
+        if calendars := self._config.school_calendars:
+            self.async_on_remove(
+                async_track_state_change_event(
+                    self.hass, calendars, self._handle_calendar_change
+                )
+            )
         # Adopt whatever is running without announcing it: Home Assistant restarting
         # mid-morning must not fire "PE has started" into the kitchen.
         self._running = self._lesson_now()
@@ -217,17 +264,29 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         now = dt_util.now()
         return now.weekday(), now.hour * 60 + now.minute
 
+    @property
+    def _school_today(self) -> bool:
+        return _no_school_reason(self.hass, self._config) is None
+
     def _lesson_now(self) -> dict[str, Any] | None:
+        if not self._school_today:
+            return None
         weekday, minutes = self._now()
         found = self._config.timetable.lesson_at(self._member.id, weekday, minutes)
         return _lesson_dict(*found) if found else None
 
     def _lesson_next(self) -> dict[str, Any] | None:
+        if not self._school_today:
+            return None
         weekday, minutes = self._now()
         found = self._config.timetable.next_lesson(self._member.id, weekday, minutes)
         return _lesson_dict(*found) if found else None
 
     def _today(self) -> list[dict[str, Any]]:
+        # On a holiday there is nothing on today — which is what makes the morning
+        # announcement fall silent by itself, with no second condition to maintain.
+        if not self._school_today:
+            return []
         weekday, _ = self._now()
         timetable = self._config.timetable
         periods = {period.index: period for period in timetable.periods}
@@ -310,6 +369,16 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
     def _handle_change(self, _event: Any = None) -> None:
         """Re-publish when a routine tick changes."""
         self.async_write_ha_state()
+
+    @callback
+    def _handle_calendar_change(self, _event: Any = None) -> None:
+        """A holiday started or ended: end the running lesson, then re-publish.
+
+        Going through the boundary handler rather than writing the state directly is
+        what makes the events honest — a holiday that begins mid-morning ends the
+        lesson that was running instead of dropping it silently.
+        """
+        self._handle_boundary(dt_util.now())
 
     # --- state --------------------------------------------------------------
 

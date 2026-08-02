@@ -30,6 +30,7 @@ from .const import (
     CONF_ORDER,
     CONF_PERIODS,
     CONF_ROUTINES,
+    CONF_SCHOOL_CALENDARS,
     CONF_TIMETABLE,
     DEFAULT_COLORS,
     DOMAIN,
@@ -95,6 +96,10 @@ class SchooldayOptionsFlow(OptionsFlow):
         return dict(self.config_entry.options.get(CONF_ROUTINES) or {})
 
     @property
+    def _school_calendars(self) -> list[str]:
+        return list(self.config_entry.options.get(CONF_SCHOOL_CALENDARS) or [])
+
+    @property
     def _timetable(self) -> Timetable:
         return Timetable.from_dict(self.config_entry.options.get(CONF_TIMETABLE))
 
@@ -116,6 +121,7 @@ class SchooldayOptionsFlow(OptionsFlow):
             CONF_MEMBERS: self._members,
             CONF_ROUTINES: self._routines,
             CONF_TIMETABLE: self._timetable.as_options(),
+            CONF_SCHOOL_CALENDARS: self._school_calendars,
         }
         options.update(changes)
         self.hass.config_entries.async_update_entry(self.config_entry, options=options)
@@ -260,7 +266,7 @@ class SchooldayOptionsFlow(OptionsFlow):
             options.append("timetable_lessons")
         if timetable.subjects:
             options.append("timetable_colors")
-        options.append("init")
+        options += ["timetable_calendars", "init"]
         return self.async_show_menu(step_id="timetable", menu_options=options)
 
     async def async_step_timetable_times(
@@ -305,6 +311,40 @@ class SchooldayOptionsFlow(OptionsFlow):
                     selector.TextSelectorConfig(multiline=True)
                 )
             }
+        )
+
+    async def async_step_timetable_calendars(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Name the calendars that close the school.
+
+        A timetable repeats forever; holidays do not, and they are the one thing it
+        cannot know by itself. Any event running on one of these calendars means today
+        has no school: the lessons stay on the card as the plan they are, but today's
+        lessons, the running lesson and the sensor's state all go quiet.
+        """
+        if user_input is not None:
+            self._persist(
+                **{
+                    CONF_SCHOOL_CALENDARS: list(
+                        user_input.get(CONF_SCHOOL_CALENDARS) or []
+                    )
+                }
+            )
+            return await self.async_step_timetable()
+
+        schema = vol.Schema(
+            {
+                vol.Optional(CONF_SCHOOL_CALENDARS): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="calendar", multiple=True)
+                )
+            }
+        )
+        return self.async_show_form(
+            step_id="timetable_calendars",
+            data_schema=self.add_suggested_values_to_schema(
+                schema, {CONF_SCHOOL_CALENDARS: self._school_calendars}
+            ),
         )
 
     async def async_step_timetable_lessons(

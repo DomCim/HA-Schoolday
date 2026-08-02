@@ -199,6 +199,16 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
     `;
   }
 
+  /** A holiday: the plan stays on screen, but today is not happening. */
+  private _renderNoSchool(reason: string | null): TemplateResult {
+    return html`
+      <div class="status">
+        <span class="pill closed">${t(this.hass, 'timetable.no_school')}</span>
+        ${reason ? html`<span class="status-text">${reason}</span>` : nothing}
+      </div>
+    `;
+  }
+
   /** What is running now, or what comes next — the line a wall panel is read for. */
   private _renderStatus(
     grid: TimetableGrid,
@@ -329,7 +339,7 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
       return columns.some((weekday) => lessonAt(week, weekday, period.index) !== undefined);
     });
 
-    const running = highlight ? currentPeriod(grid) : undefined;
+    const running = highlight && board.schoolToday ? currentPeriod(grid) : undefined;
     const showTimes = this._config.show_times !== false;
     const showBreaks = this._config.show_breaks !== false;
 
@@ -344,9 +354,11 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
           </div>
           ${this._renderChips(candidates, member)}
         </div>
-        ${highlight && weekdays.includes(today)
-          ? this._renderStatus(grid, week, today)
-          : nothing}
+        ${highlight && !board.schoolToday
+          ? this._renderNoSchool(board.noSchoolReason)
+          : highlight && weekdays.includes(today)
+            ? this._renderStatus(grid, week, today)
+            : nothing}
         ${dayView
           ? html`
               <div class="days">
@@ -528,7 +540,8 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
         color: var(--primary-text-color);
       }
 
-      .pill.next {
+      .pill.next,
+      .pill.closed {
         background: var(--schoolday-surface-alt);
         color: var(--schoolday-muted);
       }

@@ -23,6 +23,10 @@ CONF_MEMBERS: Final = "members"
 CONF_ROUTINES: Final = "routines"
 CONF_TIMETABLE: Final = "timetable"
 
+# Calendars whose events mean "no school today" — holidays, teacher training days.
+# The one thing a timetable cannot know by itself.
+CONF_SCHOOL_CALENDARS: Final = "school_calendars"
+
 # Routine blocks. Two is deliberate: a wall panel should show what is due now,
 # and "before school" versus "before bed" is the split that actually matters.
 BLOCK_MORNING: Final = "morning"
@@ -99,6 +103,10 @@ ATTR_LESSON_NEXT: Final = "lesson_next"
 ATTR_SUBJECT: Final = "subject"
 ATTR_ROOM: Final = "room"
 ATTR_PERIOD: Final = "period"
+
+# Whether school is on at all today, and what is keeping it shut if not.
+ATTR_SCHOOL_TODAY: Final = "school_today"
+ATTR_NO_SCHOOL: Final = "no_school_reason"
 
 # The state of a member sensor when no lesson is running: a plain token rather than
 # a translated word, because automations compare against it.

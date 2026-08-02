@@ -21,6 +21,10 @@ export interface SchooldayBoard {
   members: SchooldayMember[];
   /** The lesson grid, or null when no timetable is configured. */
   timetable: TimetableGrid | null;
+  /** False while a holiday calendar says the school is shut. */
+  schoolToday: boolean;
+  /** The event closing the school, when there is one. */
+  noSchoolReason: string | null;
 }
 
 function isBoardEntity(entity: HassEntity): boolean {
@@ -71,6 +75,10 @@ export function findBoard(
     entityId: entity.entity_id,
     members,
     timetable: parseGrid(attributes.timetable),
+    // Absent on an older integration, where every day was a school day.
+    schoolToday: attributes.school_today !== false,
+    noSchoolReason:
+      typeof attributes.no_school_reason === 'string' ? attributes.no_school_reason : null,
   };
 }
 

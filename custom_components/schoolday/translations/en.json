@@ -91,6 +91,7 @@
           "timetable_times": "Lesson times",
           "timetable_lessons": "Edit someone's timetable",
           "timetable_colors": "Subject colours",
+          "timetable_calendars": "Holidays and days off",
           "init": "Back"
         }
       },
@@ -127,6 +128,16 @@
       "timetable_colors": {
         "title": "Subject colours",
         "description": "Every subject already has a colour, derived from its name, and it is the same colour for every child. Change the ones you would like to be different."
+      },
+      "timetable_calendars": {
+        "title": "Holidays and days off",
+        "description": "A timetable repeats forever; holidays do not. Name the calendars that close the school — a subscribed school-holiday calendar, or a local one for teacher training days.\n\nAny event running on these calendars means today has no school: the week stays on the card as the plan it is, but today's lessons go quiet, the sensor reads `free`, and no lesson events fire. Point this at calendars that hold nothing but days off — anything else on them would shut the school for the afternoon.",
+        "data": {
+          "school_calendars": "Calendars"
+        },
+        "data_description": {
+          "school_calendars": "Leave empty if you would rather handle holidays in the automation yourself."
+        }
       }
     },
     "error": {

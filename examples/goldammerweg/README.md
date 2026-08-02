@@ -56,6 +56,13 @@ Deutsch
 `-` leaves a period free, and a line may name its own period (`6. Chor`) when the day
 starts late or has a gap in the middle.
 
+### Holidays
+
+**Configure → School timetable → Holidays and days off**. The Bavarian school-holiday
+calendar subscribed as an iCal feed, plus `calendar.schulfrei` for the movable days the
+school announces itself. On any day one of them covers, the cards say *Schulfrei* and the
+morning announcement stays quiet without a second condition.
+
 ### Routines
 
 **Configure → Edit routines**, per child and per block, one step per line. Deliberately

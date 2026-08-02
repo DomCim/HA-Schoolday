@@ -23,6 +23,7 @@ from .const import (
     CONF_ORDER,
     CONF_PERIODS,
     CONF_ROUTINES,
+    CONF_SCHOOL_CALENDARS,
     CONF_SUBJECT_COLORS,
     CONF_TIMETABLE,
     DEFAULT_COLORS,
@@ -109,8 +110,9 @@ class Member:
 class Routine:
     """One member's steps for one block, keyed by weekday (0 = Monday).
 
-    The school timetable is not read from anywhere: it is stable for a school
-    year, so "Tuesday is PE" is encoded once as Tuesday's steps.
+    Deliberately independent of the timetable: "pack the PE kit" belongs to the
+    evening before, so it is a step on the days that have PE rather than something
+    derived from the lesson grid.
     """
 
     by_weekday: dict[int, list[str]] = field(default_factory=dict)
@@ -510,6 +512,8 @@ class SchooldayConfig:
     """The full Schoolday configuration."""
 
     members: list[Member] = field(default_factory=list)
+    #: Calendars whose events mean there is no school today.
+    school_calendars: list[str] = field(default_factory=list)
     #: member id -> block -> Routine
     routines: dict[str, dict[str, Routine]] = field(default_factory=dict)
     timetable: Timetable = field(default_factory=Timetable)
@@ -532,6 +536,7 @@ class SchooldayConfig:
 
         return cls(
             members=members,
+            school_calendars=list(options.get(CONF_SCHOOL_CALENDARS) or []),
             routines=routines,
             timetable=Timetable.from_dict(options.get(CONF_TIMETABLE)),
         )

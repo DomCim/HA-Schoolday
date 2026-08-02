@@ -28,6 +28,7 @@ const EN: Dict = {
   'timetable.none_configured':
     'Nobody has a timetable yet. Add one under Configure → School timetable in the Schoolday integration.',
   'timetable.break': 'Break',
+  'timetable.no_school': 'No school',
   'timetable.now': 'Now',
   'timetable.next': 'Next',
   'timetable.remaining': '{minutes} min left',
@@ -73,6 +74,7 @@ const DE: Dict = {
   'timetable.none_configured':
     'Noch hat niemand einen Stundenplan. Lege ihn in der Schoolday-Integration unter „Konfigurieren → Stundenplan“ an.',
   'timetable.break': 'Pause',
+  'timetable.no_school': 'Schulfrei',
   'timetable.now': 'Jetzt',
   'timetable.next': 'Danach',
   'timetable.remaining': 'noch {minutes} min',

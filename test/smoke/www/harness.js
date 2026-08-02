@@ -149,7 +149,7 @@ const hass = {
       attributes: {
         schoolday_board: true,
         members: [
-          { id: 'm1', name: 'Ben', color: '#e0603a', avatar: null, order: 0 },
+          { id: 'm1', name: 'Ben', color: '#e0603a', avatar: 'person.ben', order: 0 },
           { id: 'm2', name: 'Jan', color: '#3a86c8', avatar: null, order: 1 },
           { id: 'm3', name: 'Nik', color: '#4f9d69', avatar: null, order: 2 },
         ],
@@ -158,7 +158,7 @@ const hass = {
         // What the management card edits, exactly as the board sensor publishes it.
         admin: {
           members: [
-            { id: 'm1', name: 'Ben', color: '#e0603a', avatar: null, order: 0, calendar: 'calendar.ben' },
+            { id: 'm1', name: 'Ben', color: '#e0603a', avatar: 'person.ben', order: 0, calendar: 'calendar.ben' },
             { id: 'm2', name: 'Jan', color: '#3a86c8', avatar: null, order: 1, calendar: null },
             { id: 'm3', name: 'Nik', color: '#4f9d69', avatar: null, order: 2, calendar: null },
           ],
@@ -180,6 +180,13 @@ const hass = {
     'sensor.schoolday_ben': memberState('sensor.schoolday_ben', 'Ben', 'm1', '#e0603a'),
     'sensor.schoolday_jan': memberState('sensor.schoolday_jan', 'Jan', 'm2', '#3a86c8'),
     'sensor.schoolday_nik': memberState('sensor.schoolday_nik', 'Nik', 'm3', '#4f9d69'),
+    'person.ben': {
+      entity_id: 'person.ben',
+      state: 'home',
+      attributes: { friendly_name: 'Ben', entity_picture: '/api/image/serve/abc/512x512' },
+      last_changed: STAMP,
+      last_updated: STAMP,
+    },
     'calendar.ferien': CALENDAR('calendar.ferien', 'Schulferien'),
     'calendar.ben': CALENDAR('calendar.ben', 'Ben'),
     'weather.forecast_goldammerweg': {

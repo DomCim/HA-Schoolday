@@ -16,16 +16,16 @@ import {
   adminOf,
   calendarEntities,
   callSchoolday,
+  personEntities,
   stepsFor,
   type AdminConfig,
   type AdminMember,
 } from '../lib/admin';
-import { findBoard } from '../lib/board';
 import { localeOf } from '../lib/dates';
 import { t } from '../lib/i18n';
 import { schooldayButtons, schooldayTokens } from '../lib/styles';
 import { lessonAt, weekOf, type TimetableWeek } from '../lib/timetable';
-import { memberSensor } from '../lib/board';
+import { findBoard, memberSensor } from '../lib/board';
 import type {
   HomeAssistant,
   LovelaceCard,
@@ -383,6 +383,7 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
 
   private _renderFamily(config: AdminConfig): TemplateResult {
     const calendars = calendarEntities(this.hass!);
+    const people = personEntities(this.hass!);
     const form = (member: AdminMember | null) => {
       const key = member?.id ?? 'new';
       return html`
@@ -409,7 +410,12 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
             </label>
             <label class="field grow">
               <span class="label">${t(this.hass, 'admin.avatar')}</span>
-              <input id=${`avatar-${key}`} .value=${member?.avatar ?? ''} />
+              <input
+                id=${`avatar-${key}`}
+                list="schoolday-people"
+                .value=${member?.avatar ?? ''}
+                placeholder="person.…"
+              />
             </label>
           </div>
           <div class="row">
@@ -456,6 +462,10 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
       <datalist id="schoolday-calendars">
         ${calendars.map((entityId) => html`<option value=${entityId}></option>`)}
       </datalist>
+      <datalist id="schoolday-people">
+        ${people.map((entityId) => html`<option value=${entityId}></option>`)}
+      </datalist>
+      <div class="notice quiet">${t(this.hass, 'admin.avatar_hint')}</div>
       ${config.members.map((member) => form(member))}
       <div class="sub-head">${t(this.hass, 'admin.add_member')}</div>
       ${form(null)}

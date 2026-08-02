@@ -24,8 +24,20 @@ const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css
 
 await mkdir(SHOTS, { recursive: true });
 
+// A 1x1 PNG, so an avatar pointing at Home Assistant's image API resolves to something
+// rather than a 404 the error check would rightly complain about.
+const PIXEL = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+  'base64',
+);
+
 const server = createServer(async (req, res) => {
   const path = req.url === '/' ? '/index.html' : req.url.split('?')[0];
+  if (path.startsWith('/api/image/serve/')) {
+    res.writeHead(200, { 'Content-Type': 'image/png' });
+    res.end(PIXEL);
+    return;
+  }
   try {
     // The bundle is served from where the build writes it, so the test can never pass
     // against a stale copy.
@@ -633,6 +645,21 @@ check(
     !('block' in editorEvent) &&
     editorEvent.type === 'custom:schoolday-routines-card',
   JSON.stringify(editorEvent),
+);
+
+// An avatar naming a person entity is drawn as that person's picture: Home Assistant
+// already knows what they look like, and copying the URL once would go stale.
+const avatarSrc = await page.evaluate(async () => {
+  window.__mount({ type: 'custom:schoolday-routines-card', block: 'both', show_empty: true },
+    'schoolday-routines-card');
+  await new Promise((r) => setTimeout(r, 300));
+  const img = document.querySelector('schoolday-routines-card').shadowRoot.querySelector('img.avatar');
+  return img?.getAttribute('src') ?? null;
+});
+check(
+  "a person entity as the avatar draws that person's picture",
+  avatarSrc === '/api/image/serve/abc/512x512',
+  String(avatarSrc),
 );
 
 // ---------------------------------------------------------------- admin card

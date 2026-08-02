@@ -127,6 +127,18 @@ export function calendarEntities(hass: HomeAssistant): string[] {
 }
 
 /**
+ * Every person entity, for the avatar picker.
+ *
+ * Home Assistant already knows what the household looks like; asking for a URL when
+ * the picture is right there is asking the wrong question.
+ */
+export function personEntities(hass: HomeAssistant): string[] {
+  return Object.keys(hass.states)
+    .filter((entityId) => entityId.startsWith('person.'))
+    .sort();
+}
+
+/**
  * Call one of Schoolday's services.
  *
  * Errors are left to bubble: Home Assistant already shows a service failure, and the

@@ -13,7 +13,7 @@
 import { LitElement, css, html, nothing, type TemplateResult } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 
-import { findBoard, memberSensor, type SchooldayMember } from '../lib/board';
+import { avatarUrl, findBoard, memberSensor, type SchooldayMember } from '../lib/board';
 import { localeOf } from '../lib/dates';
 import { t } from '../lib/i18n';
 import { schooldayButtons, schooldayTokens } from '../lib/styles';
@@ -398,8 +398,8 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
       <ha-card style=${`--member-color:${member.color}`}>
         <div class="head">
           <div class="title">
-            ${member.avatar
-              ? html`<img class="avatar" src=${member.avatar} alt="" />`
+            ${avatarUrl(this.hass, member.avatar)
+              ? html`<img class="avatar" src=${avatarUrl(this.hass, member.avatar)!} alt="" />`
               : html`<span class="dot"></span>`}
             <span>${member.name}</span>
           </div>

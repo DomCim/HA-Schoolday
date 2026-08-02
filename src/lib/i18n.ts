@@ -78,7 +78,7 @@ const EN: Dict = {
   'admin.name': 'Name',
   'admin.color': 'Colour',
   'admin.calendar': 'Own calendar',
-  'admin.avatar': 'Avatar URL',
+  'admin.avatar': 'Picture',
   'admin.block_morning': 'Morning',
   'admin.block_evening': 'Evening',
   'admin.day_free': 'Day off',
@@ -87,6 +87,8 @@ const EN: Dict = {
   'admin.school_calendars': 'Calendars that close the school, one per line',
   'admin.care_keywords': 'Holiday-care keywords, one per line',
   'admin.care_hint': 'Holiday care',
+  'admin.avatar_hint':
+    'For a picture, put in a person entity — the one Home Assistant already has. A URL works too.',
   'admin.colors_hint':
     'Every subject already has a colour taken from its name. This is only for correcting one.',
   'admin.calendars_hint':
@@ -161,7 +163,7 @@ const DE: Dict = {
   'admin.name': 'Name',
   'admin.color': 'Farbe',
   'admin.calendar': 'Eigener Kalender',
-  'admin.avatar': 'Avatar-URL',
+  'admin.avatar': 'Bild',
   'admin.block_morning': 'Morgens',
   'admin.block_evening': 'Abends',
   'admin.day_free': 'Freier Tag',
@@ -170,6 +172,8 @@ const DE: Dict = {
   'admin.school_calendars': 'Kalender, die die Schule schließen, einer pro Zeile',
   'admin.care_keywords': 'Betreuungs-Stichwörter, eines pro Zeile',
   'admin.care_hint': 'Ferienbetreuung',
+  'admin.avatar_hint':
+    'Für ein Bild eine Person-Entität eintragen — die, die Home Assistant schon kennt. Eine URL geht auch.',
   'admin.colors_hint':
     'Jedes Fach hat schon eine Farbe, abgeleitet aus seinem Namen. Das hier ist nur zum Korrigieren.',
   'admin.calendars_hint':

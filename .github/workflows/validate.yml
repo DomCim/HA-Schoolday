@@ -36,6 +36,22 @@ jobs:
           #              installed as a custom repository, where neither is checked.
           ignore: brands topics description
 
+  # Ruff and the configuration tests. They existed before this job did and were only
+  # ever run by hand, which meant nothing stopped a broken config_writes from being
+  # merged. A required status check can only require what actually runs.
+  python:
+    name: Python
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install ruff
+      - run: ruff check custom_components/
+      - name: Configuration writes, models and the static service checks
+        run: python3 test/config_writes_test.py
+
   frontend:
     name: Frontend build
     runs-on: ubuntu-latest

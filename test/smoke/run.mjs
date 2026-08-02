@@ -99,11 +99,15 @@ check(
 const ttRows = await page.locator('schoolday-timetable-card .time').count();
 check('periods nobody has are left out', ttRows === 6, `${ttRows} period rows`);
 
-const ttBreaks = await page.locator('schoolday-timetable-card .break').allTextContents();
+// The divider sits inside every day, so the times ride on its tooltip; the left-hand
+// column names it in the household's language.
+const ttBreaks = await page
+  .locator('schoolday-timetable-card .t-break')
+  .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('title')));
 check(
   'breaks come from the gaps, and none dangles off the end',
   ttBreaks.length === 2 && /09:30–09:50/.test(ttBreaks[0]) && /11:20–11:30/.test(ttBreaks[1]),
-  ttBreaks.map((b) => b.replace(/\s+/g, ' ').trim()).join(' | '),
+  ttBreaks.join(' | '),
 );
 
 const nowCells = await page.locator('schoolday-timetable-card .cell.now').count();

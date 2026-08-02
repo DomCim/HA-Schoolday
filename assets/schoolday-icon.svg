@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="512" height="512" role="img" aria-label="Schoolday">
+  <title>Schoolday</title>
+  <defs>
+    <linearGradient id="now" x1="38" y1="24" x2="38" y2="33" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#5aa9e6"/>
+      <stop offset="1" stop-color="#3a86c8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Cool dark ground, the same tone as the console banner. -->
+  <rect width="64" height="64" rx="14" fill="#16212b"/>
+
+  <!-- The week as five columns of periods — the timetable card, in small. The gaps
+       are the free periods, which is what a real week looks like. -->
+  <g fill="#f0f4f8" fill-opacity=".24">
+    <rect x="11" y="14" width="9" height="7" rx="2"/>
+    <rect x="22" y="14" width="9" height="7" rx="2"/>
+    <rect x="44" y="14" width="9" height="7" rx="2"/>
+
+    <rect x="11" y="25" width="9" height="7" rx="2"/>
+    <rect x="22" y="25" width="9" height="7" rx="2"/>
+    <rect x="44" y="25" width="9" height="7" rx="2"/>
+
+    <rect x="22" y="36" width="9" height="7" rx="2"/>
+    <rect x="33" y="36" width="9" height="7" rx="2"/>
+    <rect x="44" y="36" width="9" height="7" rx="2"/>
+
+    <rect x="11" y="47" width="9" height="7" rx="2"/>
+    <rect x="33" y="47" width="9" height="7" rx="2"/>
+  </g>
+
+  <!-- The lesson running right now: the one thing the card always answers. -->
+  <rect x="32" y="23" width="11" height="11" rx="3" fill="url(#now)"/>
+</svg>

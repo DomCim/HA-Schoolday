@@ -7,7 +7,7 @@ import { LitElement, css, html, nothing, type TemplateResult } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 
 import { localeOf, prefersHour12 } from '../lib/dates';
-import { hearthTokens } from '../lib/styles';
+import { schooldayTokens } from '../lib/styles';
 import type {
   HomeAssistant,
   LovelaceCard,
@@ -15,7 +15,7 @@ import type {
   LovelaceCardEditor,
 } from '../lib/types';
 
-export interface HearthHeaderCardConfig extends LovelaceCardConfig {
+export interface SchooldayHeaderCardConfig extends LovelaceCardConfig {
   /** A `weather.*` entity. Omit to hide the weather block. */
   weather_entity?: string;
   /** Free text shown under the date, e.g. a household motto. */
@@ -24,25 +24,25 @@ export interface HearthHeaderCardConfig extends LovelaceCardConfig {
   show_seconds?: boolean;
 }
 
-@customElement('hearth-header-card')
-export class HearthHeaderCard extends LitElement implements LovelaceCard {
+@customElement('schoolday-header-card')
+export class SchooldayHeaderCard extends LitElement implements LovelaceCard {
   @property({ attribute: false }) public hass?: HomeAssistant;
 
-  @state() private _config: HearthHeaderCardConfig = { type: '' };
+  @state() private _config: SchooldayHeaderCardConfig = { type: '' };
   @state() private _now = new Date();
 
   private _timer?: number;
 
 
   public static async getConfigElement(): Promise<LovelaceCardEditor> {
-    return document.createElement('hearth-header-card-editor');
+    return document.createElement('schoolday-header-card-editor');
   }
 
   public static getStubConfig(): Record<string, unknown> {
     return { show_seconds: false };
   }
 
-  public setConfig(config: HearthHeaderCardConfig): void {
+  public setConfig(config: SchooldayHeaderCardConfig): void {
     this._config = { ...config };
   }
 
@@ -133,7 +133,7 @@ export class HearthHeaderCard extends LitElement implements LovelaceCard {
   }
 
   static override styles = [
-    hearthTokens,
+    schooldayTokens,
     css`
       ha-card {
         padding: 16px 20px;
@@ -164,7 +164,7 @@ export class HearthHeaderCard extends LitElement implements LovelaceCard {
       .greeting {
         margin-top: 2px;
         font-size: 0.9rem;
-        color: var(--hearth-muted);
+        color: var(--schoolday-muted);
       }
 
       .weather {
@@ -181,7 +181,7 @@ export class HearthHeaderCard extends LitElement implements LovelaceCard {
       .condition {
         margin-top: 4px;
         font-size: 0.9rem;
-        color: var(--hearth-muted);
+        color: var(--schoolday-muted);
       }
     `,
   ];
@@ -189,15 +189,15 @@ export class HearthHeaderCard extends LitElement implements LovelaceCard {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'hearth-header-card': HearthHeaderCard;
+    'schoolday-header-card': SchooldayHeaderCard;
   }
 }
 
 window.customCards = window.customCards || [];
 window.customCards.push({
-  type: 'hearth-header-card',
-  name: 'Hearth Header',
+  type: 'schoolday-header-card',
+  name: 'Schoolday Header',
   description: 'Clock, date and weather, sized to be read from across the room.',
   preview: true,
-  documentationURL: 'https://github.com/DomCim/Homeassistant-hearth',
+  documentationURL: 'https://github.com/DomCim/HA-Schoolday',
 });

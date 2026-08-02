@@ -1,0 +1,70 @@
+# Schoolday-Dashboard für den Goldammerweg — Stand Schoolday 0.5.0
+#
+# Einfügen: Einstellungen → Dashboards → Dashboard hinzufügen (leer, Titel "Schule",
+# Symbol mdi:timetable) → öffnen → Stift → Drei-Punkte → Raw-Konfigurationseditor →
+# alles ersetzen durch den Inhalt dieser Datei.
+#
+# Enthält ausschließlich Schoolday-Karten. Keine davon braucht mehr Optionen als hier
+# stehen: Mitglieder, Stundenraster und Wochen kommen aus der Integration.
+
+views:
+- title: Schule
+  path: schule
+  icon: mdi:timetable
+  type: sections
+  max_columns: 4
+  sections:
+  - type: grid
+    column_span: 4
+    cards:
+    - type: custom:schoolday-header-card
+      weather_entity: weather.forecast_goldammerweg
+      greeting: Goldammerweg
+      grid_options:
+        columns: full
+  - type: grid
+    column_span: 4
+    cards:
+    - type: heading
+      heading: Routine
+      icon: mdi:checkbox-marked-circle-outline
+    # "auto" zeigt vormittags den Morgen-Block und ab 14 Uhr den Abend-Block.
+    - type: custom:schoolday-routines-card
+      block: auto
+      evening_from: 14
+      grid_options:
+        columns: full
+  - type: grid
+    column_span: 4
+    cards:
+    - type: heading
+      heading: Stundenplan
+      icon: mdi:school-outline
+    # Ohne Optionen: die Karte nimmt das Stundenraster aus den Schoolday-Optionen,
+    # bietet die Kinder mit Stundenplan zur Auswahl an und hebt die laufende Stunde
+    # hervor.
+    - type: custom:schoolday-timetable-card
+      grid_options:
+        columns: full
+
+# Eine Ansicht je Kind, fest auf dessen Woche eingestellt — praktisch, wenn ein Tablet
+# im Kinderzimmer hängt und nicht jedes Mal umgeschaltet werden soll.
+- title: Ben
+  path: ben
+  icon: mdi:account-school
+  type: sections
+  max_columns: 2
+  sections:
+  - type: grid
+    column_span: 2
+    cards:
+    - type: custom:schoolday-timetable-card
+      member: Ben
+      grid_options:
+        columns: full
+    - type: custom:schoolday-routines-card
+      members:
+      - Ben
+      block: both
+      grid_options:
+        columns: full

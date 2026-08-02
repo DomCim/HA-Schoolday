@@ -1,11 +1,16 @@
 /**
- * Visual editors for every Hearth card.
+ * Visual editors for every Schoolday card.
  *
  * Built on `ha-form`, which — unlike `ha-dialog` — is always defined wherever a
  * card editor can be opened, because every built-in card editor uses it.
  *
  * Labels come from the same translation table as the cards, so the editor speaks
  * whatever language Home Assistant is set to.
+ *
+ * `board_entity` is deliberately absent from every schema below. The cards find the
+ * board sensor themselves, only one of them can exist, and an entity picker that is
+ * meant to stay empty is a question the user should never be asked. It still works
+ * in YAML for the rare case of a renamed entity.
  */
 import { LitElement, html, type TemplateResult } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
@@ -20,11 +25,6 @@ interface FormItem {
   selector: Record<string, unknown>;
   required?: boolean;
 }
-
-const BOARD_ENTITY: FormItem = {
-  name: 'board_entity',
-  selector: { entity: { domain: 'sensor' } },
-};
 
 const boolean = (name: string): FormItem => ({ name, selector: { boolean: {} } });
 
@@ -43,7 +43,7 @@ const select = (
 });
 
 /** Shared plumbing: render an ha-form and publish changes back to Lovelace. */
-abstract class HearthCardEditor extends LitElement implements LovelaceCardEditor {
+abstract class SchooldayCardEditor extends LitElement implements LovelaceCardEditor {
   @property({ attribute: false }) public hass?: HomeAssistant;
 
   @state() protected _config: LovelaceCardConfig = { type: '' };
@@ -88,69 +88,10 @@ abstract class HearthCardEditor extends LitElement implements LovelaceCardEditor
   }
 }
 
-@customElement('hearth-calendar-card-editor')
-export class HearthCalendarCardEditor extends HearthCardEditor {
-  protected schema(): FormItem[] {
-    const views = [
-      { value: 'month', label: t(this.hass, 'calendar.month') },
-      { value: 'week', label: t(this.hass, 'calendar.week') },
-      { value: 'day', label: t(this.hass, 'calendar.day') },
-    ];
-    return [
-      BOARD_ENTITY,
-      select('view', views),
-      select('views', views, true),
-      { name: 'default_calendar', selector: { entity: { domain: 'calendar' } } },
-      number('max_events_per_day', 1, 10),
-      boolean('show_legend'),
-      boolean('create'),
-    ];
-  }
-}
-
-@customElement('hearth-agenda-card-editor')
-export class HearthAgendaCardEditor extends HearthCardEditor {
+@customElement('schoolday-routines-card-editor')
+export class SchooldayRoutinesCardEditor extends SchooldayCardEditor {
   protected schema(): FormItem[] {
     return [
-      BOARD_ENTITY,
-      number('days', 1, 14),
-      number('max_events', 1, 20),
-      boolean('hide_empty_days'),
-    ];
-  }
-}
-
-@customElement('hearth-people-card-editor')
-export class HearthPeopleCardEditor extends HearthCardEditor {
-  protected schema(): FormItem[] {
-    return [
-      BOARD_ENTITY,
-      boolean('show_events'),
-      number('max_events', 1, 5),
-      boolean('show_tasks'),
-      boolean('show_points'),
-    ];
-  }
-}
-
-@customElement('hearth-lists-card-editor')
-export class HearthListsCardEditor extends HearthCardEditor {
-  protected schema(): FormItem[] {
-    return [
-      BOARD_ENTITY,
-      { name: 'entities', selector: { entity: { domain: 'todo', multiple: true } } },
-      number('columns', 1, 6),
-      number('max_items', 1, 50),
-      boolean('allow_add'),
-    ];
-  }
-}
-
-@customElement('hearth-routines-card-editor')
-export class HearthRoutinesCardEditor extends HearthCardEditor {
-  protected schema(): FormItem[] {
-    return [
-      BOARD_ENTITY,
       select('block', [
         { value: 'auto', label: t(this.hass, 'routines.auto') },
         { value: 'morning', label: t(this.hass, 'routines.morning') },
@@ -163,18 +104,17 @@ export class HearthRoutinesCardEditor extends HearthCardEditor {
   }
 }
 
-@customElement('hearth-timetable-card-editor')
-export class HearthTimetableCardEditor extends HearthCardEditor {
+@customElement('schoolday-timetable-card-editor')
+export class SchooldayTimetableCardEditor extends SchooldayCardEditor {
   protected schema(): FormItem[] {
-    // The members come from the board, so the option is a name to pick rather than
-    // an id to look up. Everything else about the timetable lives in the integration.
+    // The members come from the board, so this is a name to pick rather than an id to
+    // look up. Everything else about the timetable lives in the integration.
     const members = (findBoard(this.hass!)?.members ?? []).map((member) => ({
       value: member.id,
       label: member.name,
     }));
 
     return [
-      BOARD_ENTITY,
       ...(members.length > 1 ? [select('member', members)] : []),
       select('layout', [
         { value: 'auto', label: t(this.hass, 'timetable.layout_auto') },
@@ -195,8 +135,8 @@ export class HearthTimetableCardEditor extends HearthCardEditor {
   }
 }
 
-@customElement('hearth-header-card-editor')
-export class HearthHeaderCardEditor extends HearthCardEditor {
+@customElement('schoolday-header-card-editor')
+export class SchooldayHeaderCardEditor extends SchooldayCardEditor {
   protected schema(): FormItem[] {
     return [
       { name: 'weather_entity', selector: { entity: { domain: 'weather' } } },
@@ -208,12 +148,8 @@ export class HearthHeaderCardEditor extends HearthCardEditor {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'hearth-calendar-card-editor': HearthCalendarCardEditor;
-    'hearth-agenda-card-editor': HearthAgendaCardEditor;
-    'hearth-people-card-editor': HearthPeopleCardEditor;
-    'hearth-lists-card-editor': HearthListsCardEditor;
-    'hearth-routines-card-editor': HearthRoutinesCardEditor;
-    'hearth-timetable-card-editor': HearthTimetableCardEditor;
-    'hearth-header-card-editor': HearthHeaderCardEditor;
+    'schoolday-routines-card-editor': SchooldayRoutinesCardEditor;
+    'schoolday-timetable-card-editor': SchooldayTimetableCardEditor;
+    'schoolday-header-card-editor': SchooldayHeaderCardEditor;
   }
 }

@@ -1,18 +1,18 @@
-"""Constants for the Hearth integration."""
+"""Constants for the Schoolday integration."""
 
 from __future__ import annotations
 
 from typing import Final
 
-DOMAIN: Final = "hearth"
+DOMAIN: Final = "schoolday"
 
 # Keep in sync with manifest.json, package.json and src/lib/const.ts.
-VERSION: Final = "0.4.0"
+VERSION: Final = "0.5.0"
 
 # Where the bundled Lovelace cards are served from.
-FRONTEND_URL_BASE: Final = "/hearth-frontend"
+FRONTEND_URL_BASE: Final = "/schoolday-frontend"
 FRONTEND_DIR: Final = "frontend"
-PANEL_FILENAME: Final = "hearth-panel.js"
+PANEL_FILENAME: Final = "schoolday-panel.js"
 
 # hass.data key guarding one-time frontend registration.
 DATA_FRONTEND_REGISTERED: Final = f"{DOMAIN}_frontend_registered"
@@ -20,7 +20,6 @@ DATA_FRONTEND_REGISTERED: Final = f"{DOMAIN}_frontend_registered"
 # --- Options keys -----------------------------------------------------------
 
 CONF_MEMBERS: Final = "members"
-CONF_SHARED: Final = "shared"
 CONF_ROUTINES: Final = "routines"
 CONF_TIMETABLE: Final = "timetable"
 
@@ -70,29 +69,17 @@ CONF_MEMBER_ID: Final = "id"
 CONF_NAME: Final = "name"
 CONF_COLOR: Final = "color"
 CONF_AVATAR: Final = "avatar"
-CONF_PERSON: Final = "person"
-CONF_CALENDARS: Final = "calendars"
-CONF_TODO_LISTS: Final = "todo_lists"
-CONF_POINTS_ENTITY: Final = "points_entity"
 CONF_ORDER: Final = "order"
-
-CONF_SHARED_CALENDARS: Final = "shared_calendars"
-CONF_SHARED_TODO_LISTS: Final = "shared_todo_lists"
-CONF_READONLY_CALENDARS: Final = "readonly_calendars"
 
 # --- Entity attributes exposed to the cards ---------------------------------
 
 # Marker the cards use to locate the board sensor, so renaming it does not break them.
-ATTR_BOARD: Final = "hearth_board"
+ATTR_BOARD: Final = "schoolday_board"
 
 ATTR_MEMBER_ID: Final = "member_id"
 ATTR_MEMBERS: Final = "members"
 ATTR_COLOR: Final = "color"
 ATTR_AVATAR: Final = "avatar"
-ATTR_PRESENCE: Final = "presence"
-ATTR_POINTS: Final = "points"
-ATTR_CALENDARS: Final = "calendars"
-ATTR_TODO_LISTS: Final = "todo_lists"
 ATTR_VERSION: Final = "version"
 ATTR_ROUTINE_MORNING: Final = "routine_morning"
 ATTR_ROUTINE_EVENING: Final = "routine_evening"
@@ -101,6 +88,26 @@ ATTR_ROUTINE_BLOCKS: Final = "routine_blocks"
 # The lesson grid — periods, breaks and subject colours — on the board sensor; one
 # member's week on their own sensor, which keeps either attribute set small.
 ATTR_TIMETABLE: Final = "timetable"
+
+# Today's lessons, ready for a template: the morning announcement should not have to
+# work out which weekday it is and index into a week.
+ATTR_TODAY: Final = "today"
+ATTR_TODAY_SUBJECTS: Final = "today_subjects"
+ATTR_TODAY_SUMMARY: Final = "today_summary"
+ATTR_LESSON_NOW: Final = "lesson_now"
+ATTR_LESSON_NEXT: Final = "lesson_next"
+ATTR_SUBJECT: Final = "subject"
+ATTR_ROOM: Final = "room"
+ATTR_PERIOD: Final = "period"
+
+# The state of a member sensor when no lesson is running: a plain token rather than
+# a translated word, because automations compare against it.
+STATE_FREE: Final = "free"
+
+# Fired at every lesson boundary. A state change cannot stand in for these: two
+# periods of the same subject in a row are one state but two lessons.
+EVENT_LESSON_STARTED: Final = f"{DOMAIN}_lesson_started"
+EVENT_LESSON_ENDED: Final = f"{DOMAIN}_lesson_ended"
 
 # --- Routine completion state ------------------------------------------------
 

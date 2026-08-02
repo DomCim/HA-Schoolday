@@ -1,5 +1,5 @@
 /**
- * Reading the school timetable out of the Hearth sensors.
+ * Reading the school timetable out of the Schoolday sensors.
  *
  * The grid — when the periods are, where the breaks fall, what colour a subject has —
  * is published once on the board sensor. Each member's own week rides on their member

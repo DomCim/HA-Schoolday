@@ -1,8 +1,8 @@
 """Typed view over the config entry options.
 
-The config entry options are the single source of truth for Hearth's configuration.
+The config entry options are the single source of truth for Schoolday's configuration.
 This module is the only place that knows their raw shape; everything else works with
-:class:`Member` and :class:`HearthConfig`.
+:class:`Member` and :class:`SchooldayConfig`.
 """
 
 from __future__ import annotations
@@ -15,7 +15,6 @@ from zlib import crc32
 from .const import (
     BREAK_MIN_MINUTES,
     CONF_AVATAR,
-    CONF_CALENDARS,
     CONF_COLOR,
     CONF_LESSONS,
     CONF_MEMBER_ID,
@@ -23,16 +22,9 @@ from .const import (
     CONF_NAME,
     CONF_ORDER,
     CONF_PERIODS,
-    CONF_PERSON,
-    CONF_POINTS_ENTITY,
-    CONF_READONLY_CALENDARS,
     CONF_ROUTINES,
-    CONF_SHARED,
-    CONF_SHARED_CALENDARS,
-    CONF_SHARED_TODO_LISTS,
     CONF_SUBJECT_COLORS,
     CONF_TIMETABLE,
-    CONF_TODO_LISTS,
     DEFAULT_COLORS,
     FREE_MARKERS,
     ROUTINE_BLOCKS,
@@ -88,10 +80,6 @@ class Member:
     name: str
     color: str
     avatar: str | None = None
-    person: str | None = None
-    calendars: list[str] = field(default_factory=list)
-    todo_lists: list[str] = field(default_factory=list)
-    points_entity: str | None = None
     order: int = 0
 
     @classmethod
@@ -103,10 +91,6 @@ class Member:
             color=color_to_hex(data.get(CONF_COLOR))
             or DEFAULT_COLORS[index % len(DEFAULT_COLORS)],
             avatar=data.get(CONF_AVATAR) or None,
-            person=data.get(CONF_PERSON) or None,
-            calendars=list(data.get(CONF_CALENDARS) or []),
-            todo_lists=list(data.get(CONF_TODO_LISTS) or []),
-            points_entity=data.get(CONF_POINTS_ENTITY) or None,
             order=int(data.get(CONF_ORDER, index)),
         )
 
@@ -117,21 +101,8 @@ class Member:
             "name": self.name,
             "color": self.color,
             "avatar": self.avatar,
-            "person": self.person,
-            "calendars": self.calendars,
-            "todo_lists": self.todo_lists,
             "order": self.order,
         }
-
-    @property
-    def tracked_entities(self) -> list[str]:
-        """Entities whose state changes should refresh this member's sensor."""
-        entities = [*self.todo_lists]
-        if self.person:
-            entities.append(self.person)
-        if self.points_entity:
-            entities.append(self.points_entity)
-        return entities
 
 
 @dataclass(slots=True)
@@ -446,6 +417,50 @@ class Timetable:
                 )
         return gaps
 
+    def period_at(self, minutes: int) -> Period | None:
+        """The period running at a point in the day, if any."""
+        return next(
+            (
+                period
+                for period in self.periods
+                if period.start_minutes <= minutes < period.end_minutes
+            ),
+            None,
+        )
+
+    def lesson_at(self, member_id: str, weekday: int, minutes: int) -> tuple[Lesson, Period] | None:
+        """The lesson a member has at a point in the day, if any."""
+        period = self.period_at(minutes)
+        if period is None:
+            return None
+        lesson = next(
+            (item for item in self.day(member_id, weekday) if item.period == period.index),
+            None,
+        )
+        return (lesson, period) if lesson else None
+
+    def next_lesson(
+        self, member_id: str, weekday: int, minutes: int
+    ) -> tuple[Lesson, Period] | None:
+        """The member's next lesson that day, skipping free periods."""
+        day = {item.period: item for item in self.day(member_id, weekday)}
+        for period in self.periods:
+            if period.start_minutes <= minutes:
+                continue
+            if lesson := day.get(period.index):
+                return lesson, period
+        return None
+
+    def boundaries(self) -> list[int]:
+        """Every minute of the day at which a lesson starts or ends, sorted.
+
+        These are the only moments a member sensor can change on its own, so they are
+        also the only moments worth waking up for.
+        """
+        marks = {period.start_minutes for period in self.periods}
+        marks.update(period.end_minutes for period in self.periods)
+        return sorted(marks)
+
     @property
     def is_empty(self) -> bool:
         """True when there is nothing to draw."""
@@ -472,19 +487,16 @@ class Timetable:
 
 
 @dataclass(slots=True)
-class HearthConfig:
-    """The full Hearth configuration."""
+class SchooldayConfig:
+    """The full Schoolday configuration."""
 
     members: list[Member] = field(default_factory=list)
-    shared_calendars: list[str] = field(default_factory=list)
-    shared_todo_lists: list[str] = field(default_factory=list)
-    readonly_calendars: list[str] = field(default_factory=list)
     #: member id -> block -> Routine
     routines: dict[str, dict[str, Routine]] = field(default_factory=dict)
     timetable: Timetable = field(default_factory=Timetable)
 
     @classmethod
-    def from_options(cls, options: dict[str, Any]) -> HearthConfig:
+    def from_options(cls, options: dict[str, Any]) -> SchooldayConfig:
         """Build the configuration from a config entry's options."""
         raw_members = options.get(CONF_MEMBERS) or []
         members = [Member.from_dict(item, index) for index, item in enumerate(raw_members)]
@@ -499,12 +511,8 @@ class HearthConfig:
             for member in members
         }
 
-        shared = options.get(CONF_SHARED) or {}
         return cls(
             members=members,
-            shared_calendars=list(shared.get(CONF_SHARED_CALENDARS) or []),
-            shared_todo_lists=list(shared.get(CONF_SHARED_TODO_LISTS) or []),
-            readonly_calendars=list(shared.get(CONF_READONLY_CALENDARS) or []),
             routines=routines,
             timetable=Timetable.from_dict(options.get(CONF_TIMETABLE)),
         )
@@ -535,14 +543,3 @@ class HearthConfig:
             for blocks in self.routines.values()
             for routine in blocks.values()
         )
-
-    @property
-    def all_calendars(self) -> list[str]:
-        """Every calendar Hearth knows about, de-duplicated, order preserved."""
-        seen: dict[str, None] = {}
-        for entity_id in [
-            *self.shared_calendars,
-            *(entity for member in self.members for entity in member.calendars),
-        ]:
-            seen.setdefault(entity_id, None)
-        return list(seen)

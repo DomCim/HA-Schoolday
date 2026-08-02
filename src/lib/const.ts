@@ -1,8 +1,8 @@
-/** Kept in sync with custom_components/hearth/manifest.json and package.json. */
-export const HEARTH_VERSION = '0.4.0';
+/** Kept in sync with custom_components/schoolday/manifest.json and package.json. */
+export const SCHOOLDAY_VERSION = '0.5.0';
 
 /** Prefix for every custom element this bundle defines. */
-export const PREFIX = 'hearth';
+export const PREFIX = 'schoolday';
 
 /** Fallback colour cycle for members configured without an explicit colour. */
 export const DEFAULT_MEMBER_COLORS = [

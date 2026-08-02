@@ -6,7 +6,7 @@ taps a step.
 
 The reset is implicit. Nothing has to run at midnight for correctness — the
 stored date is compared against today on every read, and a stale day reads as
-"nothing done yet". The midnight listener in sensor.py exists only so the wall
+"nothing done yet". The midnight listener in __init__.py exists only so the wall
 panel visibly clears without anyone touching it.
 """
 

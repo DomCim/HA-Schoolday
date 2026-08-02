@@ -1,9 +1,9 @@
-"""The Hearth integration.
+"""The Schoolday integration.
 
-Hearth owns almost no data of its own. It stores which family member owns which
-calendars and lists, exposes that mapping as sensor attributes, and serves the
-Lovelace cards that render it. Everything else lives in the integrations you
-already have.
+Schoolday owns two things Home Assistant cannot hold for it: the school timetable and
+the daily routines. Both are typed in once — a timetable is fixed for a school year —
+published as sensor attributes for automations, and rendered by the Lovelace cards this
+integration serves itself.
 """
 
 from __future__ import annotations
@@ -36,7 +36,7 @@ PLATFORMS: list[Platform] = [Platform.SENSOR]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up Hearth from a config entry."""
+    """Set up Schoolday from a config entry."""
     await _async_register_frontend(hass)
 
     # Survives reloads: the routine ticks belong to the day, not to the entry.
@@ -82,8 +82,8 @@ async def _async_register_frontend(hass: HomeAssistant) -> None:
     panel_dir = Path(__file__).parent / FRONTEND_DIR
     if not (panel_dir / PANEL_FILENAME).is_file():
         _LOGGER.error(
-            "Hearth's card bundle is missing at %s. The integration will load, but no "
-            "Hearth cards will be available. Run 'npm run build' and reinstall, or "
+            "Schoolday's card bundle is missing at %s. The integration will load, but no "
+            "Schoolday cards will be available. Run 'npm run build' and reinstall, or "
             "download a release that ships the built bundle",
             panel_dir / PANEL_FILENAME,
         )
@@ -102,4 +102,4 @@ async def _async_register_frontend(hass: HomeAssistant) -> None:
     )
     frontend.add_extra_js_url(hass, f"{FRONTEND_URL_BASE}/{PANEL_FILENAME}?v={VERSION}")
     hass.data[DATA_FRONTEND_REGISTERED] = True
-    _LOGGER.debug("Registered Hearth frontend from %s", panel_dir)
+    _LOGGER.debug("Registered Schoolday frontend from %s", panel_dir)

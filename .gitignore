@@ -12,5 +12,5 @@ __pycache__/
 .idea/
 .vscode/
 
-# NOTE: custom_components/hearth/frontend/hearth-panel.js is a build artifact but is
-# committed on purpose — HACS installs only custom_components/hearth/ and does not build.
+# NOTE: custom_components/schoolday/frontend/schoolday-panel.js is a build artifact but is
+# committed on purpose — HACS installs only custom_components/schoolday/ and does not build.

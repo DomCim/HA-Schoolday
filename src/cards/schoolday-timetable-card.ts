@@ -1,7 +1,7 @@
 /**
  * The school timetable — the week on the wall, in the family's own colours.
  *
- * Everything it draws comes from the Hearth options: the periods and their breaks
+ * Everything it draws comes from the Schoolday options: the periods and their breaks
  * from the board sensor, the lessons from the member sensors. A card with no options
  * at all is the normal case — it picks the household's lesson grid, the members who
  * actually have a timetable, and the days they have school on.
@@ -13,10 +13,10 @@
 import { LitElement, css, html, nothing, type TemplateResult } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 
-import { findBoard, memberSensor, type HearthMember } from '../lib/board';
+import { findBoard, memberSensor, type SchooldayMember } from '../lib/board';
 import { localeOf } from '../lib/dates';
 import { t } from '../lib/i18n';
-import { hearthButtons, hearthTokens } from '../lib/styles';
+import { schooldayButtons, schooldayTokens } from '../lib/styles';
 import {
   buildRows,
   currentPeriod,
@@ -47,7 +47,7 @@ const NARROW_PX = 560;
 /** 1 January 2024 was a Monday, which makes it a convenient weekday-name origin. */
 const WEEKDAY_ORIGIN = new Date(2024, 0, 1);
 
-export interface HearthTimetableCardConfig extends LovelaceCardConfig {
+export interface SchooldayTimetableCardConfig extends LovelaceCardConfig {
   board_entity?: string;
   /** Show only this member, by id or name. Otherwise the card offers a switcher. */
   member?: string;
@@ -66,11 +66,11 @@ export interface HearthTimetableCardConfig extends LovelaceCardConfig {
   highlight?: boolean;
 }
 
-@customElement('hearth-timetable-card')
-export class HearthTimetableCard extends LitElement implements LovelaceCard {
+@customElement('schoolday-timetable-card')
+export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
   @property({ attribute: false }) public hass?: HomeAssistant;
 
-  @state() private _config: HearthTimetableCardConfig = { type: '' };
+  @state() private _config: SchooldayTimetableCardConfig = { type: '' };
   /** The member picked with the chips; unset means "the first one". */
   @state() private _memberId?: string;
   /** The day picked in day view; unset means "today, or the first school day". */
@@ -83,14 +83,14 @@ export class HearthTimetableCard extends LitElement implements LovelaceCard {
   private _timer?: ReturnType<typeof setInterval>;
 
   public static async getConfigElement(): Promise<LovelaceCardEditor> {
-    return document.createElement('hearth-timetable-card-editor');
+    return document.createElement('schoolday-timetable-card-editor');
   }
 
   public static getStubConfig(): Record<string, unknown> {
     return { layout: 'auto', week_days: 'auto' };
   }
 
-  public setConfig(config: HearthTimetableCardConfig): void {
+  public setConfig(config: SchooldayTimetableCardConfig): void {
     this._config = { ...config };
   }
 
@@ -127,7 +127,7 @@ export class HearthTimetableCard extends LitElement implements LovelaceCard {
   // --- data ---------------------------------------------------------------
 
   /** The members this card may show: they have a timetable, and are not filtered out. */
-  private _candidates(members: HearthMember[]): { member: HearthMember; week: TimetableWeek }[] {
+  private _candidates(members: SchooldayMember[]): { member: SchooldayMember; week: TimetableWeek }[] {
     const wanted = (this._config.members ?? (this._config.member ? [this._config.member] : []))
       .map((value) => value.toLowerCase());
 
@@ -167,14 +167,14 @@ export class HearthTimetableCard extends LitElement implements LovelaceCard {
   }
 
   private _color(grid: TimetableGrid, subject: string): string {
-    return grid.subjects[subject] ?? 'var(--hearth-line)';
+    return grid.subjects[subject] ?? 'var(--schoolday-line)';
   }
 
   // --- pieces -------------------------------------------------------------
 
   private _renderChips(
-    candidates: { member: HearthMember; week: TimetableWeek }[],
-    selected: HearthMember,
+    candidates: { member: SchooldayMember; week: TimetableWeek }[],
+    selected: SchooldayMember,
   ): TemplateResult | typeof nothing {
     if (candidates.length < 2) {
       return nothing;
@@ -337,7 +337,9 @@ export class HearthTimetableCard extends LitElement implements LovelaceCard {
       <ha-card style=${`--member-color:${member.color}`}>
         <div class="head">
           <div class="title">
-            <span class="dot"></span>
+            ${member.avatar
+              ? html`<img class="avatar" src=${member.avatar} alt="" />`
+              : html`<span class="dot"></span>`}
             <span>${member.name}</span>
           </div>
           ${this._renderChips(candidates, member)}
@@ -428,8 +430,8 @@ export class HearthTimetableCard extends LitElement implements LovelaceCard {
   }
 
   static override styles = [
-    hearthTokens,
-    hearthButtons,
+    schooldayTokens,
+    schooldayButtons,
     css`
       /* The card measures itself to decide between the week and a single day, and an
          inline host has no width worth measuring. */
@@ -447,7 +449,7 @@ export class HearthTimetableCard extends LitElement implements LovelaceCard {
         align-items: center;
         justify-content: space-between;
         flex-wrap: wrap;
-        gap: var(--hearth-gap);
+        gap: var(--schoolday-gap);
         margin-bottom: 8px;
       }
 
@@ -466,6 +468,14 @@ export class HearthTimetableCard extends LitElement implements LovelaceCard {
         background: var(--member-color);
       }
 
+      .avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid var(--member-color);
+      }
+
       .chips,
       .days {
         display: flex;
@@ -480,11 +490,11 @@ export class HearthTimetableCard extends LitElement implements LovelaceCard {
       .chip {
         min-height: 36px;
         padding: 0 14px;
-        border: 1px solid var(--hearth-line);
+        border: 1px solid var(--schoolday-line);
         border-radius: 18px;
         font-size: 0.85rem;
         font-weight: 600;
-        color: var(--hearth-muted);
+        color: var(--schoolday-muted);
       }
 
       .chip[aria-pressed='true'] {
@@ -519,8 +529,8 @@ export class HearthTimetableCard extends LitElement implements LovelaceCard {
       }
 
       .pill.next {
-        background: var(--hearth-surface-alt);
-        color: var(--hearth-muted);
+        background: var(--schoolday-surface-alt);
+        color: var(--schoolday-muted);
       }
 
       .status-text {
@@ -528,7 +538,7 @@ export class HearthTimetableCard extends LitElement implements LovelaceCard {
       }
 
       .status-muted {
-        color: var(--hearth-muted);
+        color: var(--schoolday-muted);
         font-size: 0.85rem;
       }
 
@@ -543,12 +553,12 @@ export class HearthTimetableCard extends LitElement implements LovelaceCard {
         text-align: center;
         font-size: 0.8rem;
         font-weight: 700;
-        color: var(--hearth-muted);
+        color: var(--schoolday-muted);
       }
 
       .col-head.today {
         color: var(--text-primary-color, #fff);
-        background: var(--hearth-today);
+        background: var(--schoolday-today);
         border-radius: 8px;
       }
 
@@ -560,7 +570,7 @@ export class HearthTimetableCard extends LitElement implements LovelaceCard {
         text-align: right;
         font-size: 0.68rem;
         line-height: 1.25;
-        color: var(--hearth-muted);
+        color: var(--schoolday-muted);
         white-space: nowrap;
       }
 
@@ -574,7 +584,7 @@ export class HearthTimetableCard extends LitElement implements LovelaceCard {
         display: flex;
         flex-direction: column;
         justify-content: center;
-        min-height: var(--hearth-touch);
+        min-height: var(--schoolday-touch);
         padding: 4px 8px;
         box-sizing: border-box;
         overflow: hidden;
@@ -593,32 +603,32 @@ export class HearthTimetableCard extends LitElement implements LovelaceCard {
       .cell .room {
         margin-top: 2px;
         font-size: 0.72rem;
-        color: var(--hearth-muted);
+        color: var(--schoolday-muted);
       }
 
       /* A free period is drawn, not left out: the grid has to keep its shape, and an
          empty slot with nothing in it reads as a rendering fault. */
       .cell.free {
         background: transparent;
-        border: 1px dashed var(--hearth-line);
+        border: 1px dashed var(--schoolday-line);
         opacity: 0.6;
       }
 
       .cell.now {
-        box-shadow: inset 0 0 0 2px var(--hearth-today);
+        box-shadow: inset 0 0 0 2px var(--schoolday-today);
       }
 
       .progress {
         height: 3px;
         margin-top: 4px;
         border-radius: 2px;
-        background: var(--hearth-line);
+        background: var(--schoolday-line);
         overflow: hidden;
       }
 
       .progress > div {
         height: 100%;
-        background: var(--hearth-today);
+        background: var(--schoolday-today);
       }
 
       .break {
@@ -628,18 +638,18 @@ export class HearthTimetableCard extends LitElement implements LovelaceCard {
         gap: 8px;
         padding: 1px 0;
         font-size: 0.7rem;
-        color: var(--hearth-muted);
+        color: var(--schoolday-muted);
       }
 
       .break .line {
         flex: 1;
         height: 1px;
-        background: var(--hearth-line);
+        background: var(--schoolday-line);
       }
 
       .notice {
         padding: 8px 2px;
-        color: var(--hearth-muted);
+        color: var(--schoolday-muted);
         font-size: 0.9rem;
       }
     `,
@@ -648,16 +658,16 @@ export class HearthTimetableCard extends LitElement implements LovelaceCard {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'hearth-timetable-card': HearthTimetableCard;
+    'schoolday-timetable-card': SchooldayTimetableCard;
   }
 }
 
 window.customCards = window.customCards || [];
 window.customCards.push({
-  type: 'hearth-timetable-card',
-  name: 'Hearth Timetable',
+  type: 'schoolday-timetable-card',
+  name: 'Schoolday Timetable',
   description:
     'The school timetable per child, colour-coded by subject, with the running lesson marked.',
   preview: true,
-  documentationURL: 'https://github.com/DomCim/Homeassistant-hearth',
+  documentationURL: 'https://github.com/DomCim/HA-Schoolday',
 });

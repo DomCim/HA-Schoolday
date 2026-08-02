@@ -5,7 +5,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 const [, , svgPath, outPath, width, height] = process.argv;
 const svg = await readFile(svgPath, 'utf8');
 const browser = await chromium.launch({
-  executablePath: process.env.HEARTH_CHROMIUM ?? undefined,
+  executablePath: process.env.SCHOOLDAY_CHROMIUM ?? undefined,
   args: ['--no-sandbox'],
 });
 const page = await browser.newPage({

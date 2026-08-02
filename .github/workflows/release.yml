@@ -47,9 +47,9 @@ jobs:
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
-          MANIFEST=$(python3 -c "import json;print(json.load(open('custom_components/hearth/manifest.json'))['version'])")
+          MANIFEST=$(python3 -c "import json;print(json.load(open('custom_components/schoolday/manifest.json'))['version'])")
           PACKAGE=$(python3 -c "import json;print(json.load(open('package.json'))['version'])")
-          TS=$(sed -n "s/.*HEARTH_VERSION = '\(.*\)'.*/\1/p" src/lib/const.ts)
+          TS=$(sed -n "s/.*SCHOOLDAY_VERSION = '\(.*\)'.*/\1/p" src/lib/const.ts)
           echo "want=$VERSION manifest=$MANIFEST package=$PACKAGE ts=$TS"
           fail=0
           for name in MANIFEST PACKAGE TS; do
@@ -67,8 +67,8 @@ jobs:
 
       - name: Committed bundle must match the sources
         run: |
-          if ! git diff --exit-code -- custom_components/hearth/frontend/; then
-            echo "::error::hearth-panel.js is out of date. Run 'npm run build' and commit the result."
+          if ! git diff --exit-code -- custom_components/schoolday/frontend/; then
+            echo "::error::schoolday-panel.js is out of date. Run 'npm run build' and commit the result."
             exit 1
           fi
 

@@ -2,17 +2,18 @@
  * Daily routines — the checklist the kids tick off themselves.
  *
  * Deliberately not a reward system: routines are the things that simply have to
- * happen. Points and chores live in their own integration.
+ * happen, whether or not anybody notices.
  *
- * The school timetable is never read. It is fixed for a school year, so "Tuesday
- * is PE" is encoded once as Tuesday's steps in the Hearth options.
+ * Deliberately independent of the timetable, too: "pack the PE kit" belongs to the
+ * evening before, so it is a step on the days that have PE rather than something
+ * derived from the lesson grid.
  */
-import { LitElement, css, html, type TemplateResult } from 'lit';
+import { LitElement, css, html, nothing, type TemplateResult } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 
-import { findBoard, memberSensor, type HearthMember } from '../lib/board';
+import { findBoard, memberSensor, type SchooldayMember } from '../lib/board';
 import { t } from '../lib/i18n';
-import { hearthButtons, hearthTokens } from '../lib/styles';
+import { schooldayButtons, schooldayTokens } from '../lib/styles';
 import type {
   HomeAssistant,
   LovelaceCard,
@@ -36,7 +37,7 @@ const ICONS = {
   evening: 'M17.75,4.09L15.22,6.03L16.13,9.09L13.5,7.28L10.87,9.09L11.78,6.03L9.25,4.09L12.44,4L13.5,1L14.56,4L17.75,4.09M21.25,11L19.61,12.25L20.2,14.23L18.5,13.06L16.8,14.23L17.39,12.25L15.75,11L17.81,10.95L18.5,9L19.19,10.95L21.25,11M18.97,15.95C19.8,15.87 20.69,17.05 20.16,17.8C19.84,18.25 19.5,18.67 19.08,19.07C15.17,23 8.84,23 4.94,19.07C1.03,15.17 1.03,8.83 4.94,4.93C5.34,4.53 5.76,4.17 6.21,3.85C6.96,3.32 8.14,4.21 8.06,5.04C7.79,7.9 8.75,10.87 10.95,13.06C13.14,15.26 16.1,16.22 18.97,15.95Z',
 };
 
-export interface HearthRoutinesCardConfig extends LovelaceCardConfig {
+export interface SchooldayRoutinesCardConfig extends LovelaceCardConfig {
   board_entity?: string;
   /** Restrict to these members, by id or name. Defaults to everyone with steps. */
   members?: string[];
@@ -48,24 +49,24 @@ export interface HearthRoutinesCardConfig extends LovelaceCardConfig {
   show_empty?: boolean;
 }
 
-@customElement('hearth-routines-card')
-export class HearthRoutinesCard extends LitElement implements LovelaceCard {
+@customElement('schoolday-routines-card')
+export class SchooldayRoutinesCard extends LitElement implements LovelaceCard {
   @property({ attribute: false }) public hass?: HomeAssistant;
 
-  @state() private _config: HearthRoutinesCardConfig = { type: '' };
+  @state() private _config: SchooldayRoutinesCardConfig = { type: '' };
   /** Steps awaiting their service call, so the tap feels instant. */
   @state() private _pending = new Set<string>();
 
 
   public static async getConfigElement(): Promise<LovelaceCardEditor> {
-    return document.createElement('hearth-routines-card-editor');
+    return document.createElement('schoolday-routines-card-editor');
   }
 
   public static getStubConfig(): Record<string, unknown> {
     return { block: 'auto', evening_from: 14 };
   }
 
-  public setConfig(config: HearthRoutinesCardConfig): void {
+  public setConfig(config: SchooldayRoutinesCardConfig): void {
     this._config = { ...config };
   }
 
@@ -89,7 +90,7 @@ export class HearthRoutinesCard extends LitElement implements LovelaceCard {
     return [new Date().getHours() < eveningFrom ? 'morning' : 'evening'];
   }
 
-  private _steps(member: HearthMember, block: RoutineBlock): RoutineStep[] {
+  private _steps(member: SchooldayMember, block: RoutineBlock): RoutineStep[] {
     const sensor = memberSensor(this.hass!, member.id);
     const raw = sensor?.attributes?.[`routine_${block}`];
     if (!Array.isArray(raw)) {
@@ -101,21 +102,21 @@ export class HearthRoutinesCard extends LitElement implements LovelaceCard {
   }
 
   private async _toggle(
-    member: HearthMember,
+    member: SchooldayMember,
     block: RoutineBlock,
     entry: RoutineStep,
   ): Promise<void> {
     const key = `${member.id}|${block}|${entry.step}`;
     this._pending = new Set(this._pending).add(key);
     try {
-      await this.hass!.callService('hearth', 'set_routine_step', {
+      await this.hass!.callService('schoolday', 'set_routine_step', {
         member: member.id,
         block,
         step: entry.step,
         done: !entry.done,
       });
     } catch (err) {
-      console.warn('[hearth] could not update routine step', err);
+      console.warn('[schoolday] could not update routine step', err);
     } finally {
       const next = new Set(this._pending);
       next.delete(key);
@@ -127,7 +128,7 @@ export class HearthRoutinesCard extends LitElement implements LovelaceCard {
     return html`<svg class=${cls} viewBox="0 0 24 24"><path d=${path} /></svg>`;
   }
 
-  private _renderBlock(member: HearthMember, block: RoutineBlock): TemplateResult {
+  private _renderBlock(member: SchooldayMember, block: RoutineBlock): TemplateResult {
     const steps = this._steps(member, block);
     const doneCount = steps.filter((entry) => entry.done).length;
     const complete = steps.length > 0 && doneCount === steps.length;
@@ -206,7 +207,12 @@ export class HearthRoutinesCard extends LitElement implements LovelaceCard {
           ${members.map(
             (member) => html`
               <div class="person" style=${`--member-color:${member.color}`}>
-                <div class="person-name">${member.name}</div>
+                <div class="person-name">
+                  ${member.avatar
+                    ? html`<img class="avatar" src=${member.avatar} alt="" />`
+                    : nothing}
+                  <span>${member.name}</span>
+                </div>
                 ${blocks.map((block) => this._renderBlock(member, block))}
               </div>
             `,
@@ -217,8 +223,8 @@ export class HearthRoutinesCard extends LitElement implements LovelaceCard {
   }
 
   static override styles = [
-    hearthTokens,
-    hearthButtons,
+    schooldayTokens,
+    schooldayButtons,
     css`
       ha-card {
         padding: 12px;
@@ -228,7 +234,7 @@ export class HearthRoutinesCard extends LitElement implements LovelaceCard {
       .grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-        gap: var(--hearth-gap);
+        gap: var(--schoolday-gap);
       }
 
       .person {
@@ -236,21 +242,32 @@ export class HearthRoutinesCard extends LitElement implements LovelaceCard {
         flex-direction: column;
         gap: 8px;
         padding: 12px;
-        border-radius: var(--hearth-radius);
+        border-radius: var(--schoolday-radius);
         background: color-mix(in srgb, var(--member-color) 10%, transparent);
         border-top: 3px solid var(--member-color);
       }
 
       .person-name {
+        display: flex;
+        align-items: center;
+        gap: 8px;
         font-size: 1.15rem;
         font-weight: 700;
+      }
+
+      .person-name .avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid var(--member-color);
       }
 
       .block-head {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        color: var(--hearth-muted);
+        color: var(--schoolday-muted);
       }
 
       .block-icon {
@@ -272,7 +289,7 @@ export class HearthRoutinesCard extends LitElement implements LovelaceCard {
       .bar {
         height: 4px;
         border-radius: 2px;
-        background: var(--hearth-line);
+        background: var(--schoolday-line);
         overflow: hidden;
         margin-bottom: 4px;
       }
@@ -288,25 +305,25 @@ export class HearthRoutinesCard extends LitElement implements LovelaceCard {
         align-items: center;
         gap: 10px;
         width: 100%;
-        min-height: calc(var(--hearth-touch) + 4px);
+        min-height: calc(var(--schoolday-touch) + 4px);
         padding: 4px 8px;
         margin-bottom: 2px;
         box-sizing: border-box;
         border-radius: 8px;
         text-align: left;
         font-size: 1rem;
-        background: var(--hearth-surface);
+        background: var(--schoolday-surface);
       }
 
       .step:active {
-        background: var(--hearth-surface-alt);
+        background: var(--schoolday-surface-alt);
       }
 
       .step .tick {
         width: 26px;
         height: 26px;
         flex: none;
-        fill: var(--hearth-line);
+        fill: var(--schoolday-line);
         transition: fill 140ms ease;
       }
 
@@ -316,7 +333,7 @@ export class HearthRoutinesCard extends LitElement implements LovelaceCard {
 
       .step.done .label {
         text-decoration: line-through;
-        color: var(--hearth-muted);
+        color: var(--schoolday-muted);
       }
 
       .step.pending {
@@ -331,7 +348,7 @@ export class HearthRoutinesCard extends LitElement implements LovelaceCard {
       .empty,
       .notice {
         padding: 8px 2px;
-        color: var(--hearth-muted);
+        color: var(--schoolday-muted);
         font-size: 0.9rem;
       }
     `,
@@ -340,15 +357,15 @@ export class HearthRoutinesCard extends LitElement implements LovelaceCard {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'hearth-routines-card': HearthRoutinesCard;
+    'schoolday-routines-card': SchooldayRoutinesCard;
   }
 }
 
 window.customCards = window.customCards || [];
 window.customCards.push({
-  type: 'hearth-routines-card',
-  name: 'Hearth Routines',
+  type: 'schoolday-routines-card',
+  name: 'Schoolday Routines',
   description: "Daily routines per child and weekday, ticked off by the kids themselves.",
   preview: true,
-  documentationURL: 'https://github.com/DomCim/Homeassistant-hearth',
+  documentationURL: 'https://github.com/DomCim/HA-Schoolday',
 });

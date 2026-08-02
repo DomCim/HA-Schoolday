@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 72" width="640" height="144" role="img" aria-label="Schoolday">
+  <title>Schoolday</title>
+  <defs>
+    <linearGradient id="now" x1="38" y1="24" x2="38" y2="33" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#5aa9e6"/>
+      <stop offset="1" stop-color="#3a86c8"/>
+    </linearGradient>
+  </defs>
+
+  <g transform="translate(4 4)">
+    <rect width="64" height="64" rx="14" fill="#16212b"/>
+    <g fill="#f0f4f8" fill-opacity=".24">
+      <rect x="11" y="14" width="9" height="7" rx="2"/>
+      <rect x="22" y="14" width="9" height="7" rx="2"/>
+      <rect x="44" y="14" width="9" height="7" rx="2"/>
+
+      <rect x="11" y="25" width="9" height="7" rx="2"/>
+      <rect x="22" y="25" width="9" height="7" rx="2"/>
+      <rect x="44" y="25" width="9" height="7" rx="2"/>
+
+      <rect x="22" y="36" width="9" height="7" rx="2"/>
+      <rect x="33" y="36" width="9" height="7" rx="2"/>
+      <rect x="44" y="36" width="9" height="7" rx="2"/>
+
+      <rect x="11" y="47" width="9" height="7" rx="2"/>
+      <rect x="33" y="47" width="9" height="7" rx="2"/>
+    </g>
+    <rect x="32" y="23" width="11" height="11" rx="3" fill="url(#now)"/>
+  </g>
+
+  <!-- This blue reads on both a light and a dark README background. -->
+  <text
+    x="86" y="48"
+    font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+    font-size="38"
+    font-weight="600"
+    letter-spacing="-0.5"
+    fill="#3a86c8"
+  >Schoolday</text>
+</svg>

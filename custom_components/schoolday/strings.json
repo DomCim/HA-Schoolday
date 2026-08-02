@@ -2,24 +2,23 @@
   "config": {
     "step": {
       "user": {
-        "title": "Set up Hearth",
-        "description": "Hearth adds a family board to your dashboards. After setup, use Configure to add your family members and pick the calendars and lists that belong to each of them."
+        "title": "Set up Schoolday",
+        "description": "Schoolday puts the school timetable and the daily routines on your dashboards. After setup, use Configure to add your family members, the lesson times and everybody's week."
       }
     },
     "abort": {
-      "single_instance_allowed": "Hearth is already set up. Use Configure on the existing entry to change your family."
+      "single_instance_allowed": "Schoolday is already set up. Use Configure on the existing entry to change your family."
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "Hearth",
+        "title": "Schoolday",
         "description": "Changes are saved as you make them. You can do several in a row.",
         "menu_options": {
           "add_member": "Add a family member",
           "edit_member": "Edit a family member",
           "remove_member": "Remove a family member",
-          "shared": "Shared calendars and lists",
           "routines": "Edit routines",
           "timetable": "School timetable",
           "done": "Done"
@@ -30,19 +29,11 @@
         "data": {
           "name": "Name",
           "color": "Colour",
-          "person": "Person",
-          "calendars": "Calendars",
-          "todo_lists": "To-do lists",
-          "points_entity": "Points sensor",
           "avatar": "Avatar image"
         },
         "data_description": {
-          "color": "Used for this person's events and highlights across every Hearth card.",
-          "person": "Links presence to this member. Optional.",
-          "calendars": "Calendars whose events belong to this member.",
-          "todo_lists": "Lists counted as this member's open tasks.",
-          "points_entity": "A sensor whose state is a points balance, for example a Chores4Kids child sensor. Optional.",
-          "avatar": "Path to an image, for example /local/hearth/ben.png. Optional."
+          "color": "Used for this person's highlights across every Schoolday card.",
+          "avatar": "Path to an image, for example /local/schoolday/ben.png. Optional."
         }
       },
       "edit_member": {
@@ -56,19 +47,11 @@
         "data": {
           "name": "Name",
           "color": "Colour",
-          "person": "Person",
-          "calendars": "Calendars",
-          "todo_lists": "To-do lists",
-          "points_entity": "Points sensor",
           "avatar": "Avatar image"
         },
         "data_description": {
-          "color": "Used for this person's events and highlights across every Hearth card.",
-          "person": "Links presence to this member. Optional.",
-          "calendars": "Calendars whose events belong to this member.",
-          "todo_lists": "Lists counted as this member's open tasks.",
-          "points_entity": "A sensor whose state is a points balance, for example a Chores4Kids child sensor. Optional.",
-          "avatar": "Path to an image, for example /local/hearth/ben.png. Optional."
+          "color": "Used for this person's highlights across every Schoolday card.",
+          "avatar": "Path to an image, for example /local/schoolday/ben.png. Optional."
         }
       },
       "remove_member": {
@@ -77,20 +60,7 @@
           "members": "Family members"
         },
         "data_description": {
-          "members": "Their sensors are deleted. The calendars and lists themselves are untouched."
-        }
-      },
-      "shared": {
-        "title": "Shared calendars and lists",
-        "data": {
-          "shared_calendars": "Family calendars",
-          "shared_todo_lists": "Family lists",
-          "readonly_calendars": "Read-only calendars"
-        },
-        "data_description": {
-          "shared_calendars": "Calendars that belong to everyone rather than one person.",
-          "shared_todo_lists": "Shopping lists and checklists the whole family shares.",
-          "readonly_calendars": "Shown but never written to, such as holiday or school calendars."
+          "members": "Their sensor, their routines and their timetable are deleted."
         }
       },
       "routines": {
@@ -103,7 +73,7 @@
       },
       "routine_steps": {
         "title": "{name} – {block}",
-        "description": "One step per line. Empty days have no routine.\n\nThe school timetable is not read from anywhere — it is fixed for a school year. Just put \"pack PE kit\" on the days that have PE.",
+        "description": "One step per line. Empty days have no routine.\n\nRoutines are deliberately independent of the timetable: \"pack the PE kit\" belongs to the evening before, so put it on the days that have PE.",
         "data": {
           "0": "Monday",
           "1": "Tuesday",
@@ -116,7 +86,7 @@
       },
       "timetable": {
         "title": "School timetable",
-        "description": "The lesson times are shared by the whole household. The lessons themselves belong to one family member, and are shown on the Hearth Timetable card in that member's colours.",
+        "description": "The lesson times are shared by the whole household. The lessons themselves belong to one family member, and are shown on the Schoolday Timetable card in that member's colours.",
         "menu_options": {
           "timetable_times": "Lesson times",
           "timetable_lessons": "Edit someone's timetable",

@@ -36,12 +36,6 @@ export interface HomeAssistant {
   locale: HassLocale;
   user?: HassUser;
 
-  callApi<T>(
-    method: 'GET' | 'POST' | 'PUT' | 'DELETE',
-    path: string,
-    parameters?: Record<string, unknown>,
-  ): Promise<T>;
-
   callService(
     domain: string,
     service: string,
@@ -50,8 +44,6 @@ export interface HomeAssistant {
     notifyOnError?: boolean,
     returnResponse?: boolean,
   ): Promise<{ response?: unknown }>;
-
-  callWS<T>(msg: Record<string, unknown>): Promise<T>;
 
   formatEntityState(stateObj: HassEntity, state?: string): string;
 }
@@ -88,35 +80,4 @@ declare global {
   interface Window {
     customCards?: CustomCardEntry[];
   }
-}
-
-/**
- * A calendar event as returned by `GET /api/calendars/<entity_id>?start=&end=`.
- *
- * `start`/`end` carry either `dateTime` (timed event, ISO 8601 with offset) or
- * `date` (all-day event, `YYYY-MM-DD`) — never both.
- */
-export interface CalendarDateTime {
-  dateTime?: string;
-  date?: string;
-}
-
-export interface HassCalendarEvent {
-  summary: string;
-  start: CalendarDateTime;
-  end: CalendarDateTime;
-  description?: string | null;
-  location?: string | null;
-  uid?: string | null;
-  recurrence_id?: string | null;
-  rrule?: string | null;
-}
-
-/** An item of a `todo.*` entity, as returned by the `todo.get_items` action. */
-export interface HassTodoItem {
-  uid: string;
-  summary: string;
-  status: 'needs_action' | 'completed';
-  description?: string | null;
-  due?: string | null;
 }

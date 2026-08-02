@@ -1,4 +1,4 @@
-"""Config and options flow for Hearth.
+"""Config and options flow for Schoolday.
 
 The config entry's options are the single source of truth for the family setup.
 Changing them reloads the entry, which rebuilds the sensors the cards read.
@@ -23,22 +23,14 @@ from .const import (
     ATTR_BLOCK,
     BLOCK_MORNING,
     CONF_AVATAR,
-    CONF_CALENDARS,
     CONF_COLOR,
     CONF_MEMBER_ID,
     CONF_MEMBERS,
     CONF_NAME,
     CONF_ORDER,
     CONF_PERIODS,
-    CONF_PERSON,
-    CONF_POINTS_ENTITY,
-    CONF_READONLY_CALENDARS,
     CONF_ROUTINES,
-    CONF_SHARED,
-    CONF_SHARED_CALENDARS,
-    CONF_SHARED_TODO_LISTS,
     CONF_TIMETABLE,
-    CONF_TODO_LISTS,
     DEFAULT_COLORS,
     DOMAIN,
     ROUTINE_BLOCKS,
@@ -58,16 +50,8 @@ from .models import (
     text_from_steps,
 )
 
-CALENDAR_SELECTOR = selector.EntitySelector(
-    selector.EntitySelectorConfig(domain="calendar", multiple=True)
-)
-TODO_SELECTOR = selector.EntitySelector(
-    selector.EntitySelectorConfig(domain="todo", multiple=True)
-)
-
-
-class HearthConfigFlow(ConfigFlow, domain=DOMAIN):
-    """Create the single Hearth entry. Everything else happens in the options flow."""
+class SchooldayConfigFlow(ConfigFlow, domain=DOMAIN):
+    """Create the single Schoolday entry. Everything else happens in the options flow."""
 
     VERSION = 1
 
@@ -77,9 +61,9 @@ class HearthConfigFlow(ConfigFlow, domain=DOMAIN):
         """Confirm creation. `single_config_entry` in the manifest guards duplicates."""
         if user_input is not None:
             return self.async_create_entry(
-                title="Hearth",
+                title="Schoolday",
                 data={},
-                options={CONF_MEMBERS: [], CONF_SHARED: {}},
+                options={CONF_MEMBERS: []},
             )
         return self.async_show_form(step_id="user", data_schema=vol.Schema({}))
 
@@ -87,11 +71,11 @@ class HearthConfigFlow(ConfigFlow, domain=DOMAIN):
     @callback
     def async_get_options_flow(config_entry: Any) -> OptionsFlow:
         """Return the options flow."""
-        return HearthOptionsFlow()
+        return SchooldayOptionsFlow()
 
 
-class HearthOptionsFlow(OptionsFlow):
-    """Add, edit and remove family members, and pick the shared calendars and lists."""
+class SchooldayOptionsFlow(OptionsFlow):
+    """Add, edit and remove family members, their routines and their timetable."""
 
     def __init__(self) -> None:
         """Initialise per-flow state."""
@@ -103,10 +87,6 @@ class HearthOptionsFlow(OptionsFlow):
     @property
     def _members(self) -> list[dict[str, Any]]:
         return list(self.config_entry.options.get(CONF_MEMBERS) or [])
-
-    @property
-    def _shared(self) -> dict[str, Any]:
-        return dict(self.config_entry.options.get(CONF_SHARED) or {})
 
     @property
     def _routines(self) -> dict[str, Any]:
@@ -132,7 +112,6 @@ class HearthOptionsFlow(OptionsFlow):
         """
         options: dict[str, Any] = {
             CONF_MEMBERS: self._members,
-            CONF_SHARED: self._shared,
             CONF_ROUTINES: self._routines,
             CONF_TIMETABLE: self._timetable.as_options(),
         }
@@ -155,14 +134,6 @@ class HearthOptionsFlow(OptionsFlow):
             {
                 vol.Required(CONF_NAME): selector.TextSelector(),
                 vol.Required(CONF_COLOR): selector.ColorRGBSelector(),
-                vol.Optional(CONF_PERSON): selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain="person")
-                ),
-                vol.Optional(CONF_CALENDARS): CALENDAR_SELECTOR,
-                vol.Optional(CONF_TODO_LISTS): TODO_SELECTOR,
-                vol.Optional(CONF_POINTS_ENTITY): selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain="sensor")
-                ),
                 vol.Optional(CONF_AVATAR): selector.TextSelector(),
             }
         )
@@ -187,7 +158,7 @@ class HearthOptionsFlow(OptionsFlow):
         options = ["add_member"]
         if self._members:
             options += ["edit_member", "remove_member", "routines", "timetable"]
-        options += ["shared", "done"]
+        options.append("done")
         return self.async_show_menu(step_id="init", menu_options=options)
 
     async def async_step_done(
@@ -562,36 +533,4 @@ class HearthOptionsFlow(OptionsFlow):
                     )
                 }
             ),
-        )
-
-    # --- shared -------------------------------------------------------------
-
-    async def async_step_shared(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """Pick calendars and lists that belong to the whole family."""
-        if user_input is not None:
-            return await self._apply(
-                **{
-                    CONF_SHARED: {
-                        key: list(user_input.get(key) or [])
-                        for key in (
-                            CONF_SHARED_CALENDARS,
-                            CONF_SHARED_TODO_LISTS,
-                            CONF_READONLY_CALENDARS,
-                        )
-                    }
-                }
-            )
-
-        schema = vol.Schema(
-            {
-                vol.Optional(CONF_SHARED_CALENDARS): CALENDAR_SELECTOR,
-                vol.Optional(CONF_SHARED_TODO_LISTS): TODO_SELECTOR,
-                vol.Optional(CONF_READONLY_CALENDARS): CALENDAR_SELECTOR,
-            }
-        )
-        return self.async_show_form(
-            step_id="shared",
-            data_schema=self.add_suggested_values_to_schema(schema, self._shared),
         )

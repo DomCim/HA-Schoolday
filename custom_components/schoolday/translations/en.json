@@ -193,6 +193,146 @@
           "description": "Leave empty to reset everyone."
         }
       }
+    },
+    "set_periods": {
+      "name": "Set lesson times",
+      "description": "Replace the household's lesson times. Breaks are the gaps between them.",
+      "fields": {
+        "periods": {
+          "name": "Periods",
+          "description": "One HH:MM-HH:MM per entry, for example 08:00-08:45."
+        }
+      }
+    },
+    "set_lesson": {
+      "name": "Set a lesson",
+      "description": "Put one subject in one period of one day, or clear it.",
+      "fields": {
+        "member": {
+          "name": "Member",
+          "description": "Family member name or id."
+        },
+        "weekday": {
+          "name": "Weekday",
+          "description": "0 for Monday to 6 for Sunday."
+        },
+        "period": {
+          "name": "Period",
+          "description": "Which period, counting from 1."
+        },
+        "subject": {
+          "name": "Subject",
+          "description": "Leave empty to clear the period."
+        },
+        "room": {
+          "name": "Room",
+          "description": "Optional room, shown under the subject."
+        }
+      }
+    },
+    "set_day": {
+      "name": "Set a whole day",
+      "description": "Replace one member's lessons for one weekday.",
+      "fields": {
+        "member": {
+          "name": "Member",
+          "description": "Family member name or id."
+        },
+        "weekday": {
+          "name": "Weekday",
+          "description": "0 for Monday to 6 for Sunday."
+        },
+        "lessons": {
+          "name": "Lessons",
+          "description": "A list of entries with period, subject and optional room."
+        }
+      }
+    },
+    "set_routine": {
+      "name": "Set routine steps",
+      "description": "Replace one member's steps for one block on one day.",
+      "fields": {
+        "member": {
+          "name": "Member",
+          "description": "Family member name or id."
+        },
+        "block": {
+          "name": "Time of day",
+          "description": "morning or evening."
+        },
+        "day": {
+          "name": "Day",
+          "description": "A weekday 0-6, or free for a day off and care for holiday care."
+        },
+        "steps": {
+          "name": "Steps",
+          "description": "One step per entry. An empty list clears the day."
+        }
+      }
+    },
+    "set_subject_color": {
+      "name": "Set a subject colour",
+      "description": "Recolour one subject. Clearing it hands back the colour derived from its name.",
+      "fields": {
+        "subject": {
+          "name": "Subject",
+          "description": "The subject, exactly as it is spelled in the timetable."
+        },
+        "color": {
+          "name": "Colour",
+          "description": "Leave empty to go back to the derived colour."
+        }
+      }
+    },
+    "set_member": {
+      "name": "Add or edit a family member",
+      "description": "Add a family member, or change one that already exists.",
+      "fields": {
+        "member": {
+          "name": "Member",
+          "description": "Leave empty to add somebody new; give a name or id to change them."
+        },
+        "name": {
+          "name": "Name",
+          "description": "The name shown on the cards."
+        },
+        "color": {
+          "name": "Colour",
+          "description": "The member's colour, used across every card."
+        },
+        "calendar": {
+          "name": "Calendar",
+          "description": "This member's own calendar, searched for the holiday-care keywords."
+        },
+        "avatar": {
+          "name": "Avatar",
+          "description": "Optional picture URL."
+        }
+      }
+    },
+    "remove_member": {
+      "name": "Remove a family member",
+      "description": "Remove a member, along with their timetable and routines.",
+      "fields": {
+        "member": {
+          "name": "Member",
+          "description": "Family member name or id."
+        }
+      }
+    },
+    "set_calendars": {
+      "name": "Set days off and holiday care",
+      "description": "Name the calendars that close the school and the words that mean holiday care.",
+      "fields": {
+        "school_calendars": {
+          "name": "Calendars",
+          "description": "Any event running on these means there is no school."
+        },
+        "care_keywords": {
+          "name": "Holiday-care keywords",
+          "description": "Matched against events on each member's own calendar."
+        }
+      }
     }
   }
 }

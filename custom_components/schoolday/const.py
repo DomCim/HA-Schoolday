@@ -27,11 +27,35 @@ CONF_TIMETABLE: Final = "timetable"
 # The one thing a timetable cannot know by itself.
 CONF_SCHOOL_CALENDARS: Final = "school_calendars"
 
+# What an event has to say for the day to count as holiday care. Matched against the
+# events on a member's own calendar, case-insensitively, anywhere in the title.
+# A list, because a household may call it two things, and free text, because every
+# country calls it something else.
+CONF_CARE_KEYWORDS: Final = "care_keywords"
+
+# Only a suggestion, and only for the languages this integration ships strings for.
+# Guessing a word for a language we do not speak would be worse than an empty field.
+SUGGESTED_CARE_KEYWORDS: Final[dict[str, str]] = {
+    "de": "Ferienbetreuung\nHort",
+    "en": "Holiday club\nHoliday care",
+}
+
 # Routine blocks. Two is deliberate: a wall panel should show what is due now,
 # and "before school" versus "before bed" is the split that actually matters.
 BLOCK_MORNING: Final = "morning"
 BLOCK_EVENING: Final = "evening"
 ROUTINE_BLOCKS: Final[tuple[str, ...]] = (BLOCK_MORNING, BLOCK_EVENING)
+
+# What kind of day it is for one child. A routine has a list per weekday plus one for
+# each of the other two, because a holiday morning is not a school morning with bits
+# removed — it is its own short list.
+MODE_SCHOOL: Final = "school"
+MODE_CARE: Final = "care"
+MODE_FREE: Final = "free"
+#: Routine keys for the two non-school days, alongside the weekday keys "0".."6".
+ROUTINE_HOLIDAY: Final = MODE_FREE
+ROUTINE_CARE: Final = MODE_CARE
+ROUTINE_EXTRA_KEYS: Final[tuple[str, ...]] = (ROUTINE_HOLIDAY, ROUTINE_CARE)
 
 # Weekday keys are 0 = Monday, matching datetime.weekday() — and Chores4Kids,
 # so the household only has to learn one numbering.
@@ -74,6 +98,8 @@ CONF_NAME: Final = "name"
 CONF_COLOR: Final = "color"
 CONF_AVATAR: Final = "avatar"
 CONF_ORDER: Final = "order"
+# This member's own calendar, searched for the holiday-care keyword and nothing else.
+CONF_CALENDAR: Final = "calendar"
 
 # --- Entity attributes exposed to the cards ---------------------------------
 
@@ -107,6 +133,9 @@ ATTR_PERIOD: Final = "period"
 # Whether school is on at all today, and what is keeping it shut if not.
 ATTR_SCHOOL_TODAY: Final = "school_today"
 ATTR_NO_SCHOOL: Final = "no_school_reason"
+
+# What kind of day this member is having: school, care or free.
+ATTR_DAY_MODE: Final = "day_mode"
 
 # The state of a member sensor when no lesson is running: a plain token rather than
 # a translated word, because automations compare against it.

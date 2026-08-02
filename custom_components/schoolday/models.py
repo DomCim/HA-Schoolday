@@ -15,6 +15,8 @@ from zlib import crc32
 from .const import (
     BREAK_MIN_MINUTES,
     CONF_AVATAR,
+    CONF_CALENDAR,
+    CONF_CARE_KEYWORDS,
     CONF_COLOR,
     CONF_LESSONS,
     CONF_MEMBER_ID,
@@ -28,7 +30,11 @@ from .const import (
     CONF_TIMETABLE,
     DEFAULT_COLORS,
     FREE_MARKERS,
+    MODE_CARE,
+    MODE_FREE,
     ROUTINE_BLOCKS,
+    ROUTINE_CARE,
+    ROUTINE_HOLIDAY,
     SUBJECT_COLORS,
 )
 
@@ -82,6 +88,9 @@ class Member:
     color: str
     avatar: str | None = None
     order: int = 0
+    #: This member's own calendar, if they have one. Only ever read for the
+    #: holiday-care keyword — Schoolday shows no events anywhere.
+    calendar: str | None = None
 
     @classmethod
     def from_dict(cls, data: dict[str, Any], index: int = 0) -> Member:
@@ -93,6 +102,7 @@ class Member:
             or DEFAULT_COLORS[index % len(DEFAULT_COLORS)],
             avatar=data.get(CONF_AVATAR) or None,
             order=int(data.get(CONF_ORDER, index)),
+            calendar=data.get(CONF_CALENDAR) or None,
         )
 
     def as_card_dict(self) -> dict[str, Any]:
@@ -108,36 +118,61 @@ class Member:
 
 @dataclass(slots=True)
 class Routine:
-    """One member's steps for one block, keyed by weekday (0 = Monday).
+    """One member's steps for one block: a list per weekday, plus the days off.
 
     Deliberately independent of the timetable: "pack the PE kit" belongs to the
     evening before, so it is a step on the days that have PE rather than something
     derived from the lesson grid.
+
+    A holiday morning is not a school morning with items crossed out — it is its own
+    short list — so the days off get their own lists rather than a rule.
     """
 
     by_weekday: dict[int, list[str]] = field(default_factory=dict)
+    #: A day with no school at all.
+    holiday: list[str] = field(default_factory=list)
+    #: A holiday spent in care, which needs the lunchbox but not the school bag.
+    care: list[str] = field(default_factory=list)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any] | None) -> Routine:
-        """Build from the stored ``{"0": ["step", ...]}`` shape."""
+        """Build from the stored ``{"0": [...], "free": [...], "care": [...]}`` shape."""
         by_weekday: dict[int, list[str]] = {}
+        extra: dict[str, list[str]] = {ROUTINE_HOLIDAY: [], ROUTINE_CARE: []}
         for key, steps in (data or {}).items():
+            if not steps:
+                continue
+            if key in extra:
+                extra[key] = [str(step) for step in steps]
+                continue
             try:
                 weekday = int(key)
             except (TypeError, ValueError):
                 continue
-            if 0 <= weekday <= 6 and steps:
+            if 0 <= weekday <= 6:
                 by_weekday[weekday] = [str(step) for step in steps]
-        return cls(by_weekday=by_weekday)
+        return cls(
+            by_weekday=by_weekday,
+            holiday=extra[ROUTINE_HOLIDAY],
+            care=extra[ROUTINE_CARE],
+        )
 
-    def steps_for(self, weekday: int) -> list[str]:
-        """Steps for a given weekday, empty when nothing is planned."""
+    def steps_for(self, weekday: int, mode: str = "school") -> list[str]:
+        """Steps for today, given what kind of day it is.
+
+        A care day with no list of its own falls back to the holiday list: being in
+        care is a holiday first, so that is the better wrong answer of the two.
+        """
+        if mode == MODE_CARE:
+            return self.care or self.holiday
+        if mode == MODE_FREE:
+            return self.holiday
         return self.by_weekday.get(weekday, [])
 
     @property
     def is_empty(self) -> bool:
-        """True when no weekday has any step."""
-        return not any(self.by_weekday.values())
+        """True when no day has any step."""
+        return not any(self.by_weekday.values()) and not self.holiday and not self.care
 
 
 # --- Timetable ---------------------------------------------------------------
@@ -514,6 +549,9 @@ class SchooldayConfig:
     members: list[Member] = field(default_factory=list)
     #: Calendars whose events mean there is no school today.
     school_calendars: list[str] = field(default_factory=list)
+    #: What an event has to say for the day to count as holiday care. Empty means
+    #: nothing does: no keywords, no care days.
+    care_keywords: list[str] = field(default_factory=list)
     #: member id -> block -> Routine
     routines: dict[str, dict[str, Routine]] = field(default_factory=dict)
     timetable: Timetable = field(default_factory=Timetable)
@@ -537,6 +575,11 @@ class SchooldayConfig:
         return cls(
             members=members,
             school_calendars=list(options.get(CONF_SCHOOL_CALENDARS) or []),
+            care_keywords=[
+                keyword
+                for raw in (options.get(CONF_CARE_KEYWORDS) or [])
+                if (keyword := str(raw).strip())
+            ],
             routines=routines,
             timetable=Timetable.from_dict(options.get(CONF_TIMETABLE)),
         )

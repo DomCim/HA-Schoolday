@@ -8,12 +8,14 @@ wake up exactly at those and sleep in between.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+import logging
+from datetime import date, datetime, timedelta
 from typing import Any
 
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
@@ -28,6 +30,7 @@ from .const import (
     ATTR_AVATAR,
     ATTR_BOARD,
     ATTR_COLOR,
+    ATTR_DAY_MODE,
     ATTR_LESSON_NEXT,
     ATTR_LESSON_NOW,
     ATTR_MEMBER,
@@ -52,6 +55,9 @@ from .const import (
     DOMAIN,
     EVENT_LESSON_ENDED,
     EVENT_LESSON_STARTED,
+    MODE_CARE,
+    MODE_FREE,
+    MODE_SCHOOL,
     ROUTINE_BLOCKS,
     SIGNAL_ROUTINE_UPDATED,
     STATE_FREE,
@@ -59,6 +65,8 @@ from .const import (
 )
 from .models import Lesson, Member, Period, SchooldayConfig
 from .store import RoutineStore
+
+_LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
@@ -236,6 +244,9 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         #: The lesson considered running, so a boundary knows what just ended.
         self._running: dict[str, Any] | None = None
         self._unsub_boundary: Any = None
+        #: Whether this member is in holiday care today, and when that was decided.
+        self._care_today = False
+        self._care_date: date | None = None
 
     async def async_added_to_hass(self) -> None:
         """Follow the routine ticks and the holidays, and wake at the next boundary."""
@@ -244,12 +255,17 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
                 self.hass, SIGNAL_ROUTINE_UPDATED, self._handle_change
             )
         )
-        if calendars := self._config.school_calendars:
+        watched = [*self._config.school_calendars]
+        if self._member.calendar:
+            watched.append(self._member.calendar)
+        if watched:
             self.async_on_remove(
                 async_track_state_change_event(
-                    self.hass, calendars, self._handle_calendar_change
+                    self.hass, watched, self._handle_calendar_change
                 )
             )
+
+        await self._async_refresh_care()
         # Adopt whatever is running without announcing it: Home Assistant restarting
         # mid-morning must not fire "PE has started" into the kitchen.
         self._running = self._lesson_now()
@@ -264,9 +280,64 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         now = dt_util.now()
         return now.weekday(), now.hour * 60 + now.minute
 
+    async def _async_refresh_care(self) -> None:
+        """Ask this member's calendar whether today is a holiday-care day.
+
+        The whole day is fetched rather than read off the calendar entity's state: a
+        child's calendar holds the dentist and football too, and the entity only ever
+        describes one event at a time. The keywords are the household's own words —
+        Schoolday has no opinion on what holiday care is called.
+        """
+        self._care_date = dt_util.now().date()
+        self._care_today = False
+
+        keywords = [keyword.casefold() for keyword in self._config.care_keywords]
+        if not keywords or not self._member.calendar:
+            return
+
+        start = dt_util.start_of_local_day()
+        try:
+            response = await self.hass.services.async_call(
+                "calendar",
+                "get_events",
+                {
+                    "start_date_time": start.isoformat(),
+                    "end_date_time": (start + timedelta(days=1)).isoformat(),
+                },
+                target={"entity_id": self._member.calendar},
+                blocking=True,
+                return_response=True,
+            )
+        except HomeAssistantError as err:
+            # A calendar that has gone away must not take the sensor with it.
+            _LOGGER.warning(
+                "Could not read %s for %s: %s", self._member.calendar, self._member.name, err
+            )
+            return
+
+        events = ((response or {}).get(self._member.calendar) or {}).get("events") or []
+        self._care_today = any(
+            keyword in str(event.get("summary") or "").casefold()
+            for event in events
+            for keyword in keywords
+        )
+
+    @property
+    def _day_mode(self) -> str:
+        """What kind of day this is for this member.
+
+        Care wins over a plain holiday, and both win over the timetable: a child in
+        holiday care is not having lessons, whatever the grid says.
+        """
+        if self._care_today:
+            return MODE_CARE
+        if _no_school_reason(self.hass, self._config) is not None:
+            return MODE_FREE
+        return MODE_SCHOOL
+
     @property
     def _school_today(self) -> bool:
-        return _no_school_reason(self.hass, self._config) is None
+        return self._day_mode == MODE_SCHOOL
 
     def _lesson_now(self) -> dict[str, Any] | None:
         if not self._school_today:
@@ -325,10 +396,18 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
             self.hass, self._handle_boundary, when
         )
 
-    @callback
-    def _handle_boundary(self, _now: datetime) -> None:
+    async def _handle_boundary(self, _now: datetime | None = None) -> None:
         """A lesson started, a lesson ended, or the day rolled over."""
         self._unsub_boundary = None
+        # Only the day rolling over can change whether today is a care day.
+        if self._care_date != dt_util.now().date():
+            await self._async_refresh_care()
+        self._apply_boundary()
+        self._schedule_boundary()
+
+    @callback
+    def _apply_boundary(self) -> None:
+        """Publish the change, announcing what began and what ended."""
         current = self._lesson_now()
 
         if current != self._running:
@@ -339,7 +418,6 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
             self._running = current
 
         self.async_write_ha_state()
-        self._schedule_boundary()
 
     def _fire(self, event: str, lesson: dict[str, Any]) -> None:
         """Announce a lesson boundary.
@@ -361,7 +439,9 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
     def _routine(self, block: str) -> list[dict[str, Any]]:
         """Today's steps for a block, each marked done or not."""
         weekday, _ = self._now()
-        steps = self._config.routine(self._member.id, block).steps_for(weekday)
+        steps = self._config.routine(self._member.id, block).steps_for(
+            weekday, self._day_mode
+        )
         completed = self._store.completed(self._member.id, block)
         return [{"step": step, "done": step in completed} for step in steps]
 
@@ -372,13 +452,18 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
 
     @callback
     def _handle_calendar_change(self, _event: Any = None) -> None:
-        """A holiday started or ended: end the running lesson, then re-publish.
+        """A holiday or a care day was added, moved or removed."""
+        self.hass.async_create_task(self._async_recheck())
 
-        Going through the boundary handler rather than writing the state directly is
-        what makes the events honest — a holiday that begins mid-morning ends the
-        lesson that was running instead of dropping it silently.
+    async def _async_recheck(self) -> None:
+        """Re-read the calendars and publish.
+
+        Going through the boundary logic rather than writing the state directly is
+        what makes the events honest — a holiday entered mid-morning ends the lesson
+        that was running instead of dropping it silently.
         """
-        self._handle_boundary(dt_util.now())
+        await self._async_refresh_care()
+        self._apply_boundary()
 
     # --- state --------------------------------------------------------------
 
@@ -399,6 +484,7 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         return {
             ATTR_MEMBER_ID: self._member.id,
             ATTR_COLOR: self._member.color,
+            ATTR_DAY_MODE: self._day_mode,
             ATTR_AVATAR: self._member.avatar,
             ATTR_ROUTINE_MORNING: self._routine(BLOCK_MORNING),
             ATTR_ROUTINE_EVENING: self._routine(BLOCK_EVENING),

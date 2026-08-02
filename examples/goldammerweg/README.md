@@ -11,13 +11,18 @@ Use it as a worked example — the entity ids are specific to this household.
 
 ### Family members
 
-| Name | Colour | Avatar |
-|---|---|---|
-| Dominik | `#e0603a` | — |
-| Kathi | `#8e6bbf` | — |
-| Jan | `#3a86c8` | `/local/schoolday/jan.png` |
-| Ben | `#4f9d69` | `/local/schoolday/ben.png` |
-| Nik | `#c9a227` | `/local/schoolday/nik.png` |
+| Name | Colour | Calendar | Avatar |
+|---|---|---|---|
+| Dominik | `#e0603a` | — | — |
+| Kathi | `#8e6bbf` | — | — |
+| Jan | `#3a86c8` | `calendar.jan` | `/local/schoolday/jan.png` |
+| Ben | `#4f9d69` | `calendar.ben` | `/local/schoolday/ben.png` |
+| Nik | `#c9a227` | `calendar.nik` | `/local/schoolday/nik.png` |
+
+The children's calendars are the ones
+[Family Calendar Sync](https://github.com/McCroden/family_calendar_sync) fills: every event in the
+family calendar starts with a name — "Ben Ferienbetreuung", "Nik Zahnarzt" — and lands in that
+child's own calendar. Schoolday reads them for one thing only, the holiday-care keyword.
 
 The colour is what marks that child everywhere: the chip on the timetable card, the
 frame of their routine block. Avatars are optional; without one the card shows a dot in
@@ -56,18 +61,30 @@ Deutsch
 `-` leaves a period free, and a line may name its own period (`6. Chor`) when the day
 starts late or has a gap in the middle.
 
-### Holidays
+### Days off and holiday care
 
-**Configure → School timetable → Holidays and days off**. The Bavarian school-holiday
+**Configure → School timetable → Days off and holiday care**. The Bavarian school-holiday
 calendar subscribed as an iCal feed, plus `calendar.schulfrei` for the movable days the
 school announces itself. On any day one of them covers, the cards say *Schulfrei* and the
 morning announcement stays quiet without a second condition.
 
+Keywords: `Ferienbetreuung`, one per line. Writing "Ben Ferienbetreuung" into the family
+calendar is therefore the whole of the setup — the sync puts it in `calendar.ben`, and
+Ben's day switches to the care routine while Nik's stays a normal holiday.
+
 ### Routines
 
-**Configure → Edit routines**, per child and per block, one step per line. Deliberately
-independent of the timetable: "Sportsachen einpacken" goes on the evening before the
-days that have PE.
+**Configure → Edit routines**, per child and per block, one step per line — seven weekdays
+plus **Freier Tag** and **Ferienbetreuung**. Ben's morning:
+
+| Field | Steps |
+|---|---|
+| Mo–Fr | Zähne putzen, Anziehen, Brotdose einpacken, Ranzen packen |
+| Freier Tag | Zähne putzen, Anziehen |
+| Ferienbetreuung | Zähne putzen, Anziehen, Brotdose einpacken, Badesachen |
+
+Deliberately independent of the timetable: "Sportsachen einpacken" goes on the evening
+before the days that have PE.
 
 ## Dashboard
 

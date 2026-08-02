@@ -23,6 +23,8 @@ from .const import (
     ATTR_BLOCK,
     BLOCK_MORNING,
     CONF_AVATAR,
+    CONF_CALENDAR,
+    CONF_CARE_KEYWORDS,
     CONF_COLOR,
     CONF_MEMBER_ID,
     CONF_MEMBERS,
@@ -35,6 +37,8 @@ from .const import (
     DEFAULT_COLORS,
     DOMAIN,
     ROUTINE_BLOCKS,
+    ROUTINE_EXTRA_KEYS,
+    SUGGESTED_CARE_KEYWORDS,
     WEEKDAYS,
 )
 from .models import (
@@ -100,6 +104,10 @@ class SchooldayOptionsFlow(OptionsFlow):
         return list(self.config_entry.options.get(CONF_SCHOOL_CALENDARS) or [])
 
     @property
+    def _care_keywords(self) -> list[str]:
+        return list(self.config_entry.options.get(CONF_CARE_KEYWORDS) or [])
+
+    @property
     def _timetable(self) -> Timetable:
         return Timetable.from_dict(self.config_entry.options.get(CONF_TIMETABLE))
 
@@ -122,6 +130,7 @@ class SchooldayOptionsFlow(OptionsFlow):
             CONF_ROUTINES: self._routines,
             CONF_TIMETABLE: self._timetable.as_options(),
             CONF_SCHOOL_CALENDARS: self._school_calendars,
+            CONF_CARE_KEYWORDS: self._care_keywords,
         }
         options.update(changes)
         self.hass.config_entries.async_update_entry(self.config_entry, options=options)
@@ -142,6 +151,9 @@ class SchooldayOptionsFlow(OptionsFlow):
             {
                 vol.Required(CONF_NAME): selector.TextSelector(),
                 vol.Required(CONF_COLOR): selector.ColorRGBSelector(),
+                vol.Optional(CONF_CALENDAR): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="calendar")
+                ),
                 vol.Optional(CONF_AVATAR): selector.TextSelector(),
             }
         )
@@ -222,23 +234,24 @@ class SchooldayOptionsFlow(OptionsFlow):
             # One step per line: the least fiddly way to edit a short list on a
             # phone, and it round-trips exactly.
             current[self._block] = {
-                day: steps
-                for day in WEEKDAYS
-                if (steps := steps_from_text(user_input.get(day)))
+                key: steps
+                for key in (*WEEKDAYS, *ROUTINE_EXTRA_KEYS)
+                if (steps := steps_from_text(user_input.get(key)))
             }
             routines[self._member_id] = current
             self._persist(**{CONF_ROUTINES: routines})
             return await self.async_step_routines()
 
         stored = current.get(self._block) or {}
-        suggested = {day: text_from_steps(stored.get(day)) for day in WEEKDAYS}
+        keys = (*WEEKDAYS, *ROUTINE_EXTRA_KEYS)
+        suggested = {key: text_from_steps(stored.get(key)) for key in keys}
 
         schema = vol.Schema(
             {
-                vol.Optional(day): selector.TextSelector(
+                vol.Optional(key): selector.TextSelector(
                     selector.TextSelectorConfig(multiline=True)
                 )
-                for day in WEEKDAYS
+                for key in keys
             }
         )
         return self.async_show_form(
@@ -328,7 +341,10 @@ class SchooldayOptionsFlow(OptionsFlow):
                 **{
                     CONF_SCHOOL_CALENDARS: list(
                         user_input.get(CONF_SCHOOL_CALENDARS) or []
-                    )
+                    ),
+                    CONF_CARE_KEYWORDS: steps_from_text(
+                        user_input.get(CONF_CARE_KEYWORDS)
+                    ),
                 }
             )
             return await self.async_step_timetable()
@@ -337,13 +353,30 @@ class SchooldayOptionsFlow(OptionsFlow):
             {
                 vol.Optional(CONF_SCHOOL_CALENDARS): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="calendar", multiple=True)
-                )
+                ),
+                vol.Optional(CONF_CARE_KEYWORDS): selector.TextSelector(
+                    selector.TextSelectorConfig(multiline=True)
+                ),
             }
+        )
+        # Suggest a word only in a language we ship strings for. Every country calls
+        # holiday care something else, and a wrong guess is worse than an empty field.
+        stored = self._care_keywords
+        keywords = (
+            text_from_steps(stored)
+            if stored
+            else SUGGESTED_CARE_KEYWORDS.get(
+                (self.hass.config.language or "en").split("-")[0], ""
+            )
         )
         return self.async_show_form(
             step_id="timetable_calendars",
             data_schema=self.add_suggested_values_to_schema(
-                schema, {CONF_SCHOOL_CALENDARS: self._school_calendars}
+                schema,
+                {
+                    CONF_SCHOOL_CALENDARS: self._school_calendars,
+                    CONF_CARE_KEYWORDS: keywords,
+                },
             ),
         )
 

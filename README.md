@@ -5,7 +5,7 @@ timetable, hands it to its own Lovelace cards, and exposes it to your automation
 
 A timetable is fixed for a school year, which is why Schoolday stores it rather than reading it from
 a calendar: forty recurring events a week is not a calendar anybody wants to maintain. Everything is
-typed in once, in four short steps, and every card and every automation reads it from there.
+typed in once, in a handful of short steps, and every card and every automation reads it from there.
 
 > **Status: early development.** Installable through HACS as a custom repository, but not submitted to
 > the HACS default store — it is not listed or advertised anywhere.
@@ -59,7 +59,7 @@ no school.
 colour on every child's card and stays that colour when the week is rewritten. This step only exists
 to change the ones you do not like, and it is a colour picker per subject.
 
-**Holidays and days off** — a timetable repeats forever, holidays do not. Point this at the
+**Days off and holiday care** — a timetable repeats forever, holidays do not. Point this at the
 calendars that close the school: a subscribed school-holiday calendar, plus a local one for teacher
 training days if you keep one.
 
@@ -71,6 +71,38 @@ it — the morning announcement below falls silent by itself, with no second con
 Use calendars that hold nothing but days off. The rule is deliberately blunt — *any* event closes
 the school — so a "Schulfest, 15:00" sitting on the same calendar would take the afternoon off with
 it.
+
+**Holiday care** is a day off with somewhere to be: no school bag, but still a lunchbox and an alarm
+clock. It gets its own routine, and it is found by keyword on each child's **own calendar** — the
+one you set under *Edit a family member*. One keyword per line, matched anywhere in an event's
+title, upper or lower case:
+
+```
+Ferienbetreuung
+Hort
+```
+
+The keywords are yours to write, in your language; the field only suggests something when Home
+Assistant is set to German or English. Leave it empty and there are no care days at all.
+
+Schoolday reads that calendar for nothing else. It shows no events anywhere — this is not a calendar
+integration, and the child's calendar is only ever searched for these words.
+
+### A calendar per child
+
+You need one only for holiday care. Three ways there, all fine:
+
+- **A calendar per child already exists** — a `local_calendar`, a shared Google or CalDAV calendar.
+  Pick it under *Edit a family member* and you are done.
+- **You keep one family calendar** and write whose event it is into the title — "Ben
+  Ferienbetreuung", "Nik Zahnarzt". The HACS integration
+  [Family Calendar Sync](https://github.com/McCroden/family_calendar_sync) copies each event into
+  that child's own calendar when their name is in the title. Set your family calendar as the source
+  and a `local_calendar` per child as the target, then point Schoolday at the child's calendar. One
+  caveat from its author: iCloud calendars cannot be targets, because CalDAV there does not accept
+  events created by Home Assistant — use `local_calendar` for the children.
+- **Neither, and you would rather not** — leave the field empty. There are then no care days, and
+  the day-off routine covers the holidays.
 
 ### The card
 
@@ -104,9 +136,19 @@ the breaks from the gaps in the times, and the colours from the subject names.
 ## Routines
 
 A routine is the set of things that simply have to happen — brush teeth, pack the PE kit. Each
-family member gets a **morning** and an **evening** block, and each block holds a different list per
-weekday. Set them under **Configure → Edit routines**: pick the member and the block, then fill in
-seven fields, one step per line.
+family member gets a **morning** and an **evening** block, and each block holds a list per weekday
+plus two more, under **Configure → Edit routines**:
+
+| Field | When it applies |
+|---|---|
+| Monday … Sunday | A normal school day |
+| Day off | A day one of the holiday calendars covers |
+| Holiday care | A day off this child spends in holiday care |
+
+A holiday morning is not a school morning with items crossed out — it is its own short list — which
+is why the days off get their own fields rather than a rule about which steps to skip. Leave
+**Holiday care** empty and care days use the **Day off** list; leave both empty and holidays have no
+routine at all.
 
 Routines are deliberately independent of the timetable: "pack the PE kit" belongs to the evening
 before, not to the lesson. Put it on the days that have PE and be done with it.
@@ -138,6 +180,7 @@ sensor.schoolday_ben        →  Sport
 | `today_subjects` | Today's subjects, de-duplicated: `["Deutsch", "Mathe", "Sport"]` |
 | `today_summary` | The same, ready to speak: `"Deutsch, Mathe, Sport"` |
 | `lesson_now` / `lesson_next` | The running and the next lesson, or `null` |
+| `day_mode` | `school`, `care` or `free` — which routine is showing, and why |
 | `timetable` | The whole week, for the card |
 | `routine_morning` / `routine_evening` | Today's steps, each with `done` |
 
@@ -187,12 +230,21 @@ No holiday condition is needed: on a day one of the holiday calendars covers, `t
 empty and the automation stops at the condition. Without those calendars configured it would be
 cheerfully wrong for six weeks every summer.
 
-The board sensor says the same thing outright, for automations that want it directly:
+The board sensor says the same thing outright for the household, and each member sensor says it for
+that child — including whether they are in holiday care today:
 
 ```
-sensor.schoolday_board
-  school_today: false
+sensor.schoolday_board          sensor.schoolday_ben
+  school_today: false             day_mode: care
   no_school_reason: "Sommerferien"
+```
+
+So a care day gets its own sentence without a second entity to check:
+
+```jinja
+{% if state_attr('sensor.schoolday_ben', 'day_mode') == 'care' %}
+  Ben ist heute in der Ferienbetreuung. Badesachen einpacken.
+{% endif %}
 ```
 
 Two events fire at every lesson boundary, carrying `member`, `member_id`, `subject`, `room`,

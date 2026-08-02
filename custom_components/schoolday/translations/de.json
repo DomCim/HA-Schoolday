@@ -29,11 +29,13 @@
         "data": {
           "name": "Name",
           "color": "Farbe",
-          "avatar": "Avatarbild"
+          "avatar": "Avatarbild",
+          "calendar": "Kalender"
         },
         "data_description": {
           "color": "Kennzeichnet diese Person auf allen Schoolday-Karten.",
-          "avatar": "Pfad zu einem Bild, zum Beispiel /local/schoolday/ben.png. Optional."
+          "avatar": "Pfad zu einem Bild, zum Beispiel /local/schoolday/ben.png. Optional.",
+          "calendar": "Der eigene Kalender dieses Kindes, falls es einen hat. Er wird ausschließlich nach den Betreuungs-Stichwörtern durchsucht – Schoolday zeigt nirgends Termine an."
         }
       },
       "edit_member": {
@@ -47,11 +49,13 @@
         "data": {
           "name": "Name",
           "color": "Farbe",
-          "avatar": "Avatarbild"
+          "avatar": "Avatarbild",
+          "calendar": "Kalender"
         },
         "data_description": {
           "color": "Kennzeichnet diese Person auf allen Schoolday-Karten.",
-          "avatar": "Pfad zu einem Bild, zum Beispiel /local/schoolday/ben.png. Optional."
+          "avatar": "Pfad zu einem Bild, zum Beispiel /local/schoolday/ben.png. Optional.",
+          "calendar": "Der eigene Kalender dieses Kindes, falls es einen hat. Er wird ausschließlich nach den Betreuungs-Stichwörtern durchsucht – Schoolday zeigt nirgends Termine an."
         }
       },
       "remove_member": {
@@ -73,7 +77,7 @@
       },
       "routine_steps": {
         "title": "{name} – {block}",
-        "description": "Ein Schritt pro Zeile. Leere Tage haben keine Routine.\n\nRoutinen sind bewusst unabhängig vom Stundenplan: „Sportsachen einpacken“ gehört zum Abend davor – trage es also an den Tagen ein, an denen Sport ist.",
+        "description": "Ein Schritt pro Zeile. Leere Tage haben keine Routine.\n\nDie letzten beiden Felder sind die Tage, die keine Schultage sind: Ein Ferienmorgen ist kein Schulmorgen mit Streichungen, sondern eine eigene kurze Liste. Ist das Kind in Ferienbetreuung, gilt die Betreuungsliste; lässt du sie leer, gilt an diesen Tagen die Liste für freie Tage.\n\nUnabhängig vom Stundenplan bleibt es trotzdem: „Sportsachen einpacken“ gehört zum Abend davor – trage es an den Tagen ein, an denen Sport ist.",
         "data": {
           "0": "Montag",
           "1": "Dienstag",
@@ -81,7 +85,9 @@
           "3": "Donnerstag",
           "4": "Freitag",
           "5": "Samstag",
-          "6": "Sonntag"
+          "6": "Sonntag",
+          "free": "Freier Tag",
+          "care": "Ferienbetreuung"
         }
       },
       "timetable": {
@@ -91,7 +97,7 @@
           "timetable_times": "Stundenzeiten",
           "timetable_lessons": "Stundenplan eines Kindes bearbeiten",
           "timetable_colors": "Fächerfarben",
-          "timetable_calendars": "Ferien und schulfreie Tage",
+          "timetable_calendars": "Freie Tage und Ferienbetreuung",
           "init": "Zurück"
         }
       },
@@ -130,13 +136,14 @@
         "description": "Jedes Fach hat schon eine Farbe, abgeleitet aus seinem Namen – und zwar bei jedem Kind dieselbe. Ändere die, die dir nicht gefallen."
       },
       "timetable_calendars": {
-        "title": "Ferien und schulfreie Tage",
-        "description": "Ein Stundenplan wiederholt sich ewig, Ferien nicht. Trage die Kalender ein, die die Schule schließen – einen abonnierten Schulferienkalender oder einen eigenen für bewegliche Ferientage.\n\nJeder laufende Termin in diesen Kalendern bedeutet: heute keine Schule. Die Woche bleibt als Plan auf der Karte stehen, aber die heutigen Stunden verstummen, der Sensor steht auf `free`, und es werden keine Stunden-Events ausgelöst. Nimm dafür Kalender, in denen nichts anderes steht – ein Schulfest um 15 Uhr würde sonst den Nachmittag schulfrei machen.",
+        "title": "Freie Tage und Ferienbetreuung",
+        "description": "Ein Stundenplan wiederholt sich ewig, Ferien nicht. Trage die Kalender ein, die die Schule schließen – einen abonnierten Schulferienkalender oder einen eigenen für bewegliche Ferientage.\n\nJeder laufende Termin in diesen Kalendern bedeutet: heute keine Schule. Die Woche bleibt als Plan auf der Karte stehen, aber die heutigen Stunden verstummen, der Sensor steht auf `free`, und es werden keine Stunden-Events ausgelöst. Nimm dafür Kalender, in denen nichts anderes steht – ein Schulfest um 15 Uhr würde sonst den Nachmittag schulfrei machen.\n\nFerienbetreuung ist ein freier Tag mit Programm und bekommt deshalb eine eigene Routine. Erkannt wird sie am Stichwort im eigenen Kalender des Kindes, den du unter „Familienmitglied bearbeiten“ hinterlegst. Ein Stichwort pro Zeile, irgendwo im Titel, Groß- und Kleinschreibung egal.",
         "data": {
-          "school_calendars": "Kalender"
+          "school_calendars": "Kalender mit freien Tagen",
+          "care_keywords": "Stichwörter für Ferienbetreuung"
         },
         "data_description": {
-          "school_calendars": "Leer lassen, wenn du die Ferien lieber in der Automation selbst behandelst."
+          "care_keywords": "Zum Beispiel „Ferienbetreuung“ oder „Hort“. Leer lassen, wenn ihr keine Betreuung habt – dann gibt es keine Betreuungstage."
         }
       }
     },

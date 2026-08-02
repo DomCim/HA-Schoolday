@@ -54,6 +54,7 @@ from .const import (
     ATTR_TODAY_SUBJECTS,
     ATTR_TODAY_SUMMARY,
     ATTR_VERSION,
+    ATTR_WEEKDAY,
     BLOCK_EVENING,
     BLOCK_MORNING,
     DATA_STORE,
@@ -286,8 +287,8 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         #: The lesson considered running, so a boundary knows what just ended.
         self._running: dict[str, Any] | None = None
         self._unsub_boundary: Any = None
-        #: The next seven days keyed by weekday, and the day that was built for.
-        self._outlook: dict[int, dict[str, Any]] = {}
+        #: This week and the next seven days, in date order, and the day built for.
+        self._outlook: list[dict[str, Any]] = []
         self._outlook_date: date | None = None
 
     async def async_added_to_hass(self) -> None:
@@ -360,27 +361,32 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         }
 
     async def _async_refresh_outlook(self) -> None:
-        """Work out what each of the next seven days holds for this member.
+        """Work out what each day of this week and the next seven days holds.
 
-        Seven days from today is exactly one of every weekday, so the weekday a card
-        draws maps to precisely one date — and it is always the next one, because a
-        Tuesday that has already been is of no use to anybody.
+        The window starts at Monday of the current week rather than at today, so a card
+        can show either the week as it stands or the days still to come. That means a
+        weekday can appear twice — this Tuesday and next — which is why this is a list
+        of dates and not a map keyed by weekday: only the card knows which it wants.
         """
         today = dt_util.now().date()
         self._outlook_date = today
-        days = [today + timedelta(days=offset) for offset in range(OUTLOOK_DAYS)]
-        outlook: dict[int, dict[str, Any]] = {
-            day.weekday(): {
+        first = today - timedelta(days=today.weekday())
+        last = today + timedelta(days=OUTLOOK_DAYS - 1)
+        days = [
+            first + timedelta(days=offset) for offset in range((last - first).days + 1)
+        ]
+        entries: dict[date, dict[str, Any]] = {
+            day: {
                 ATTR_DATE: day.isoformat(),
+                ATTR_WEEKDAY: day.weekday(),
                 ATTR_MODE: MODE_SCHOOL,
                 ATTR_LABEL: None,
             }
             for day in days
         }
-        wanted = {day: day.weekday() for day in days}
 
-        start = dt_util.start_of_local_day()
-        end = start + timedelta(days=OUTLOOK_DAYS)
+        start = dt_util.start_of_local_day(first)
+        end = dt_util.start_of_local_day(last) + timedelta(days=1)
         calendars = list(self._config.school_calendars)
         if self._member.calendar and self._member.calendar not in calendars:
             calendars.append(self._member.calendar)
@@ -392,11 +398,10 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
             for event in events.get(entity_id, []):
                 summary = str(event.get("summary") or "").strip() or None
                 for day in _event_days(event):
-                    if (weekday := wanted.get(day)) is None:
-                        continue
-                    if outlook[weekday][ATTR_MODE] == MODE_SCHOOL:
-                        outlook[weekday][ATTR_MODE] = MODE_FREE
-                        outlook[weekday][ATTR_LABEL] = summary
+                    entry = entries.get(day)
+                    if entry is not None and entry[ATTR_MODE] == MODE_SCHOOL:
+                        entry[ATTR_MODE] = MODE_FREE
+                        entry[ATTR_LABEL] = summary
 
         # Then care, which wins over a plain holiday: a child in holiday care is not at
         # home. Matched on the member's own calendar, which also holds the dentist and
@@ -408,12 +413,12 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
                 if not any(keyword in summary.casefold() for keyword in keywords):
                     continue
                 for day in _event_days(event):
-                    if (weekday := wanted.get(day)) is None:
-                        continue
-                    outlook[weekday][ATTR_MODE] = MODE_CARE
-                    outlook[weekday][ATTR_LABEL] = summary or None
+                    entry = entries.get(day)
+                    if entry is not None:
+                        entry[ATTR_MODE] = MODE_CARE
+                        entry[ATTR_LABEL] = summary or None
 
-        self._outlook = outlook
+        self._outlook = [entries[day] for day in days]
 
     @property
     def _day_mode(self) -> str:
@@ -423,8 +428,11 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         first of the seven days, and having one answer keeps the card and the
         announcement from ever disagreeing.
         """
-        entry = self._outlook.get(dt_util.now().weekday())
-        return str(entry[ATTR_MODE]) if entry else MODE_SCHOOL
+        wanted = dt_util.now().date().isoformat()
+        for entry in self._outlook:
+            if entry[ATTR_DATE] == wanted:
+                return str(entry[ATTR_MODE])
+        return MODE_SCHOOL
 
     @property
     def _school_today(self) -> bool:

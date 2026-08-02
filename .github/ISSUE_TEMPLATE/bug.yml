@@ -1,0 +1,75 @@
+name: Bug report
+description: Something does not work the way it says it does.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time. The two things that shorten this most are the
+        **Schoolday version** and the **log** — without them the first reply is
+        always a request for them.
+
+  - type: input
+    id: version
+    attributes:
+      label: Schoolday version
+      description: Shown in HACS, and on the board sensor's `version` attribute.
+      placeholder: "0.10.0"
+    validations:
+      required: true
+
+  - type: input
+    id: ha_version
+    attributes:
+      label: Home Assistant version
+      placeholder: "2026.7.1"
+    validations:
+      required: true
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what you got instead.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where
+      multiple: true
+      options:
+        - Timetable card
+        - Routines card
+        - Homework card
+        - Header card
+        - Admin card
+        - The integration itself (sensors, services, setup)
+        - Somewhere else
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log
+      description: >
+        Settings → System → Logs → Load full logs, then search for `schoolday`.
+        Paste what you find; it is inserted as a code block, no backticks needed.
+      render: text
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Card configuration
+      description: If a card is involved, its YAML. Leave blank if not.
+      render: yaml
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you send
+      options:
+        - label: I am on the latest Schoolday release, or have said above why not.
+          required: true
+        - label: I closed and reopened the Companion app, if a card looked stale.
+          required: false

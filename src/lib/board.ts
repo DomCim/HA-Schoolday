@@ -86,6 +86,29 @@ export function findBoard(
  * The per-member sensor Schoolday publishes, located by its `member_id` attribute so
  * renaming the entity does not break the lookup.
  */
+/**
+ * The picture to draw for a member.
+ *
+ * An avatar is stored as free text, and a `person.` entity is the useful thing to put
+ * there: Home Assistant already knows what that person looks like, and resolving it
+ * here rather than copying the URL once means the picture follows whatever they change
+ * it to. Anything else is taken as a URL and used as it stands.
+ */
+export function avatarUrl(hass: HomeAssistant, avatar: string | null): string | null {
+  if (!avatar) {
+    return null;
+  }
+  if (!avatar.includes('.') || avatar.includes('/') || avatar.includes(':')) {
+    return avatar;
+  }
+  const entity = hass.states[avatar];
+  if (!entity) {
+    return avatar;
+  }
+  const picture = entity.attributes?.entity_picture;
+  return typeof picture === 'string' && picture ? picture : null;
+}
+
 export function memberSensor(hass: HomeAssistant, memberId: string): HassEntity | undefined {
   return Object.values(hass.states).find(
     (entity) => entity.attributes?.member_id === memberId,

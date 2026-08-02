@@ -62,6 +62,14 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
   @state() private _cell?: string;
   @state() private _draftSubject = '';
   @state() private _draftRoom = '';
+  /**
+   * What the pickers currently hold, by `member-field`.
+   *
+   * The text inputs are read out of the DOM when Save is pressed, which a picker
+   * cannot be: it publishes its choice through an event and owns no input element.
+   * Cleared once the change is saved, so the form goes back to showing what is stored.
+   */
+  @state() private _drafts: Record<string, string> = {};
   /** Set while a service call is in flight, so a double tap cannot race itself. */
   @state() private _busy = false;
   @state() private _error?: string;
@@ -126,6 +134,14 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
     }
   }
 
+  private _draft(key: string, field: string, stored: string): string {
+    return this._drafts[`${key}-${field}`] ?? stored;
+  }
+
+  private _setDraft(key: string, field: string, value: string): void {
+    this._drafts = { ...this._drafts, [`${key}-${field}`]: value };
+  }
+
   private _weekdayName(weekday: number, style: 'short' | 'long'): string {
     const date = new Date(WEEKDAY_ORIGIN);
     date.setDate(date.getDate() + weekday);
@@ -151,6 +167,85 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
         )}
       </div>
     `;
+  }
+
+  /**
+   * A picker for one entity of a domain.
+   *
+   * Home Assistant's own picker filters as you type and shows the names people
+   * actually use, which a text box full of entity ids does not. It is only used when
+   * the frontend really has it: a custom card cannot assume another element exists,
+   * and rendering an undefined one leaves an empty space where a field should be. The
+   * fallback is the plain input with its suggestion list, which works anywhere.
+   *
+   * `allowCustom` lets a value through that is not an entity at all — an avatar may
+   * be a URL, and refusing one would take away something that already worked.
+   */
+  private _entityField(
+    id: string,
+    label: string,
+    domain: string,
+    value: string,
+    fallbackList: string,
+    onChange: (value: string) => void,
+    allowCustom = false,
+  ): TemplateResult {
+    if (customElements.get('ha-entity-picker')) {
+      return html`
+        <div class="field grow">
+          <ha-entity-picker
+            id=${id}
+            .hass=${this.hass}
+            .value=${value}
+            .label=${label}
+            .includeDomains=${[domain]}
+            .allowCustomEntity=${allowCustom}
+            @value-changed=${(event: CustomEvent) => onChange(event.detail?.value ?? '')}
+          ></ha-entity-picker>
+        </div>
+      `;
+    }
+    return html`
+      <label class="field grow">
+        <span class="label">${label}</span>
+        <input
+          id=${id}
+          list=${fallbackList}
+          .value=${value}
+          placeholder=${`${domain}.…`}
+          @change=${(event: Event) => onChange((event.target as HTMLInputElement).value)}
+        />
+      </label>
+    `;
+  }
+
+  /**
+   * A picker for several entities of a domain.
+   *
+   * Same bargain as above; the fallback is the one-per-line box, because a list of
+   * calendars typed by hand is still better than no way to enter one.
+   */
+  private _entitiesField(
+    label: string,
+    domain: string,
+    value: string[],
+    hint: string,
+    save: (entities: string[]) => void,
+  ): TemplateResult {
+    if (customElements.get('ha-entities-picker')) {
+      return html`
+        <div class="field">
+          <span class="label">${label}</span>
+          <ha-entities-picker
+            .hass=${this.hass}
+            .value=${value}
+            .includeDomains=${[domain]}
+            @value-changed=${(event: CustomEvent) => save(event.detail?.value ?? [])}
+          ></ha-entities-picker>
+        </div>
+      `;
+    }
+    return this._lines(label, value, hint, save);
   }
 
   /** A list of lines, edited as one textarea. Used for steps and keywords alike. */
@@ -400,24 +495,23 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
             </label>
           </div>
           <div class="row">
-            <label class="field grow">
-              <span class="label">${t(this.hass, 'admin.calendar')}</span>
-              <input
-                id=${`calendar-${key}`}
-                list="schoolday-calendars"
-                .value=${member?.calendar ?? ''}
-                placeholder="calendar.…"
-              />
-            </label>
-            <label class="field grow">
-              <span class="label">${t(this.hass, 'admin.avatar')}</span>
-              <input
-                id=${`avatar-${key}`}
-                list="schoolday-people"
-                .value=${member?.avatar ?? ''}
-                placeholder="person.…"
-              />
-            </label>
+            ${this._entityField(
+              `calendar-${key}`,
+              t(this.hass, 'admin.calendar'),
+              'calendar',
+              this._draft(key, 'calendar', member?.calendar ?? ''),
+              'schoolday-calendars',
+              (next) => this._setDraft(key, 'calendar', next),
+            )}
+            ${this._entityField(
+              `avatar-${key}`,
+              t(this.hass, 'admin.avatar'),
+              'person',
+              this._draft(key, 'avatar', member?.avatar ?? ''),
+              'schoolday-people',
+              (next) => this._setDraft(key, 'avatar', next),
+              true,
+            )}
           </div>
           <div class="row">
             <button
@@ -431,8 +525,10 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
                   ...(member ? { member: member.id } : {}),
                   name: read('name'),
                   color: read('color'),
-                  calendar: read('calendar'),
-                  avatar: read('avatar'),
+                  calendar: this._draft(key, 'calendar', member?.calendar ?? ''),
+                  avatar: this._draft(key, 'avatar', member?.avatar ?? ''),
+                }).then(() => {
+                  this._drafts = {};
                 });
               }}
             >
@@ -525,11 +621,12 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
       <datalist id="schoolday-calendars">
         ${calendars.map((entityId) => html`<option value=${entityId}></option>`)}
       </datalist>
-      ${this._lines(
+      ${this._entitiesField(
         t(this.hass, 'admin.school_calendars'),
+        'calendar',
         config.schoolCalendars,
         'calendar.schulferien',
-        (lines) => this._call('set_calendars', { school_calendars: lines }),
+        (entities) => this._call('set_calendars', { school_calendars: entities }),
       )}
       ${this._lines(
         t(this.hass, 'admin.care_keywords'),

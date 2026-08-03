@@ -28,6 +28,7 @@ sensor.schoolday_ben        →  Sport
 
 The morning announcement — "today Ben has PE" — is a time trigger and a template:
 
+{% raw %}
 ```yaml
 alias: Schultag-Durchsage
 triggers:
@@ -49,6 +50,7 @@ actions:
           Sportsachen nicht vergessen.
         {% endif %}
 ```
+{% endraw %}
 
 ## Subject names
 
@@ -64,9 +66,11 @@ in the subject-colour step, which is where you notice.
 
 To not have to care at all, match loosely:
 
+{% raw %}
 ```jinja
 {{ state_attr('sensor.schoolday_ben', 'today_subjects') | select('search', '(?i)sport') | list | count > 0 }}
 ```
+{% endraw %}
 
 No holiday condition is needed: on a day one of the holiday calendars covers, `today_subjects` is
 empty and the automation stops at the condition. Without those calendars configured it would be
@@ -83,11 +87,13 @@ sensor.schoolday_board          sensor.schoolday_ben
 
 So a care day gets its own sentence without a second entity to check:
 
+{% raw %}
 ```jinja
 {% if state_attr('sensor.schoolday_ben', 'day_mode') == 'care' %}
   Ben ist heute in der Ferienbetreuung. Badesachen einpacken.
 {% endif %}
 ```
+{% endraw %}
 
 Two events fire at every lesson boundary, carrying `member`, `member_id`, `subject`, `room`,
 `period`, `start` and `end`:
@@ -102,6 +108,7 @@ subject in a row are one state but two lessons. Nothing fires on a Home Assistan
 sensor adopts whatever is running without announcing it, so a restart mid-morning does not shout
 "PE has started" into the kitchen.
 
+{% raw %}
 ```yaml
 alias: Sport beginnt
 triggers:
@@ -115,6 +122,7 @@ actions:
     data:
       message: "Ben ist jetzt in Sport ({{ trigger.event.data.room }})."
 ```
+{% endraw %}
 
 
 ## Services

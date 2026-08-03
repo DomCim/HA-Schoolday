@@ -50,7 +50,7 @@ The other three are the ones worth requiring.
 Built by `.github/workflows/pages.yml`, not by GitHub's own Jekyll — so
 **Settings → Pages → Source** must be **GitHub Actions**, not "Deploy from a branch".
 
-The reason is one plugin. just-the-docs renders through `{% include_cached %}`, which
+The reason is one plugin. just-the-docs renders through {% raw %}`{% include_cached %}`{% endraw %}, which
 needs `jekyll-include-cache`, and that is not on GitHub Pages' allow-list; built the
 built-in way every page fails with *Unknown tag 'include_cached'*. Building it ourselves
 lifts the plugin restriction.
@@ -60,6 +60,28 @@ for you and a self-built site does not. It is named in `docs/Gemfile` and `_conf
 on purpose — it is what turns `[Timetable](timetable.md)` into a working link, and
 without it every link between these pages would 404 on the site while still working
 perfectly on GitHub, which is the kind of breakage nobody notices.
+
+### Home Assistant examples fight Jekyll for the braces
+
+Jinja2 and Liquid use the same delimiters, and Jekyll renders a page before the Markdown
+is touched — a fenced code block protects nothing. An example like this one:
+
+{% raw %}
+```jinja
+{% if 'Sport' in state_attr('sensor.schoolday_ben', 'today_subjects') %}
+```
+{% endraw %}
+
+is therefore not shown to the reader but *executed*, and the build dies on
+`Unknown operator in`.
+
+So any block holding a Jinja2 template has to sit between Liquid's `raw` and `endraw`
+tags — see the source of this page, or of `automations.md`, for the spelling. The closing
+tag cannot itself appear between them, which is why it is named rather than shown here.
+
+The `Documentation build` job in `validate.yml` catches one you miss, and that is the
+reason it exists: `pages.yml` runs only on `main`, so until that job there was nothing
+standing between a page Jekyll cannot render and the published site.
 
 ```bash
 cd docs && bundle install && bundle exec jekyll serve

@@ -51,9 +51,11 @@ these:
 
 The board sensor answers this directly. In **Developer tools → Template**:
 
+{% raw %}
 ```jinja
 {{ state_attr('sensor.schoolday_ben', 'outlook') }}
 ```
+{% endraw %}
 
 Every day in the window comes back with its `mode`. A holiday reads `free`, and the
 holiday's own name comes with it.

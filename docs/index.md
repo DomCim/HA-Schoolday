@@ -41,6 +41,12 @@ form asks for the version and the log, which is what makes it answerable. Questi
 [Discussions](https://github.com/DomCim/HA-Schoolday/discussions), and an idea becomes an issue once
 there is a plan.
 
+## A worked example
+
+[The Goldammerweg setup](https://github.com/DomCim/HA-Schoolday/tree/main/examples/goldammerweg)
+is the household this is developed against: five people, three at school, a tablet on
+the kitchen wall. Entity ids and all, including the dashboard YAML.
+
 ## What it is not
 
 Not a school-management system, not a homework nag, and not a reward chart. Routines are

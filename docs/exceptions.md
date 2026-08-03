@@ -23,8 +23,40 @@ training days. The contract is deliberately blunt: **any** event running on thos
 calendars closes the school. That is why the option asks for calendars with nothing else
 in them.
 
-A German household can create one with the `remote_calendar` integration and a Schulferien
-ICS feed for their state.
+### Making one
+
+Home Assistant's built-in **Remote Calendar** subscribes to an ICS feed and keeps it
+read-only, which is exactly what a holiday calendar should be — nobody should be able to
+delete the summer holidays by fat-fingering a card.
+
+1. **Settings → Devices & Services → Add integration → Remote Calendar**
+2. Give it a name — `Schulferien Bayern`, or whatever your region is called
+3. Paste the **ICS URL** of a school-holiday feed for your state or country
+
+That produces `calendar.schulferien_bayern` or similar, and that is what goes in the
+**Days off** field.
+
+Where the URL comes from depends on where you live. In Germany several free services
+publish a per-state `.ics`; in other countries the education ministry or the school
+itself often does. What matters is not which one you pick but that it passes both of
+these:
+
+- **Only days off in it.** Any event closes the school, so a feed that also carries term
+  dates or "first day back" markers will close school on days there is school. Open it
+  once and look.
+- **It reaches far enough ahead.** A feed that stops at the end of this school year
+  quietly stops closing the school in August. Check the last event before you trust it.
+
+### Checking it worked
+
+The board sensor answers this directly. In **Developer tools → Template**:
+
+```jinja
+{{ state_attr('sensor.schoolday_ben', 'outlook') }}
+```
+
+Every day in the window comes back with its `mode`. A holiday reads `free`, and the
+holiday's own name comes with it.
 
 ## Holiday care
 
@@ -35,6 +67,23 @@ case-insensitively anywhere in the title.
 
 Their own calendar also holds the dentist and football, which is why only your keywords
 count.
+
+### Where a child's own calendar comes from
+
+Most households keep **one** family calendar rather than one per child, which leaves
+Schoolday nothing to look at. Two ways round it:
+
+- **Give each child a calendar of their own** — a local calendar in Home Assistant, or a
+  shared one from whatever the household already uses.
+- **Split the family calendar automatically.** This is what the setup Schoolday is
+  developed against does:
+  [Family Calendar Sync](https://github.com/McCroden/family_calendar_sync) watches one
+  family calendar and copies every event into the calendar of the person named in it —
+  "Ben Ferienbetreuung" lands in Ben's, "Nik Zahnarzt" in Nik's. You keep writing into
+  the one calendar you already use, and Schoolday gets per-child ones for free.
+
+Either way Schoolday reads them for **one thing only**: the holiday-care keyword. It
+never shows an event and never writes to a calendar.
 
 ## A day the school took over
 

@@ -243,8 +243,15 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
   /**
    * A picker for several entities of a domain.
    *
-   * Same bargain as above; the fallback is the one-per-line box, because a list of
-   * calendars typed by hand is still better than no way to enter one.
+   * Built from the *single* picker repeated — one row per entity already chosen, plus
+   * an empty one to add the next — rather than from `ha-entities-picker`.
+   *
+   * That element is not loaded everywhere. On the Companion app this section fell back
+   * to a box of hand-typed entity ids while the family section right next to it had
+   * proper pickers, which reads as a half-finished card. `ha-entity-picker` is the one
+   * that is demonstrably there, so it is the one this is made of.
+   *
+   * Choosing nothing in a filled row removes it, which is what clearing a picker means.
    */
   private _entitiesField(
     label: string,
@@ -253,20 +260,39 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
     hint: string,
     save: (entities: string[]) => void,
   ): TemplateResult {
-    if (customElements.get('ha-entities-picker')) {
-      return html`
-        <div class="field">
-          <span class="label">${label}</span>
-          <ha-entities-picker
-            .hass=${this.hass}
-            .value=${value}
-            .includeDomains=${[domain]}
-            @value-changed=${(event: CustomEvent) => save(event.detail?.value ?? [])}
-          ></ha-entities-picker>
-        </div>
-      `;
+    if (!customElements.get('ha-entity-picker')) {
+      return this._lines(label, value, hint, save);
     }
-    return this._lines(label, value, hint, save);
+    const rows = [...value, ''];
+    return html`
+      <div class="field">
+        <span class="label">${label}</span>
+        ${rows.map(
+          (entityId, index) => html`
+            <ha-entity-picker
+              .hass=${this.hass}
+              .value=${entityId}
+              .includeDomains=${[domain]}
+              @value-changed=${(event: CustomEvent) => {
+                const picked = String(event.detail?.value ?? '');
+                const next = [...value];
+                if (index >= next.length) {
+                  if (!picked) {
+                    return;
+                  }
+                  next.push(picked);
+                } else if (picked) {
+                  next[index] = picked;
+                } else {
+                  next.splice(index, 1);
+                }
+                save(next.filter(Boolean));
+              }}
+            ></ha-entity-picker>
+          `,
+        )}
+      </div>
+    `;
   }
 
   /** A list of lines, edited as one textarea. Used for steps and keywords alike. */

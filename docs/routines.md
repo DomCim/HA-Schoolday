@@ -13,6 +13,10 @@ weekday, because Monday morning is not Friday morning.
 Deliberately **not a reward system**. Routines are the things that have to happen
 whether or not anybody notices, and Schoolday does not score them.
 
+
+![Morning and evening for the whole family. "Sportbeutel" carries the subject that put it there.](images/routines.png)
+*Morning and evening for the whole family. "Sportbeutel" carries the subject that put it there.*
+
 ## Days that are not school days
 
 A holiday morning is not a school morning with items crossed out — it is its own short
@@ -25,6 +29,10 @@ steps to skip:
 
 Leave **Holiday care** empty and care days fall back to the **Day off** list. Leave both
 empty and holidays have no routine at all.
+
+
+![A child at home ill keeps their place on the board, with the reason instead of a list](images/routines-sick.png)
+*A child at home ill keeps their place on the board, with the reason instead of a list*
 
 A child [at home ill](exceptions.md#off-ill) has no list, and deliberately no fallback
 either: a holiday list offers swimming things to a child in bed.

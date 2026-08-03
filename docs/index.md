@@ -18,6 +18,9 @@ It is built for one thing: a tablet on the kitchen wall that a family walks past
 
 <img src="https://raw.githubusercontent.com/DomCim/HA-Schoolday/main/assets/logo.png" alt="Schoolday" width="320">
 
+![The timetable card](images/timetable-week.png)
+*The week, with today marked and the running lesson picked out.*
+
 ## What it does
 
 | | |

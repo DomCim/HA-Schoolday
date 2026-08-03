@@ -36,6 +36,10 @@ too narrow for a week.
 | `highlight` | `true` | Today, the running lesson and the "now / next" line. |
 | `roll_days` | `true` | Point a weekday that has been at next week's. Off shows the week as it stands. |
 
+
+![The header card: clock, date and weather along the top of a wall panel](images/header.png)
+*The header card: clock, date and weather along the top of a wall panel*
+
 ## Routines card
 
 ```yaml
@@ -96,6 +100,37 @@ refused value comes back as a readable reason.
 | Option | Default | What it does |
 |---|---|---|
 | `section` | `timetable` | Which section to open on. |
+
+### Timetable
+
+![Tap a cell to set a lesson. With a two-week timetable, the cycle and an A/B switch sit above the grid.](images/admin-timetable.png)
+*Tap a cell to set a lesson. With a two-week timetable, the cycle and an A/B switch sit above the grid.*
+
+### Routines
+
+![One block, one day at a time — including the two kinds of day off](images/admin-routines.png)
+*One block, one day at a time — including the two kinds of day off*
+
+### Family
+
+![Name, colour, the calendar searched for the holiday-care keyword, and a picture taken from a person entity](images/admin-family.png)
+*Name, colour, the calendar searched for the holiday-care keyword, and a picture taken from a person entity*
+
+### Material
+
+![One box per subject. These become the evening packing list on the day before.](images/admin-materials.png)
+*One box per subject. These become the evening packing list on the day before.*
+
+### Exceptions
+
+![One date at a time: a name takes the whole day, or a single period is cancelled or covered](images/admin-exceptions.png)
+*One date at a time: a name takes the whole day, or a single period is cancelled or covered*
+
+### Days off
+
+![Holiday calendars are picked as entities; the care keywords stay the household’s own words](images/admin-holidays.png)
+*Holiday calendars are picked as entities; the care keywords stay the household’s own words*
+
 
 ## Language
 

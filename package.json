@@ -2,14 +2,15 @@
   "name": "schoolday",
   "version": "0.10.0",
   "private": true,
-  "description": "Schoolday \u2014 a family board for Home Assistant",
+  "description": "Schoolday — a family board for Home Assistant",
   "type": "module",
   "scripts": {
     "build": "rollup -c",
     "watch": "rollup -c --watch",
     "typecheck": "tsc --noEmit",
     "test": "node test/smoke/run.mjs",
-    "assets": "node assets/render.mjs assets/schoolday-icon.svg assets/icon.png 256 256 && node assets/render.mjs assets/schoolday-icon.svg assets/icon@2x.png 512 512 && node assets/render.mjs assets/schoolday-logo.svg assets/logo.png 640 144"
+    "assets": "node assets/render.mjs assets/schoolday-icon.svg assets/icon.png 256 256 && node assets/render.mjs assets/schoolday-icon.svg assets/icon@2x.png 512 512 && node assets/render.mjs assets/schoolday-logo.svg assets/logo.png 640 144",
+    "shots": "node test/smoke/docs-shots.mjs"
   },
   "devDependencies": {
     "playwright": "^1.62.1",

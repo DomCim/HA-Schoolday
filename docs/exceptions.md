@@ -58,6 +58,10 @@ The board sensor answers this directly. In **Developer tools → Template**:
 Every day in the window comes back with its `mode`. A holiday reads `free`, and the
 holiday's own name comes with it.
 
+
+![A holiday spans its columns as one block; a day in holiday care gets its own colour](images/timetable-holidays.png)
+*A holiday spans its columns as one block; a day in holiday care gets its own colour*
+
 ## Holiday care
 
 A holiday spent in care is not a holiday at home: the child is out of the house and needs
@@ -111,6 +115,10 @@ data:
   cancelled: true
 ```
 
+
+![Thursday: second period covered by another subject and marked as changed, third period cancelled. Friday taken over by a school trip.](images/timetable-exceptions.png)
+*Thursday: second period covered by another subject and marked as changed, third period cancelled. Friday taken over by a school trip.*
+
 ## Off ill
 
 Each child has a switch:
@@ -122,6 +130,10 @@ switch.schoolday_ben_ist_krank
 Switching it on closes the day for **that child and nobody else**. Their timetable column
 says so, their routine falls silent, and `sensor.schoolday_ben` goes to `free` — so a
 morning announcement skips them without a single extra condition anywhere.
+
+
+![Off ill closes the day for that one child, in its own muted colour](images/timetable-sick.png)
+*Off ill closes the day for that one child, in its own muted colour*
 
 It is stored as a **last day, not a flag**, and defaults to today. A flag has to be
 switched off by somebody remembering to, and the one thing worse than a board that does

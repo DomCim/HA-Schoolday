@@ -1,0 +1,18 @@
+# The documentation site is built by .github/workflows/pages.yml rather than by
+# GitHub's own Jekyll, and this file is why.
+#
+# just-the-docs renders through `{% include_cached %}`, which needs the
+# jekyll-include-cache plugin — and that plugin is NOT on GitHub Pages' allow-list.
+# Built the built-in way, every page fails with "Unknown tag 'include_cached'".
+# Building it ourselves lifts the plugin restriction entirely.
+#
+# jekyll-relative-links has to be named here for the same reason it did not have to be
+# before: GitHub Pages enables it by default, a self-built site does not. It is what
+# turns `[Timetable](timetable.md)` into a working link on the site, and dropping it
+# would break every link between these pages while leaving them fine on GitHub.
+source "https://rubygems.org"
+
+gem "jekyll", "~> 4.3"
+gem "just-the-docs", "~> 0.10"
+gem "jekyll-relative-links", "~> 0.7"
+gem "jekyll-seo-tag", "~> 2.8"

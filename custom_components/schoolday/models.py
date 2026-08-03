@@ -14,6 +14,8 @@ from datetime import date, timedelta
 from typing import Any
 from zlib import crc32
 
+from homeassistant.util import dt as dt_util
+
 from .const import (
     BREAK_MIN_MINUTES,
     CONF_AVATAR,
@@ -47,6 +49,18 @@ from .const import (
     SLOTS_PER_WEEK,
     SUBJECT_COLORS,
 )
+
+
+def today() -> date:
+    """Today, in Home Assistant's timezone rather than the container's.
+
+    `date.today()` reads the system clock's zone, which is not necessarily the one
+    Home Assistant is configured for. Where the two differ, everything dated would roll
+    over at the wrong moment: the routine ticks would clear an hour early or late, an
+    absence would expire on the wrong day, and an A/B week could flip a day out — all
+    of it silently, and only for the households whose container disagrees with them.
+    """
+    return dt_util.now().date()
 
 
 def steps_from_text(text: str | None) -> list[str]:
@@ -513,7 +527,8 @@ class Timetable:
         five-, ten- and sixty-minute gaps a school day already has in its times.
         """
         gaps: list[dict[str, Any]] = []
-        for before, after in zip(self.periods, self.periods[1:]):
+        # Deliberately uneven: the last period has no successor and therefore no gap.
+        for before, after in zip(self.periods, self.periods[1:], strict=False):
             minutes = after.start_minutes - before.end_minutes
             if minutes >= BREAK_MIN_MINUTES:
                 gaps.append(
@@ -873,7 +888,7 @@ class SchooldayConfig:
             "cycle_anchor": self.cycle_anchor.isoformat() if self.cycle_anchor else None,
             # Which week the household is in right now, so the editor can open on it
             # rather than making somebody work it out from a date.
-            "cycle_now": self.week_index(date.today()),
+            "cycle_now": self.week_index(today()),
             # Every subject in use, so the materials editor can offer them instead of
             # asking the household to type a subject name that has to match exactly.
             "subjects": self.timetable.subjects,

@@ -19,6 +19,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.storage import Store
 
+from .models import today as _today
+
 from .const import (
     SIGNAL_ABSENCE_UPDATED,
     SIGNAL_HOMEWORK_UPDATED,
@@ -43,7 +45,7 @@ class RoutineStore:
 
     @staticmethod
     def _today() -> str:
-        return date.today().isoformat()
+        return _today().isoformat()
 
     async def async_load(self) -> None:
         """Load persisted state, discarding anything from a previous day."""
@@ -145,7 +147,7 @@ class AbsenceStore:
 
     @staticmethod
     def _today() -> date:
-        return date.today()
+        return _today()
 
     async def async_load(self) -> None:
         """Load persisted absences, dropping any that have run out."""
@@ -217,7 +219,7 @@ class AbsenceStore:
     @staticmethod
     def days_from_now(days: int) -> date:
         """The last day of an absence that lasts this many days, today included."""
-        return date.today() + timedelta(days=max(1, days) - 1)
+        return _today() + timedelta(days=max(1, days) - 1)
 
 
 class HomeworkStore:
@@ -263,7 +265,7 @@ class HomeworkStore:
 
     def _sweep(self) -> bool:
         """Drop items finished more than a fortnight ago."""
-        cutoff = (date.today() - timedelta(days=self.KEEP_DONE_DAYS)).isoformat()
+        cutoff = (_today() - timedelta(days=self.KEEP_DONE_DAYS)).isoformat()
         dropped = False
         for items in self._items.values():
             for uid in [
@@ -316,7 +318,7 @@ class HomeworkStore:
             "due": due,
             "description": description,
             "done": done,
-            "done_on": date.today().isoformat() if done else None,
+            "done_on": _today().isoformat() if done else None,
         }
         await self._async_save()
         async_dispatcher_send(self._hass, SIGNAL_HOMEWORK_UPDATED)
@@ -346,7 +348,7 @@ class HomeworkStore:
         if done is not None and done != bool(item.get("done")):
             item["done"] = done
             # Stamped when it is ticked, because that is what the sweep counts from.
-            item["done_on"] = date.today().isoformat() if done else None
+            item["done_on"] = _today().isoformat() if done else None
         await self._async_save()
         async_dispatcher_send(self._hass, SIGNAL_HOMEWORK_UPDATED)
         return True

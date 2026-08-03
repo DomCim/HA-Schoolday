@@ -47,7 +47,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - run: pip install ruff
+      # Pinned. An unpinned linter is a check whose meaning changes without a commit:
+      # ruff 0.16 widened its default rules and turned a green branch red overnight.
+      # The rules themselves live in pyproject.toml.
+      - run: pip install "ruff==0.16.1"
       - run: ruff check custom_components/
       - name: Configuration writes, models and the static service checks
         run: python3 test/config_writes_test.py

@@ -26,10 +26,16 @@ sys.modules.update({
     "homeassistant.util.dt": dt,
 })
 
+# Everything below is found relative to this file rather than to the working directory
+# or to anybody's checkout: the runner clones somewhere else entirely, and a path that
+# only exists on the machine it was written on is a test that only passes there.
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+COMPONENT = ROOT / "custom_components" / "schoolday"
+
 # A stand-in package, so the relative imports resolve without running __init__.py
 # (which pulls in half of Home Assistant's frontend).
 pkg = types.ModuleType("schoolday")
-pkg.__path__ = ["/home/user/HA-Schoolday/custom_components/schoolday"]
+pkg.__path__ = [str(COMPONENT)]
 sys.modules["schoolday"] = pkg
 import importlib  # noqa: E402
 W = importlib.import_module("schoolday.config_writes")
@@ -244,7 +250,7 @@ def calls_date_today(path):
     ]
 
 for name in ("config_writes.py", "models.py", "store.py", "sensor.py"):
-    lines = calls_date_today(pathlib.Path("custom_components/schoolday") / name)
+    lines = calls_date_today(COMPONENT / name)
     check(
         f"{name} fragt nicht die Systemuhr nach dem Datum",
         not lines,
@@ -403,9 +409,7 @@ check("Ausgangs-Optionen bleiben unveraendert",
 # async_update_entry from there is refused outright. This is a static check because
 # the failure only ever showed up at the moment somebody pressed Save.
 
-services_src = pathlib.Path(
-    "/home/user/HA-Schoolday/custom_components/schoolday/services.py"
-).read_text()
+services_src = (COMPONENT / "services.py").read_text()
 tree = ast.parse(services_src)
 
 registered = set()
@@ -458,14 +462,14 @@ check(
 # recognise, across all platforms. A platform missing from its expected set has its
 # entities deleted the moment they are created — and silently, which is the worst part.
 made = set()
-for path in pathlib.Path("custom_components/schoolday").glob("*.py"):
+for path in COMPONENT.glob("*.py"):
     for node in ast.walk(ast.parse(path.read_text())):
         if isinstance(node, ast.Assign) and any(
             isinstance(target, ast.Attribute) and target.attr == "_attr_unique_id"
             for target in node.targets
         ):
             made.add(ast.unparse(node.value).split("(")[0].split(".")[-1])
-sensor_src = pathlib.Path("custom_components/schoolday/sensor.py").read_text()
+sensor_src = (COMPONENT / "sensor.py").read_text()
 check(
     "die Waise-Bereinigung kennt jede erzeugte unique_id",
     made and all(name in sensor_src for name in made),
@@ -478,7 +482,7 @@ check(
 # and a brands pull request is rejected for it without much explanation.
 import struct  # noqa: E402
 
-BRANDS = pathlib.Path("brands/custom_integrations/schoolday")
+BRANDS = ROOT / "brands" / "custom_integrations" / "schoolday"
 
 
 def png_size(path):

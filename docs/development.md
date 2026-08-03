@@ -45,6 +45,20 @@ request would wait forever.
 
 The other three are the ones worth requiring.
 
+## The pictures in this manual
+
+Rendered from the same stubbed `hass` the smoke suite uses, at the same frozen moment,
+so they show the same Wednesday, the same running lesson and the same three children as
+the tests — and cannot drift into showing something the cards no longer do.
+
+```bash
+npm run build
+npm run shots      # writes docs/images/
+```
+
+Adding a state worth showing means adding it to `test/smoke/docs-shots.mjs`, not taking
+a photo of your own dashboard.
+
 ## Branch rules
 
 `main` is protected by a repository ruleset: no deletions, no force pushes, and changes

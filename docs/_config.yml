@@ -10,7 +10,7 @@ aux_links:
     - https://github.com/DomCim/HA-Schoolday
 aux_links_new_tab: true
 
-color_scheme: dark
+color_scheme: light
 search_enabled: true
 
 # Everything the site needs lives in docs/; nothing else belongs on the site.

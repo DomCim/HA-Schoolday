@@ -23,6 +23,9 @@ unfinished first, soonest first, undated last within its group — a thing with 
 is what has to be looked at, and an empty date is not an early one.
 
 ## The card
+![Grouped by when it is due. The number beside each name is what is left.](images/homework.png)
+*Grouped by when it is due. The number beside each name is what is left.*
+
 
 `schoolday-homework-card` is the reading end. It groups by **when the work is due**:
 

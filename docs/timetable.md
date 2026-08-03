@@ -10,6 +10,10 @@ A timetable is fixed for a school year, which is why Schoolday stores it rather 
 reading it from a calendar. Everything is typed in once and every card and every
 automation reads it from there.
 
+
+![A week: today highlighted, the running lesson outlined, free periods drawn rather than left out](images/timetable-week.png)
+*A week: today highlighted, the running lesson outlined, free periods drawn rather than left out*
+
 ## Lesson times
 
 One `HH:MM-HH:MM` per line, in order:
@@ -59,12 +63,20 @@ same colour on every child's card and stays that colour when the week is rewritt
 colour editor is only ever a **correction**, which is why it offers the current colour
 rather than an empty field.
 
+
+![Too narrow for a week: the card falls back to one day and offers the others as chips](images/timetable-day.png)
+*Too narrow for a week: the card falls back to one day and offers the others as chips*
+
 ## Two-week timetables
 
 Some schools alternate an **A week** and a **B week**. Switch the cycle to two weeks and
 say which **calendar week** week A starts in — the way a school says it. The editor then
 has an A/B switch above the grid, and the display card marks every column with the week
 it belongs to.
+
+
+![A two-week timetable: every column says which week it belongs to, and Monday points at next week — which is a B week](images/timetable-cycle.png)
+*A two-week timetable: every column says which week it belongs to, and Monday points at next week — which is a B week*
 
 What gets **stored** is the Monday that week begins on, not the week number. An ISO year
 has 52 or 53 weeks — 2026 has 53 — so "A is the odd weeks" would swap itself over some

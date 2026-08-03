@@ -1,6 +1,18 @@
 title: Schoolday
 description: The school week and the daily routines, on the wall.
-remote_theme: just-the-docs/just-the-docs
+# `theme`, not `remote_theme`: the site is built by our own workflow with a Gemfile,
+# so the gem is simply installed rather than fetched at build time.
+theme: just-the-docs
+
+# Named explicitly. GitHub Pages switches jekyll-relative-links on for you; a
+# self-built site does not, and without it every `[page](page.md)` link here 404s.
+plugins:
+  - jekyll-relative-links
+  - jekyll-seo-tag
+
+relative_links:
+  enabled: true
+  collections: false
 url: https://domcim.github.io
 baseurl: /HA-Schoolday
 

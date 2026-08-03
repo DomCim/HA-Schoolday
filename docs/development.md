@@ -45,6 +45,26 @@ request would wait forever.
 
 The other three are the ones worth requiring.
 
+## The documentation site
+
+Built by `.github/workflows/pages.yml`, not by GitHub's own Jekyll — so
+**Settings → Pages → Source** must be **GitHub Actions**, not "Deploy from a branch".
+
+The reason is one plugin. just-the-docs renders through `{% include_cached %}`, which
+needs `jekyll-include-cache`, and that is not on GitHub Pages' allow-list; built the
+built-in way every page fails with *Unknown tag 'include_cached'*. Building it ourselves
+lifts the plugin restriction.
+
+The same change costs one thing back: GitHub Pages switches `jekyll-relative-links` on
+for you and a self-built site does not. It is named in `docs/Gemfile` and `_config.yml`
+on purpose — it is what turns `[Timetable](timetable.md)` into a working link, and
+without it every link between these pages would 404 on the site while still working
+perfectly on GitHub, which is the kind of breakage nobody notices.
+
+```bash
+cd docs && bundle install && bundle exec jekyll serve
+```
+
 ## The pictures in this manual
 
 Rendered from the same stubbed `hass` the smoke suite uses, at the same frozen moment,

@@ -51,6 +51,9 @@ from .models import (
     periods_from_text,
     unify_subjects,
 )
+# Aliased: several functions here take a `today` argument so tests can pin the date,
+# and the import would shadow it.
+from .models import today as _today
 
 
 class SchooldayValueError(ValueError):
@@ -353,7 +356,7 @@ def set_cycle(
     changes: dict[str, Any] = {CONF_CYCLE_WEEKS: weeks}
 
     if iso_week is not None:
-        year = iso_year or (today or date.today()).isocalendar().year
+        year = iso_year or (today or _today()).isocalendar().year
         try:
             monday = date.fromisocalendar(year, iso_week, 1)
         except ValueError as err:
@@ -374,7 +377,7 @@ def set_cycle(
     elif weeks > 1 and not options.get(CONF_CYCLE_ANCHOR):
         # Switching the cycle on without saying where it starts: this week is A, which
         # is the only guess that cannot be wrong today and is one tap to correct.
-        start = today or date.today()
+        start = today or _today()
         changes[CONF_CYCLE_ANCHOR] = (
             start - timedelta(days=start.weekday())
         ).isoformat()
@@ -435,12 +438,12 @@ def set_exception(
     and becomes fifty-two timetables.
     """
     when = _parse_date(day)
-    if when < (today or date.today()):
+    if when < (today or _today()):
         raise SchooldayValueError(
             f"{when.isoformat()} has already been. Exceptions are only kept from today onwards."
         )
 
-    stored = _exceptions(options, today or date.today())
+    stored = _exceptions(options, today or _today())
     per_member = stored.setdefault(member_id, {})
     entry = DayException.from_dict(per_member.get(when.isoformat()))
 
@@ -478,7 +481,7 @@ def clear_exception(
 ) -> dict[str, Any]:
     """Drop everything one date said differently, putting the timetable back."""
     when = _parse_date(day)
-    stored = _exceptions(options, today or date.today())
+    stored = _exceptions(options, today or _today())
     per_member = stored.get(member_id) or {}
     per_member.pop(when.isoformat(), None)
     if per_member:

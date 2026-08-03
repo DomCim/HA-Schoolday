@@ -1,15 +1,30 @@
 """Exercise the real config_writes module against the real models."""
-import sys, types, itertools, pathlib
+import ast
+import datetime
+import itertools
+import pathlib
+import sys
+import types
 
 # config_writes needs exactly one thing from Home Assistant.
 counter = itertools.count(1)
 ulid = types.ModuleType("homeassistant.util.ulid")
 ulid.ulid_now = lambda: f"ID{next(counter):03d}"
+# models.today() asks Home Assistant for the date rather than the system clock, because
+# the two can be in different timezones. Here it is simply the system clock.
+dt = types.ModuleType("homeassistant.util.dt")
+dt.now = datetime.datetime.now
 util = types.ModuleType("homeassistant.util")
 util.ulid = ulid
+util.dt = dt
 ha = types.ModuleType("homeassistant")
 ha.util = util
-sys.modules.update({"homeassistant": ha, "homeassistant.util": util, "homeassistant.util.ulid": ulid})
+sys.modules.update({
+    "homeassistant": ha,
+    "homeassistant.util": util,
+    "homeassistant.util.ulid": ulid,
+    "homeassistant.util.dt": dt,
+})
 
 # A stand-in package, so the relative imports resolve without running __init__.py
 # (which pulls in half of Home Assistant's frontend).
@@ -210,10 +225,35 @@ check("kranker Tag hat keine Schritte",
       and routine.steps_for(0, "free") == ["Ausschlafen"],
       str(routine.steps_for(0, "sick")))
 
-# --- the two-week cycle ----------------------------------------------------
-import datetime as _dt  # noqa: E402
+# --- dates come from Home Assistant, not from the container --------------------
+# `date.today()` reads the system clock's zone. Home Assistant has its own, and where
+# they differ everything dated rolls over at the wrong moment — silently, and only for
+# the households whose container disagrees with them.
+# Parsed rather than grepped: the one legitimate mention of `date.today()` is the
+# comment in models.py explaining why not to call it, and a text search finds that too.
+def calls_date_today(path):
+    tree = ast.parse(pathlib.Path(path).read_text())
+    return [
+        node.lineno
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "today"
+        and isinstance(node.func.value, ast.Name)
+        and node.func.value.id == "date"
+    ]
 
-CT = _dt.date(2026, 9, 14)
+for name in ("config_writes.py", "models.py", "store.py", "sensor.py"):
+    lines = calls_date_today(pathlib.Path("custom_components/schoolday") / name)
+    check(
+        f"{name} fragt nicht die Systemuhr nach dem Datum",
+        not lines,
+        f"date.today() in Zeile {lines}" if lines else "keine",
+    )
+
+# --- the two-week cycle ----------------------------------------------------
+
+CT = datetime.date(2026, 9, 14)
 
 out = W.set_cycle({}, 2, iso_week=37, iso_year=2026, today=CT)
 check("KW wird als Montag gespeichert",
@@ -248,15 +288,15 @@ CYCLED = merged({
 })
 cyc = Models.SchooldayConfig.from_options(CYCLED)
 check("A- und B-Woche liefern verschiedene Stunden",
-      [l.subject for l in cyc.lessons_on(MEMBER, _dt.date(2026, 9, 7))] == ["Deutsch"]
-      and [l.subject for l in cyc.lessons_on(MEMBER, _dt.date(2026, 9, 14))] == ["Mathe"]
-      and [l.subject for l in cyc.lessons_on(MEMBER, _dt.date(2026, 9, 21))] == ["Deutsch"],
+      [lesson.subject for lesson in cyc.lessons_on(MEMBER, datetime.date(2026, 9, 7))] == ["Deutsch"]
+      and [lesson.subject for lesson in cyc.lessons_on(MEMBER, datetime.date(2026, 9, 14))] == ["Mathe"]
+      and [lesson.subject for lesson in cyc.lessons_on(MEMBER, datetime.date(2026, 9, 21))] == ["Deutsch"],
       "Mo 7.9. / 14.9. / 21.9.")
 
 # Turning the cycle off must not throw week B away — only stop showing it.
 off = Models.SchooldayConfig.from_options({**CYCLED, "cycle_weeks": 1})
 check("Zyklus aus zeigt wieder die A-Woche, B bleibt gespeichert",
-      [l.subject for l in off.lessons_on(MEMBER, _dt.date(2026, 9, 14))] == ["Deutsch"]
+      [lesson.subject for lesson in off.lessons_on(MEMBER, datetime.date(2026, 9, 14))] == ["Deutsch"]
       and off.timetable.uses_second_week,
       str(off.timetable.uses_second_week))
 
@@ -305,15 +345,15 @@ check("weder entfallen noch ersetzt gibt die Stunde zurueck",
 # What the sensors ask: the week, with that one date's changes applied.
 config = Models.SchooldayConfig.from_options(merged(out))
 check("Datum ueberschreibt den Wochentag",
-      [(l.period, l.subject) for l in config.lessons_on(MEMBER, datetime.date(2026, 9, 14))]
+      [(lesson.period, lesson.subject) for lesson in config.lessons_on(MEMBER, datetime.date(2026, 9, 14))]
       == [(1, "Deutsch")],
       "Montag ohne Ausnahme")
 # 18 September 2026 is a Friday, which the base week leaves empty — so the replacement
 # is the only thing on, which is exactly what a substitution on a free period means.
 check("Ersatzstunde erscheint am Datum",
-      [(l.period, l.subject) for l in config.lessons_on(MEMBER, datetime.date(2026, 9, 18))]
+      [(lesson.period, lesson.subject) for lesson in config.lessons_on(MEMBER, datetime.date(2026, 9, 18))]
       == [(2, "Vertretung")],
-      str([(l.period, l.subject) for l in config.lessons_on(MEMBER, datetime.date(2026, 9, 18))]))
+      str([(lesson.period, lesson.subject) for lesson in config.lessons_on(MEMBER, datetime.date(2026, 9, 18))]))
 
 try:
     W.set_exception(BASE, MEMBER, "2026-09-01", label="zu spaet", today=TODAY)
@@ -362,7 +402,6 @@ check("Ausgangs-Optionen bleiben unveraendert",
 # A synchronous handler is run by Home Assistant in a worker thread, and touching
 # async_update_entry from there is refused outright. This is a static check because
 # the failure only ever showed up at the moment somebody pressed Save.
-import ast  # noqa: E402
 
 services_src = pathlib.Path(
     "/home/user/HA-Schoolday/custom_components/schoolday/services.py"

@@ -1133,7 +1133,8 @@ await page.evaluate(() => {
     }
   }
   customElements.define('ha-entity-picker', Picker);
-  customElements.define('ha-entities-picker', class extends Picker {});
+  // ha-entities-picker is deliberately NOT defined: it is missing on the Companion
+  // app, and the card has to work without it.
 });
 await page.evaluate(() =>
   window.__mount({ type: 'custom:schoolday-admin-card', section: 'family' }, 'schoolday-admin-card'),
@@ -1369,22 +1370,24 @@ check(
   JSON.stringify(labelCall?.data ?? null),
 );
 
-// Days off: the calendars are entities and get the multi-picker; the keywords are the
-// household's own words and stay free text, one per line.
+// Days off: the calendars get real entity pickers — one per calendar already chosen and
+// an empty one to add the next — because ha-entities-picker is missing on the Companion
+// app and this section must not fall back to typed entity ids while the family section
+// beside it has pickers. The keywords are the household's own words and stay free text.
 await page.locator('schoolday-admin-card .tab', { hasText: 'Freie Tage' }).click();
 await page.waitForTimeout(300);
 const adminHolidayFields = await page.evaluate(() => {
   const root = document.querySelector('schoolday-admin-card').shadowRoot;
-  const picker = root.querySelector('ha-entities-picker');
+  const pickers = [...root.querySelectorAll('ha-entity-picker')];
   return {
-    calendars: picker?.value ?? null,
-    domains: picker?.includeDomains ?? null,
+    calendars: pickers.map((p) => p.value),
+    domains: pickers[0]?.includeDomains ?? null,
     keywords: root.querySelector('textarea')?.value ?? null,
   };
 });
 check(
-  'days off pick calendars as entities and keep the keywords as words',
-  adminHolidayFields.calendars?.join(',') === 'calendar.ferien' &&
+  'days off pick calendars with the single picker, plus an empty row to add another',
+  adminHolidayFields.calendars?.join(',') === 'calendar.ferien,' &&
     adminHolidayFields.domains?.join(',') === 'calendar' &&
     adminHolidayFields.keywords?.trim() === 'Ferienbetreuung',
   JSON.stringify(adminHolidayFields),

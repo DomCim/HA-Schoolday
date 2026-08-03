@@ -114,17 +114,19 @@ const e="0.10.0",t=["#e0603a","#3a86c8","#4f9d69","#c9a227","#8e6bbf","#d1707f"]
           @change=${e=>a(e.target.value)}
         />
       </label>
-    `}_entitiesField(e,t,s,i,o){return customElements.get("ha-entities-picker")?K`
-        <div class="field">
-          <span class="label">${e}</span>
-          <ha-entities-picker
-            .hass=${this.hass}
-            .value=${s}
-            .includeDomains=${[t]}
-            @value-changed=${e=>o(e.detail?.value??[])}
-          ></ha-entities-picker>
-        </div>
-      `:this._lines(e,s,i,o)}_lines(e,t,s,i){return K`
+    `}_entitiesField(e,t,s,i,o){if(!customElements.get("ha-entity-picker"))return this._lines(e,s,i,o);const a=[...s,""];return K`
+      <div class="field">
+        <span class="label">${e}</span>
+        ${a.map((e,i)=>K`
+            <ha-entity-picker
+              .hass=${this.hass}
+              .value=${e}
+              .includeDomains=${[t]}
+              @value-changed=${e=>{const t=String(e.detail?.value??""),a=[...s];if(i>=a.length){if(!t)return;a.push(t)}else t?a[i]=t:a.splice(i,1);o(a.filter(Boolean))}}
+            ></ha-entity-picker>
+          `)}
+      </div>
+    `}_lines(e,t,s,i){return K`
       <label class="field">
         <span class="label">${e}</span>
         <textarea

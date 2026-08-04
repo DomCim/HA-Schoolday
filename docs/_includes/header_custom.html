@@ -1,0 +1,36 @@
+{%- comment -%}
+  The switch itself. An explicit choice is remembered; without one the browser's
+  preference keeps deciding, which is the right default for a reader who never touches
+  this button.
+{%- endcomment -%}
+<button
+  type="button"
+  id="theme-toggle"
+  class="theme-toggle"
+  aria-label="Switch between the light and the dark theme"
+>Dark</button>
+
+<script>
+  (function () {
+    var button = document.getElementById('theme-toggle');
+    if (!button || !window.jtd) { return; }
+
+    function isDark() {
+      var link = document.querySelector('[rel="stylesheet"]');
+      return link.getAttribute('href').indexOf('schoolday-dark') !== -1;
+    }
+
+    function label() {
+      button.textContent = isDark() ? 'Light' : 'Dark';
+    }
+
+    label();
+
+    button.addEventListener('click', function () {
+      var next = isDark() ? 'light' : 'dark';
+      jtd.setTheme(next === 'dark' ? 'schoolday-dark' : 'default');
+      try { window.localStorage.setItem('schoolday-theme', next); } catch (e) {}
+      label();
+    });
+  })();
+</script>

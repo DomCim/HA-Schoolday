@@ -1,0 +1,27 @@
+// The light scheme, taken from the mark rather than invented next to it: #24405f is
+// the icon's ground, and the accents are the three colours the cards hand the first
+// three children. A manual that looks like the thing it documents is easier to trust.
+
+$blue-000: #eaf1f8;
+$blue-100: #5aa9e6;
+$blue-200: #3a86c8;
+$blue-300: #24405f;
+
+$body-background-color: #ffffff;
+$sidebar-color: #f6f8fb;
+$search-background-color: #ffffff;
+$table-background-color: #ffffff;
+$code-background-color: #f6f8fb;
+$feedback-color: darken($sidebar-color, 3%);
+
+$body-text-color: #33393f;
+$body-heading-color: #1b2a3c;
+$nav-child-link-color: #4a5560;
+$search-result-preview-color: #6b7580;
+
+$link-color: #2a6ba8;
+$btn-primary-color: $blue-300;
+$base-button-color: #f4f6f9;
+
+$border-color: #e2e7ee;
+

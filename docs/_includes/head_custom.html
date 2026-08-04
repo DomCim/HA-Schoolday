@@ -1,0 +1,17 @@
+{%- comment -%}
+  The theme is chosen here, at the end of head, rather than on DOMContentLoaded: this
+  runs before the body is painted, so a reader who prefers dark never watches the light
+  page flash past first. jtd is already defined by this point — just-the-docs.js is
+  loaded earlier in the same head.
+{%- endcomment -%}
+<link rel="icon" href="{{ '/images/icon.svg' | relative_url }}" type="image/svg+xml">
+
+<script>
+  (function () {
+    var stored = null;
+    try { stored = window.localStorage.getItem('schoolday-theme'); } catch (e) {}
+    var dark = stored ? stored === 'dark'
+                      : window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (dark && window.jtd) { jtd.setTheme('schoolday-dark'); }
+  })();
+</script>

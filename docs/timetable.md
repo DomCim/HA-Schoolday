@@ -51,10 +51,12 @@ Deutsch
 - `5. Sport` names its period outright, so a day that starts at the third period does
   not need two placeholder lines first
 
-**Subject names are free text**, and they are exact strings everywhere downstream: the
-sensor state, the colour, and whatever an automation compares against. Typing `Sport` on
-Monday and `sport` on Wednesday would therefore be two subjects with two colours — so
-when a week is saved, the first spelling in it wins for the whole week.
+{: .warning }
+> **Subject names are exact strings** everywhere downstream: the sensor state, the colour,
+> and whatever an automation compares against. `Sport` on Monday and `sport` on Wednesday
+> would be two subjects with two colours — so when a week is saved, the first spelling in
+> it wins for the whole week. Across two children it deliberately does not, because that
+> would silently undo a rename.
 
 ## Colours
 

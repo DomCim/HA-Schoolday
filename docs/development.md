@@ -28,22 +28,24 @@ does not match the sources.
 
 ## CI
 
-Four jobs:
+Five jobs:
 
 | Job | What it does |
 |---|---|
 | `hassfest` | Validates the integration the way Home Assistant does |
 | `Python` | `ruff`, and the configuration-writes and model tests |
 | `Frontend build` | Typecheck, build, the committed bundle must match the sources, then the smoke suite |
+| `Documentation build` | Builds this site and discards it, so a page Jekyll cannot render fails here rather than after the merge |
 | `HACS` | Publication readiness |
 
-**The HACS job only runs on the default branch**, so it must never be a required status
-check: `hacs/action` reads the repository through the GitHub API against the default
-branch, sees none of a feature branch's files, and would fail on every push regardless of
-what changed. Required on a pull request, it would never report at all and the pull
-request would wait forever.
+{: .warning }
+> **The HACS job must never be a required status check.** It only runs on the default
+> branch: `hacs/action` reads the repository through the GitHub API against that branch,
+> sees none of a feature branch's files, and would fail on every push regardless of what
+> changed. Required on a pull request it would never report at all, and the pull request
+> would wait forever.
 
-The other three are the ones worth requiring.
+The other four are the ones worth requiring.
 
 ## The documentation site
 

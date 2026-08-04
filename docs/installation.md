@@ -25,6 +25,11 @@ never drift apart in version.
 4. **Restart Home Assistant**
 5. **Settings → Devices & Services → Add integration → Schoolday**
 
+{: .note }
+> Step 4 is not optional and not a formality. The cards are registered while Home
+> Assistant starts, so before a restart the integration installs but the dashboard has
+> nothing to show — which reads exactly like a broken install.
+
 ## Setting it up
 
 Everything below can be done twice: once in the integration's own options dialog, and

@@ -1,0 +1,10 @@
+// Imported before every colour scheme, and therefore the only place these can live.
+// The theme compiles its own light and dark stylesheets alongside ours whether we use
+// them or not; a brand variable defined inside one scheme is undefined in those, and
+// the build fails on the first rule in custom.scss that reaches for it.
+
+$schoolday-ground: #24405f !default;
+$schoolday-orange: #e0603a !default;
+$schoolday-green: #4f9d69 !default;
+$schoolday-yellow: #c9a227 !default;
+$schoolday-sky: #5aa9e6 !default;

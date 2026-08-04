@@ -1,0 +1,25 @@
+// The dark scheme. A wall-panel integration whose manual can only be read in white is
+// a small joke at the reader's expense, so this one follows the browser's preference
+// and can be switched by hand from the header.
+//
+// The ground is not black: it is the icon's #24405f pulled down until text sits on it
+// comfortably, so the mark in the header belongs to the page rather than floating on it.
+
+$body-background-color: #131a23;
+$sidebar-color: #0e141b;
+$search-background-color: #1b242f;
+$table-background-color: #18212b;
+$code-background-color: #1b242f;
+$feedback-color: #1b242f;
+
+$body-text-color: #c6cfd8;
+$body-heading-color: #eef3f8;
+$nav-child-link-color: #9aa7b4;
+$search-result-preview-color: #8794a1;
+
+$link-color: #7cc0f0;
+$btn-primary-color: #5aa9e6;
+$base-button-color: #1b242f;
+
+$border-color: #26313d;
+

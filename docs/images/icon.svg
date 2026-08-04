@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="512" height="512" role="img" aria-label="Schoolday">
+  <title>Schoolday</title>
+
+  <!-- Cool dark ground. Drawn as its own tile rather than as a transparent glyph,
+       because this has to hold up on Home Assistant's light and dark backgrounds
+       alike — and at 24px, where an outline would simply disappear. -->
+  <rect width="64" height="64" rx="14" fill="#24405f"/>
+
+  <!-- The days along the top: quieter than the lessons, because they are the frame
+       and not the content. -->
+  <g fill="#ffffff" fill-opacity=".55">
+    <rect x="12" y="14" width="11" height="3.25" rx="1.6"/>
+    <rect x="26.5" y="14" width="11" height="3.25" rx="1.6"/>
+    <rect x="41" y="14" width="11" height="3.25" rx="1.6"/>
+  </g>
+
+  <!-- The lessons. Three strong colours, and they are the three the cards hand the
+       first three children — so the mark says "several people's week" rather than
+       "a calendar". The pale tiles are free periods, which is what a real week has. -->
+  <g>
+    <rect x="12" y="21.25" width="11" height="9.25" rx="2.5" fill="#e0603a"/>
+    <rect x="26.5" y="21.25" width="11" height="9.25" rx="2.5" fill="#4f9d69"/>
+    <rect x="41" y="21.25" width="11" height="9.25" rx="2.5" fill="#ffffff" fill-opacity=".18"/>
+
+    <rect x="12" y="33" width="11" height="9.25" rx="2.5" fill="#ffffff" fill-opacity=".18"/>
+    <rect x="26.5" y="33" width="11" height="9.25" rx="2.5" fill="#c9a227"/>
+    <rect x="41" y="33" width="11" height="9.25" rx="2.5" fill="#5aa9e6"/>
+
+    <rect x="12" y="44.75" width="11" height="9.25" rx="2.5" fill="#5aa9e6"/>
+    <rect x="26.5" y="44.75" width="11" height="9.25" rx="2.5" fill="#ffffff" fill-opacity=".18"/>
+    <rect x="41" y="44.75" width="11" height="9.25" rx="2.5" fill="#e0603a"/>
+  </g>
+</svg>

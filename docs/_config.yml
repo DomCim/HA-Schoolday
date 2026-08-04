@@ -22,8 +22,24 @@ aux_links:
     - https://github.com/DomCim/HA-Schoolday
 aux_links_new_tab: true
 
-color_scheme: light
+# Built from the mark's own palette, in _sass/color_schemes/. The dark twin is compiled
+# alongside it by assets/css/just-the-docs-schoolday-dark.scss and switched in by the
+# button in the header.
+color_scheme: schoolday
 search_enabled: true
+
+# Callouts, so a warning looks like one instead of a bold paragraph.
+callouts_level: quiet
+callouts:
+  note:
+    title: Note
+    color: blue
+  tip:
+    title: Tip
+    color: green
+  warning:
+    title: Careful
+    color: yellow
 
 # Everything the site needs lives in docs/; nothing else belongs on the site.
 exclude:

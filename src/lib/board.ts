@@ -109,8 +109,22 @@ export function avatarUrl(hass: HomeAssistant, avatar: string | null): string | 
   return typeof picture === 'string' && picture ? picture : null;
 }
 
+/**
+ * The sensor belonging to a member.
+ *
+ * The domain is part of the question, not decoration. `member_id` is published by the
+ * member sensor and by that member's homework list alike — the list carries it so the
+ * homework card needs no service round-trip — so an entity carrying the id is not
+ * necessarily the one holding the week.
+ *
+ * Matching on the id alone therefore returned whichever of the two `hass.states`
+ * happened to enumerate first, and that order is not the same on every client. One
+ * household saw the wall tablet draw the full week while the phone, at the same moment
+ * and from the same data, reported that nobody had a timetable at all.
+ */
 export function memberSensor(hass: HomeAssistant, memberId: string): HassEntity | undefined {
   return Object.values(hass.states).find(
-    (entity) => entity.attributes?.member_id === memberId,
+    (entity) =>
+      entity.attributes?.member_id === memberId && entity.entity_id.startsWith('sensor.'),
   );
 }

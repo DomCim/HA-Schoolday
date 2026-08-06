@@ -136,6 +136,11 @@ The images under `brands/` are a different thing and still worth submitting: the
 mark on the integration's page **inside Home Assistant**, which the local `brand/` directory does
 not do.
 
+The `ignore` list is now empty and should stay that way. A check that is ignored here is a check
+the store counts as failed, so the HACS job on `main` is the honest answer to "would a submission
+be accepted today". The entry itself goes into the `integration` list in `hacs/default`, sorted
+case-insensitively (`str.casefold`, not ASCII), from a branch on a fork rather than its `master`.
+
 ## Language
 
 The cards follow Home Assistant's own language — currently German and English, with English as the

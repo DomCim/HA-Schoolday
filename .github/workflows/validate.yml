@@ -25,16 +25,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # No ignore list. The default store will not take a submission whose action
+      # ignores any check at all, so every one of them has to pass on its own:
+      # brands is answered by custom_components/schoolday/brand/, description and
+      # topics by the repository's own About panel.
       - uses: hacs/action@main
         with:
           category: integration
-          # topics /
-          # description: set on the repository itself, not in the tree, so they cannot be
-          #              fixed from here. Both are required for the HACS default store,
-          #              and the store will not take a submission that ignores any check
-          #              at all -- so these two come off the list the moment the
-          #              repository carries them.
-          ignore: topics description
 
   # Ruff and the configuration tests. They existed before this job did and were only
   # ever run by hand, which meant nothing stopped a broken config_writes from being

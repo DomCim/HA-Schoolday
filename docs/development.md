@@ -119,9 +119,22 @@ release workflow creates them itself.
 Installing as a HACS custom repository needs the repository to be **public** — HACS cannot read
 private repositories. Beyond that, for a custom repository nothing else is required.
 
-Submitting to the HACS default store additionally needs a repository description, GitHub topics, and
-a licence detectable on the default branch. Those two checks are in `ignore` in the workflow; drop
-them from the list if you ever go that route.
+Getting into the HACS **default store** — where it is found without adding a custom repository — is
+a pull request to [`hacs/default`](https://github.com/hacs/default), and HACS will not look at one
+until `hacs/action` passes **with an empty `ignore` list**. Ignoring a check is the same as failing
+it there.
+
+Three of those checks need something the code cannot supply on its own:
+
+| Check | How it is satisfied here |
+|---|---|
+| `brands` | `custom_components/schoolday/brand/icon.png`. The validator looks for a local `brand/icon.png` beside the integration first and only falls back to the [`home-assistant/brands`](https://github.com/home-assistant/brands) repository if there is none — so the store does not depend on a third-party pull request being merged. |
+| `description` | The repository's own description, set in GitHub's settings. Not a file. |
+| `topics` | The repository's topics, likewise. |
+
+The images under `brands/` are a different thing and still worth submitting: they are what puts the
+mark on the integration's page **inside Home Assistant**, which the local `brand/` directory does
+not do.
 
 ## Language
 

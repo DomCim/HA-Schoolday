@@ -275,7 +275,17 @@ export function lessonsOn(
   // week to fall back on. Blanking it would be the worse wrong answer by far. With no
   // day there is also no way to know which week of the cycle it is, and week A is the
   // only answer that is right for every one-week household — which is most of them.
-  const base = week[weekday + SLOTS_PER_WEEK * (day?.week ?? 0)] ?? [];
+  // A second week that was switched on but never filled is not a cycle, and drawing it
+  // blanks the board a column at a time: with rolling on, a weekday that has passed
+  // points at next week, so on Thursday the Monday, Tuesday and Wednesday columns are
+  // already reading from week B. A household that has just ticked "two weeks" would
+  // watch its timetable disappear over the course of a week. Week A is the only honest
+  // answer until something is actually written into B.
+  //
+  // Only the display falls back. The editor reads the slots directly, so week B still
+  // shows up empty there — which is what lets anybody fill it in.
+  const cycled = usesSecondWeek(week) ? (day?.week ?? 0) : 0;
+  const base = week[weekday + SLOTS_PER_WEEK * cycled] ?? [];
   const changes = day?.changes;
   if (!changes) {
     return base.map((lesson) => ({ lesson, changed: false }));
@@ -337,6 +347,13 @@ export function outlookDate(day: OutlookDay | undefined): Date | null {
     return null;
   }
   return new Date(year, month - 1, dayOfMonth);
+}
+
+/** True when anything is written into week B. Mirrors `Timetable.uses_second_week`. */
+export function usesSecondWeek(week: TimetableWeek): boolean {
+  return Object.entries(week).some(
+    ([slot, lessons]) => Number(slot) >= SLOTS_PER_WEEK && lessons.length > 0,
+  );
 }
 
 /** True when a week holds at least one lesson. */

@@ -1413,6 +1413,96 @@ check(
   String(adminErrorText).trim(),
 );
 
+// ------------------------------------------------- the member lookup must be exact
+// The homework list publishes the same member_id as the member sensor, so a lookup
+// that takes the first entity carrying that id can land on either one. Which it lands
+// on depends on the order of hass.states, which differs between clients — the wall
+// tablet drew the week while the phone showed "nobody has a timetable yet", from the
+// same data, at the same moment. Here the homework list is deliberately put first.
+const reversedLookup = await page.evaluate(() => {
+  const host = document.getElementById('host');
+  host.innerHTML = '';
+  const states = {};
+  for (const id of Object.keys(window.__hass.states).filter((k) => k.startsWith('todo.'))) {
+    states[id] = window.__hass.states[id];
+  }
+  for (const [id, state] of Object.entries(window.__hass.states)) {
+    if (!id.startsWith('todo.')) {
+      states[id] = state;
+    }
+  }
+  const card = document.createElement('schoolday-timetable-card');
+  card.setConfig({ type: 'custom:schoolday-timetable-card', member: 'm1' });
+  card.hass = { ...window.__hass, states };
+  host.appendChild(card);
+  return null;
+});
+void reversedLookup;
+await page.waitForTimeout(300);
+// Counted by the subject label rather than by a cell class: a free period is a `.cell`
+// too, so counting cells would pass on a card that draws nothing but empty boxes.
+const lessonsWithTodoFirst = await page
+  .locator('schoolday-timetable-card .cell .subject')
+  .count();
+check(
+  'the week still draws when the homework list is enumerated first',
+  lessonsWithTodoFirst > 0,
+  `${lessonsWithTodoFirst} Stunden gezeichnet`,
+);
+
+// ------------------------------------- an empty week B must not blank the board
+// Switching the cycle on does not fill week B, and with rolling on, the weekdays that
+// have already passed point at next week — which is a B week. Left alone, the board
+// loses a column a day until the whole week is empty.
+// __setCycle fills week B, which is the case where the cycle works. Here the slots are
+// stripped again afterwards, leaving the outlook still saying "next week is B" — a
+// household that has ticked the box and not yet typed anything in.
+await page.evaluate(() => window.__setCycle(2));
+await page.evaluate(() => {
+  const host = document.getElementById('host');
+  host.innerHTML = '';
+  const sensor = window.__hass.states['sensor.schoolday_ben'];
+  const emptyB = Object.fromEntries(
+    Object.entries(sensor.attributes.timetable).filter(([slot]) => Number(slot) < 7),
+  );
+  const card = document.createElement('schoolday-timetable-card');
+  card.setConfig({ type: 'custom:schoolday-timetable-card', member: 'm1' });
+  card.hass = {
+    ...window.__hass,
+    states: {
+      ...window.__hass.states,
+      'sensor.schoolday_ben': {
+        ...sensor,
+        attributes: { ...sensor.attributes, timetable: emptyB },
+      },
+    },
+  };
+  host.appendChild(card);
+});
+await page.waitForTimeout(300);
+const cycledButEmpty = await page
+  .locator('schoolday-timetable-card .cell .subject')
+  .count();
+await page.evaluate(() => window.__setCycle(1));
+await page.evaluate(() => {
+  const host = document.getElementById('host');
+  host.innerHTML = '';
+  const card = document.createElement('schoolday-timetable-card');
+  card.setConfig({ type: 'custom:schoolday-timetable-card', member: 'm1' });
+  card.hass = window.__hass;
+  host.appendChild(card);
+});
+await page.waitForTimeout(300);
+const withoutCycle = await page.locator('schoolday-timetable-card .cell .subject').count();
+// Measured against the same board with the cycle off rather than against "more than
+// none": without the fallback the columns that have not rolled still draw, so a
+// count of zero was never the symptom. Half a week was.
+check(
+  'a two-week cycle with nothing in week B changes nothing on the board',
+  cycledButEmpty === withoutCycle && withoutCycle > 0,
+  `${cycledButEmpty} mit Zyklus, ${withoutCycle} ohne`,
+);
+
 // --------------------------------------------------------------- card registry
 
 const registered = await page.evaluate(() => window.customCards.map((c) => c.type).sort());

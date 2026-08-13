@@ -7,12 +7,26 @@
  * render size is chosen so that what is left lands in the middle of the range rather
  * than on its edge — a logo trimmed to exactly 128 passes today and fails the day
  * somebody nudges the padding.
+ *
+ * The same four images end up in two places, and they are not two decisions:
+ *
+ * - `custom_components/schoolday/brand/` ships with the integration. HACS looks there,
+ *   and Home Assistant serves what it finds from /api/brands/integration/schoolday/, so
+ *   this is what actually puts an icon on the screen.
+ * - `brands/custom_integrations/schoolday/` is staged in the shape
+ *   home-assistant/brands wants, ready to be lifted into a pull request there. That is
+ *   the belt to the shipped copy's braces, and it is the only reason the strict rules
+ *   above are obeyed at all.
+ *
+ * Rendered once and copied, so the two can never disagree.
  */
 import { chromium } from 'playwright';
-import { readFile, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 
 const OUT = 'brands/custom_integrations/schoolday';
+const SHIPPED = 'custom_components/schoolday/brand';
+const IMAGES = ['icon.png', 'icon@2x.png', 'logo.png', 'logo@2x.png'];
 
 const browser = await chromium.launch({
   executablePath: process.env.SCHOOLDAY_CHROMIUM ?? undefined,
@@ -57,3 +71,10 @@ for name in ["icon.png", "icon@2x.png", "logo.png", "logo@2x.png"]:
     print(f'{name:14} {im.size[0]}x{im.size[1]}  kuerzeste Seite {min(im.size)}')
 `,
 ], { stdio: 'inherit' });
+
+// After the trim, not before it: the shipped copy has to be the finished image.
+await mkdir(SHIPPED, { recursive: true });
+for (const name of IMAGES) {
+  await copyFile(`${OUT}/${name}`, `${SHIPPED}/${name}`);
+}
+console.log('copied', IMAGES.length, 'images to', SHIPPED);

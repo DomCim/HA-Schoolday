@@ -51,7 +51,9 @@ including how to build and test.
 
 MIT. See [LICENSE](LICENSE).
 
-The Schoolday mark in `assets/` is part of this project and covered by the same licence. The images
-under `brands/` are shaped for
-[home-assistant/brands](https://github.com/home-assistant/brands) and are not Home Assistant
-branding.
+The Schoolday mark in `assets/` is part of this project and covered by the same licence. The same
+four images appear twice, built from it by `node assets/brands.mjs`: in
+`custom_components/schoolday/brand/`, which ships with the integration and is where HACS and Home
+Assistant look for an icon, and under `brands/`, shaped for
+[home-assistant/brands](https://github.com/home-assistant/brands) should they ever go there. Neither
+is Home Assistant branding.

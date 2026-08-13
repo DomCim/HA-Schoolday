@@ -50,6 +50,7 @@ from .const import (
     ATTR_ROUTINE_BLOCKS,
     ATTR_ROUTINE_EVENING,
     ATTR_ROUTINE_MORNING,
+    ATTR_ROUTINE_STATS,
     ATTR_SCHOOL_TODAY,
     ATTR_SICK_UNTIL,
     ATTR_SUBJECT,
@@ -63,6 +64,7 @@ from .const import (
     BLOCK_EVENING,
     BLOCK_MORNING,
     DATA_ABSENCE,
+    DATA_HISTORY,
     DATA_STORE,
     DOMAIN,
     EVENT_LESSON_ENDED,
@@ -80,7 +82,7 @@ from .const import (
     VERSION,
 )
 from .models import Lesson, Member, Period, SchooldayConfig
-from .store import AbsenceStore, RoutineStore
+from .store import AbsenceStore, HistoryStore, RoutineStore
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -96,11 +98,12 @@ async def async_setup_entry(
 
     store: RoutineStore = hass.data[DATA_STORE]
     absence: AbsenceStore = hass.data[DATA_ABSENCE]
+    history: HistoryStore = hass.data[DATA_HISTORY]
     async_add_entities(
         [
             SchooldayBoardSensor(entry, config),
             *(
-                SchooldayMemberSensor(entry, member, config, store, absence)
+                SchooldayMemberSensor(entry, member, config, store, absence, history)
                 for member in config.members
             ),
         ]
@@ -309,6 +312,7 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         config: SchooldayConfig,
         store: RoutineStore,
         absence: AbsenceStore,
+        history: HistoryStore,
     ) -> None:
         """Initialise a member sensor."""
         super().__init__(entry)
@@ -316,6 +320,7 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         self._config = config
         self._store = store
         self._absence = absence
+        self._history = history
         self._attr_name = member.name
         self._attr_unique_id = _member_unique_id(entry, member.id)
         #: The lesson considered running, so a boundary knows what just ended.
@@ -351,6 +356,7 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
             )
 
         await self._async_refresh_outlook()
+        self._record_today()
         # Adopt whatever is running without announcing it: Home Assistant restarting
         # mid-morning must not fire "PE has started" into the kitchen.
         self._running = self._lesson_now()
@@ -619,6 +625,9 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
                 self._fire(EVENT_LESSON_STARTED, current)
             self._running = current
 
+        # The midnight boundary comes through here, which is what puts a day nobody
+        # touched on the record: "nothing was ticked" is exactly the day worth knowing.
+        self._record_today()
         self.async_write_ha_state()
 
     def _fire(self, event: str, lesson: dict[str, Any]) -> None:
@@ -692,8 +701,30 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         return steps
 
     @callback
+    def _record_today(self) -> None:
+        """Put today's routine on the record, as it stands right now.
+
+        Here rather than in the store because this is the only place that knows both
+        halves: the store knows what has been ticked, and only this sensor knows what
+        was on the list, since the evening list is partly generated from tomorrow's
+        lessons. Done on every publish because at midnight the ticks are already gone —
+        there is no end of the day left to read.
+        """
+        mode = self._day_mode
+        for block in ROUTINE_BLOCKS:
+            steps = self._routine(block)
+            self._history.record(
+                self._member.id,
+                mode,
+                block,
+                [entry["step"] for entry in steps],
+                [entry["step"] for entry in steps if entry["done"]],
+            )
+
+    @callback
     def _handle_change(self, _event: Any = None) -> None:
         """Re-publish when a routine tick changes."""
+        self._record_today()
         self.async_write_ha_state()
 
     @callback
@@ -747,6 +778,9 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
             ATTR_AVATAR: self._member.avatar,
             ATTR_ROUTINE_MORNING: self._routine(BLOCK_MORNING),
             ATTR_ROUTINE_EVENING: self._routine(BLOCK_EVENING),
+            # The record of the last few weeks, for the statistics card and for the
+            # automation that wants to say something about a fortnight without a miss.
+            ATTR_ROUTINE_STATS: self._history.stats(self._member.id),
             ATTR_TIMETABLE: self._config.timetable.member_card_dict(self._member.id),
             ATTR_TODAY: today,
             ATTR_TODAY_SUBJECTS: subjects,

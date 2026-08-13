@@ -7,7 +7,7 @@ from typing import Final
 DOMAIN: Final = "schoolday"
 
 # Keep in sync with manifest.json, package.json and src/lib/const.ts.
-VERSION: Final = "0.10.2"
+VERSION: Final = "0.11.0"
 
 # Where the bundled Lovelace cards are served from.
 FRONTEND_URL_BASE: Final = "/schoolday-frontend"
@@ -227,6 +227,32 @@ STORAGE_VERSION: Final = 1
 
 DATA_STORE: Final = f"{DOMAIN}_store"
 SIGNAL_ROUTINE_UPDATED: Final = f"{DOMAIN}_routine_updated"
+
+# --- What actually got done, day by day ---------------------------------------
+
+# The ticks above are wiped every midnight, and rightly so: a wall panel still showing
+# yesterday's is a wall panel nobody believes. But wiping them also throws away the only
+# answer to the question a parent actually has — is the evening routine working, or is
+# it the same three steps that never happen? So the day is written down as it goes.
+STORAGE_KEY_HISTORY: Final = f"{DOMAIN}.routine_history"
+
+DATA_HISTORY: Final = f"{DOMAIN}_history"
+
+# How many days are kept, and therefore how far the statistics reach back. Four weeks
+# and change: long enough that every weekday has four samples, short enough that the
+# whole record still fits in a sensor attribute — and short enough to be a record of
+# how things are going rather than a permanent file on a child.
+HISTORY_DAYS: Final = 30
+
+# The record on a member's sensor: the daily totals, the per-step tallies and the
+# figures worth triggering an automation on.
+ATTR_ROUTINE_STATS: Final = "routine_stats"
+ATTR_DAYS: Final = "days"
+ATTR_BLOCKS: Final = "blocks"
+ATTR_ASKED: Final = "asked"
+ATTR_RATE: Final = "rate"
+ATTR_STREAK: Final = "streak"
+ATTR_BEST_STREAK: Final = "best_streak"
 
 # --- Who is at home ill -------------------------------------------------------
 

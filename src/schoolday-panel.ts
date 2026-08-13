@@ -14,6 +14,7 @@ import './cards/schoolday-admin-card';
 import './cards/schoolday-header-card';
 import './cards/schoolday-homework-card';
 import './cards/schoolday-routines-card';
+import './cards/schoolday-stats-card';
 import './cards/schoolday-timetable-card';
 
 console.info(

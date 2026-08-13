@@ -179,6 +179,11 @@ await shot('routines-sick', 1100, async (page) => {
   return 'schoolday-routines-card';
 });
 
+await shot('stats', 1100, mount(
+  { type: 'custom:schoolday-stats-card' },
+  'schoolday-stats-card',
+));
+
 await shot('homework', 1100, mount(
   { type: 'custom:schoolday-homework-card', show_empty: true },
   'schoolday-homework-card',

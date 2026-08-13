@@ -714,6 +714,135 @@ check(
   byName.map((n) => n.trim()).join(','),
 );
 
+// ------------------------------------------------------------------ stats card
+
+await page.evaluate(() =>
+  window.__mount({ type: 'custom:schoolday-stats-card' }, 'schoolday-stats-card'),
+);
+await page.waitForTimeout(400);
+
+// Jan has no routine at all, so there is nothing to report on him. Reporting 0 % on a
+// child who was never asked for anything is the one wrong answer this card can give.
+const statsPeople = await page.locator('schoolday-stats-card .name').allTextContents();
+check(
+  'only children with a routine are reported on',
+  statsPeople.map((n) => n.trim()).join(',') === 'Ben,Nik',
+  statsPeople.map((n) => n.trim()).join(','),
+);
+
+// The headline is the figure the sensor published, not one the card invented.
+const published = await page.evaluate(
+  () => window.__hass.states['sensor.schoolday_ben'].attributes.routine_stats,
+);
+const heroRate = await page
+  .locator('schoolday-stats-card .person', { hasText: 'Ben' })
+  .locator('.rate')
+  .textContent();
+check(
+  'the headline is the rate the sensor published',
+  heroRate.trim() === `${published.rate} %`,
+  `${heroRate.trim()} vs ${published.rate}`,
+);
+
+const bars = await page
+  .locator('schoolday-stats-card .person', { hasText: 'Ben' })
+  .locator('.day')
+  .count();
+check('one bar per day of the window', bars === published.days.length, `${bars} bars`);
+
+// A weekend asked for nothing and must not be drawn as a day that went badly, and the
+// day at home ill is a third thing again. Both are baseline ticks rather than bars.
+const marks = await page.evaluate(() => {
+  const root = document.querySelector('schoolday-stats-card').shadowRoot;
+  const ben = [...root.querySelectorAll('.person')].find((n) => n.textContent.includes('Ben'));
+  const days = [...ben.querySelectorAll('.day')];
+  return {
+    empty: days.filter((day) => day.classList.contains('empty')).length,
+    sick: days.filter((day) => day.classList.contains('sick')).length,
+    today: days.filter((day) => day.classList.contains('today')).length,
+    lastTitle: days.at(-1).getAttribute('title'),
+  };
+});
+check(
+  'days that asked for nothing are ticks, not empty bars',
+  marks.empty === published.days.filter((day) => !day.asked).length &&
+    marks.sick === 1 &&
+    marks.today === 1,
+  JSON.stringify(marks),
+);
+check(
+  'a bar says which day it is and how that day went',
+  /5\.\s*Aug/.test(marks.lastTitle) && /von/.test(marks.lastTitle),
+  marks.lastTitle,
+);
+
+// The point of the list is the step that keeps being skipped, so it goes first.
+const worst = await page.evaluate(() => {
+  const root = document.querySelector('schoolday-stats-card').shadowRoot;
+  const ben = [...root.querySelectorAll('.person')].find((n) => n.textContent.includes('Ben'));
+  return [...ben.querySelectorAll('.steps .row')].map((row) => ({
+    label: row.querySelector('.label').textContent.trim(),
+    value: row.querySelector('.value').textContent.trim(),
+  }));
+});
+check(
+  'the step most often skipped is at the top of the list',
+  worst[0]?.label === 'Sportbeutel' &&
+    worst[0]?.value === `${published.steps[0].done}/${published.steps[0].asked}`,
+  JSON.stringify(worst),
+);
+
+const streakText = await page
+  .locator('schoolday-stats-card .person', { hasText: 'Ben' })
+  .locator('.streak')
+  .textContent();
+check(
+  'a run of complete days is named in days',
+  streakText.includes(`${published.streak} Tage in Folge`),
+  streakText.replace(/\s+/g, ' ').trim(),
+);
+
+await page.screenshot({ path: join(SHOTS, 'stats.png') });
+
+// A shorter window draws fewer bars and says so, rather than drawing thirty of them
+// and captioning it seven.
+await page.evaluate(() =>
+  window.__mount({ type: 'custom:schoolday-stats-card', days: 7, show_steps: false }, 'schoolday-stats-card'),
+);
+await page.waitForTimeout(300);
+const narrow = await page.evaluate(() => {
+  const root = document.querySelector('schoolday-stats-card').shadowRoot;
+  const ben = [...root.querySelectorAll('.person')].find((n) => n.textContent.includes('Ben'));
+  return {
+    bars: ben.querySelectorAll('.day').length,
+    steps: ben.querySelectorAll('.steps .row').length,
+    window: ben.querySelector('.window').textContent.trim(),
+  };
+});
+check(
+  'a shorter window draws fewer bars, and counts only the days that asked for something',
+  narrow.bars === 7 && narrow.steps === 0 && narrow.window === 'über 5 Tage',
+  JSON.stringify(narrow),
+);
+
+// Ranking is opt-in: a wall panel whose columns move about is harder to read than one
+// that does not, so the family's usual order is what a card with no options gets.
+await page.evaluate(() =>
+  window.__mount({ type: 'custom:schoolday-stats-card', sort: 'rate' }, 'schoolday-stats-card'),
+);
+await page.waitForTimeout(300);
+const ranked = await page.locator('schoolday-stats-card .name').allTextContents();
+const rates = await page.evaluate(() =>
+  ['sensor.schoolday_ben', 'sensor.schoolday_nik'].map(
+    (id) => window.__hass.states[id].attributes.routine_stats.rate,
+  ),
+);
+check(
+  'sorting by rate puts the best record first',
+  ranked.map((n) => n.trim()).join(',') === (rates[0] >= rates[1] ? 'Ben,Nik' : 'Nik,Ben'),
+  `${ranked.map((n) => n.trim()).join(',')} bei ${rates.join('/')}`,
+);
+
 // --------------------------------------------------------------- homework card
 
 await page.evaluate(() =>
@@ -884,6 +1013,7 @@ check(
 const CARD_TYPES = [
   'schoolday-timetable-card',
   'schoolday-routines-card',
+  'schoolday-stats-card',
   'schoolday-homework-card',
   'schoolday-header-card',
   'schoolday-admin-card',
@@ -1510,7 +1640,7 @@ check(
   'every card registers itself in the picker',
   registered.join(',') ===
     'schoolday-admin-card,schoolday-header-card,schoolday-homework-card,' +
-      'schoolday-routines-card,schoolday-timetable-card',
+      'schoolday-routines-card,schoolday-stats-card,schoolday-timetable-card',
   registered.join(','),
 );
 

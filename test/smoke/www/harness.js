@@ -27,6 +27,111 @@ const ROUTINES = {
   },
 };
 
+// The last thirty days of the record, as store.HistoryStore.stats() publishes it on
+// each member sensor. Built here rather than hand-written so the figures under the bars
+// really are the figures the bars are drawn from — and built from fixed rules rather
+// than random ones, so the manual's picture and the smoke suite see the same record
+// every time.
+const WINDOW_DAYS = 30;
+const TODAY_ISO = '2026-08-05';
+// One day at home ill inside the window: it asked for nothing, and must not read as a
+// day anybody failed.
+const SICK_DAY = '2026-07-20';
+
+// Which step a child lets slide, and how often. Ben forgets the PE bag every seventh
+// school day; Nik is newer at this and drops the lunchbox rather more.
+const MISSES = {
+  m1: (index, block, step) => block === 'evening' && step === 'Sportbeutel' && index % 7 === 2,
+  m3: (index, _block, step) => step === 'Brotdose einpacken' && index % 3 !== 0,
+};
+
+// What each block asked for on a normal school day of the window. Ben's evening list
+// carries the packing step the timetable generates, exactly as it does today.
+const ASKED = {
+  m1: { morning: ['Zähne putzen', 'Sportsachen einpacken'], evening: ['Ranzen packen', 'Sportbeutel'] },
+  m2: { morning: [], evening: [] },
+  m3: { morning: ['Zähne putzen', 'Brotdose einpacken'], evening: [] },
+};
+
+const percent = (done, asked) => (asked ? Math.round((100 * done) / asked) : null);
+
+function routineStats(memberId) {
+  const lists = ASKED[memberId] ?? { morning: [], evening: [] };
+  const misses = MISSES[memberId] ?? (() => false);
+  const days = [];
+  const blocks = { morning: [0, 0], evening: [0, 0] };
+  const tallies = new Map();
+  const outcomes = [];
+
+  for (let index = 0; index < WINDOW_DAYS; index += 1) {
+    const at = new Date(2026, 7, 5);
+    at.setDate(at.getDate() - (WINDOW_DAYS - 1 - index));
+    const iso = `${at.getFullYear()}-${String(at.getMonth() + 1).padStart(2, '0')}-${String(
+      at.getDate(),
+    ).padStart(2, '0')}`;
+    const today = iso === TODAY_ISO;
+    const weekend = at.getDay() === 0 || at.getDay() === 6;
+    const sick = iso === SICK_DAY;
+    let asked = 0;
+    let done = 0;
+
+    for (const [block, list] of Object.entries(lists)) {
+      // Today's record is today's routine: the same two lists the routines card draws,
+      // which is what the integration writes down as the day goes.
+      const steps = today
+        ? (ROUTINES[memberId]?.[block] ?? []).map((entry) => [entry.step, entry.done])
+        : (weekend || sick ? [] : list).map((step, position) => [
+            step,
+            !misses(index, block, step, position),
+          ]);
+      asked += steps.length;
+      done += steps.filter(([, ticked]) => ticked).length;
+      if (today) continue;
+      for (const [step, ticked] of steps) {
+        blocks[block][0] += 1;
+        blocks[block][1] += ticked ? 1 : 0;
+        const key = `${block}|${step}`;
+        const tally = tallies.get(key) ?? [0, 0];
+        tallies.set(key, [tally[0] + 1, tally[1] + (ticked ? 1 : 0)]);
+      }
+    }
+
+    days.push({ date: iso, mode: sick ? 'sick' : weekend ? 'free' : 'school', asked, done });
+    if (asked && (!today || done === asked)) outcomes.push(done === asked);
+  }
+
+  const askedTotal = blocks.morning[0] + blocks.evening[0];
+  const doneTotal = blocks.morning[1] + blocks.evening[1];
+  let streak = 0;
+  for (let index = outcomes.length - 1; index >= 0 && outcomes[index]; index -= 1) streak += 1;
+  let best = 0;
+  let run = 0;
+  for (const outcome of outcomes) {
+    run = outcome ? run + 1 : 0;
+    best = Math.max(best, run);
+  }
+
+  return {
+    date: TODAY_ISO,
+    rate: percent(doneTotal, askedTotal),
+    streak,
+    best_streak: best,
+    blocks: Object.fromEntries(
+      Object.entries(blocks).map(([block, [asked, done]]) => [
+        block,
+        { asked, done, rate: percent(done, asked) },
+      ]),
+    ),
+    steps: [...tallies.entries()]
+      .map(([key, [asked, done]]) => {
+        const [block, step] = key.split('|');
+        return { block, step, asked, done, rate: percent(done, asked) };
+      })
+      .sort((a, b) => a.rate - b.rate || b.asked - a.asked || a.step.localeCompare(b.step)),
+    days,
+  };
+}
+
 // The lesson grid, as models.Timetable.as_card_dict() publishes it on the board.
 // Period 7 is deliberately unused by everyone, so the trimming of empty periods —
 // and of the break that would hang off the end of the table — is testable.
@@ -131,6 +236,7 @@ function memberState(entityId, name, memberId, color) {
       sick_until: null,
       routine_morning: ROUTINES[memberId]?.morning ?? [],
       routine_evening: ROUTINES[memberId]?.evening ?? [],
+      routine_stats: routineStats(memberId),
       timetable: WEEKS[memberId] ?? {},
       outlook: JSON.parse(JSON.stringify(OUTLOOK)),
       today: [],

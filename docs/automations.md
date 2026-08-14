@@ -25,6 +25,7 @@ sensor.schoolday_ben        →  Sport
 | `outlook` | This week and the next seven days, each with its date, mode and week of the cycle |
 | `timetable` | The whole week, for the card |
 | `routine_morning` / `routine_evening` | Today's steps, each with `done` |
+| `routine_stats` | [The record](routines.md#the-record) of the last 30 days: `rate`, `streak`, `best_streak`, `blocks`, `steps` and `days` |
 
 The morning announcement — "today Ben has PE" — is a time trigger and a template:
 
@@ -124,6 +125,40 @@ actions:
 ```
 {% endraw %}
 
+
+## What the routines are doing
+
+`routine_stats` is [the record](routines.md#the-record) rather than today's state, so it
+answers questions today's ticks cannot — and it answers them on Sunday evening, which is
+when anybody is going to act on them.
+
+{% raw %}
+```yaml
+alias: Wochenrückblick Routinen
+triggers:
+  - trigger: time
+    at: "19:00:00"
+conditions:
+  - condition: time
+    weekday: [sun]
+  # A step that is missed once was a bad day; one missed half the time is a step in the
+  # wrong place. Only the second is worth saying anything about.
+  - condition: template
+    value_template: >-
+      {{ (state_attr('sensor.schoolday_ben', 'routine_stats').steps | first).rate < 60 }}
+actions:
+  - action: notify.mobile_app_dominik
+    data:
+      message: >-
+        {% set worst = state_attr('sensor.schoolday_ben', 'routine_stats').steps | first %}
+        „{{ worst.step }}“ hat Ben in den letzten vier Wochen {{ worst.done }} von
+        {{ worst.asked }} Mal gemacht. Vielleicht gehört der Schritt woanders hin.
+```
+{% endraw %}
+
+`steps` arrives worst first, so `| first` is the step most often skipped. A `rate` is
+`null` rather than `0` where nothing was ever asked, which is worth a `is not none` before
+comparing it.
 
 ## Services
 

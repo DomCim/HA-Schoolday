@@ -28,13 +28,16 @@ jobs:
       - uses: hacs/action@main
         with:
           category: integration
-          # brands:      the images are ready under brands/, but the pull request to
-          #              home-assistant/brands has not been merged yet. Drop this from
-          #              the ignore list the day it is.
-          # topics /
-          # description: required only for inclusion in the HACS default store. This is
-          #              installed as a custom repository, where neither is checked.
-          ignore: brands topics description
+          # topics: the last thing standing between this repository and a submission to
+          #         the HACS default store, and the only one that cannot be fixed from
+          #         inside the repository — it is a setting on GitHub. Drop this from the
+          #         ignore list the day the topics are set, and the job becomes the real
+          #         gate rather than a rehearsal of it.
+          #
+          # brands and description were here too, and are not any more: the four images
+          # now ship in custom_components/schoolday/brand/, which is where HACS looks,
+          # and the repository has a description.
+          ignore: topics
 
   # Ruff and the configuration tests. They existed before this job did and were only
   # ever run by hand, which meant nothing stopped a broken config_writes from being

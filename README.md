@@ -21,10 +21,11 @@ homework, days off, the cards and the automations.
 | **Routines** | The things that simply have to happen, ticked off by the kids — plus the packing list tomorrow's lessons generate. |
 | **Homework** | A Home Assistant todo list per child, grouped by when it is due. |
 | **Days that differ** | Holidays, holiday care, school trips, cancelled lessons, and a child at home ill. |
+| **The record** | How reliably each child gets through their routines over the last month, and which steps keep being skipped. |
 | **Automations** | A sensor per child whose state is the subject they are in right now, events at every lesson boundary, and a service for everything the options dialog can change. |
 
-Five Lovelace cards come with it — timetable, routines, homework, header and an admin card that
-replaces the options dialog. They read the board sensor, so **a card with no options at all is the
+Six Lovelace cards come with it — timetable, routines, the routine record, homework, header and
+an admin card that replaces the options dialog. They read the board sensor, so **a card with no options at all is the
 normal case**.
 
 ## Install
@@ -50,7 +51,9 @@ including how to build and test.
 
 MIT. See [LICENSE](LICENSE).
 
-The Schoolday mark in `assets/` is part of this project and covered by the same licence. The images
-under `brands/` are shaped for
-[home-assistant/brands](https://github.com/home-assistant/brands) and are not Home Assistant
-branding.
+The Schoolday mark in `assets/` is part of this project and covered by the same licence. The same
+four images appear twice, built from it by `node assets/brands.mjs`: in
+`custom_components/schoolday/brand/`, which ships with the integration and is where HACS and Home
+Assistant look for an icon, and under `brands/`, shaped for
+[home-assistant/brands](https://github.com/home-assistant/brands) should they ever go there. Neither
+is Home Assistant branding.

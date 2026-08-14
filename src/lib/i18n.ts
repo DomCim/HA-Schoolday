@@ -27,6 +27,20 @@ const EN: Dict = {
   'timetable.event': 'No normal lessons',
   'timetable.changed': 'Changed',
 
+  // the routine record
+  'stats.percent': '{value}%',
+  'stats.window': 'over {days} days',
+  'stats.window_one': 'over one day',
+  'stats.streak': '{days} days in a row',
+  'stats.best': 'best {days}',
+  'stats.day_done': '{done} of {asked} done',
+  'stats.nothing_asked': 'Nothing on',
+  'stats.nothing_yet': 'Nothing on the record yet. It starts with the first school day.',
+  'stats.none_configured':
+    'No routines to keep a record of. Add them under Configure → Edit routines in the Schoolday integration.',
+  'stats.sort_board': 'The usual family order',
+  'stats.sort_rate': 'Best record first',
+
   // homework
   'homework.nothing': 'Nothing to do',
   'homework.all_done': 'No homework outstanding.',
@@ -72,6 +86,9 @@ const EN: Dict = {
   'editor.highlight': 'Mark today and the running lesson',
   'editor.roll_days': 'Roll past weekdays on to next week',
   'editor.section': 'Section to open on',
+  'editor.days': 'Days shown',
+  'editor.show_steps': 'Show the tally per step',
+  'editor.sort': 'Order',
   // admin
   'admin.tab_timetable': 'Timetable',
   'admin.tab_routines': 'Routines',
@@ -148,6 +165,19 @@ const DE: Dict = {
   'timetable.event': 'Kein regulärer Unterricht',
   'timetable.changed': 'Geändert',
 
+  'stats.percent': '{value} %',
+  'stats.window': 'über {days} Tage',
+  'stats.window_one': 'über einen Tag',
+  'stats.streak': '{days} Tage in Folge',
+  'stats.best': 'beste {days}',
+  'stats.day_done': '{done} von {asked} erledigt',
+  'stats.nothing_asked': 'Nichts zu tun',
+  'stats.nothing_yet': 'Noch nichts aufgezeichnet. Es beginnt mit dem ersten Schultag.',
+  'stats.none_configured':
+    'Es gibt keine Routinen, über die sich etwas sagen ließe. Trage sie in der Schoolday-Integration unter „Konfigurieren → Routinen bearbeiten“ ein.',
+  'stats.sort_board': 'Die übliche Reihenfolge der Familie',
+  'stats.sort_rate': 'Beste Bilanz zuerst',
+
   'homework.nothing': 'Nichts zu tun',
   'homework.all_done': 'Keine offenen Hausaufgaben.',
   'homework.overdue': 'Überfällig',
@@ -190,6 +220,9 @@ const DE: Dict = {
   'editor.highlight': 'Heute und laufende Stunde hervorheben',
   'editor.roll_days': 'Vergangene Wochentage auf nächste Woche weiterrollen',
   'editor.section': 'Bereich beim Öffnen',
+  'editor.days': 'Angezeigte Tage',
+  'editor.show_steps': 'Bilanz je Schritt anzeigen',
+  'editor.sort': 'Reihenfolge',
   // admin
   'admin.tab_timetable': 'Stundenplan',
   'admin.tab_routines': 'Routinen',

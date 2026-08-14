@@ -15,18 +15,34 @@ from __future__ import annotations
 from datetime import date, timedelta
 from typing import Any
 
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.storage import Store
 
 from .models import today as _today
 
 from .const import (
+    ATTR_ASKED,
+    ATTR_BEST_STREAK,
+    ATTR_BLOCK,
+    ATTR_BLOCKS,
+    ATTR_DATE,
+    ATTR_DAYS,
+    ATTR_DONE,
+    ATTR_MODE,
+    ATTR_RATE,
+    ATTR_STEP,
+    ATTR_STEPS,
+    ATTR_STREAK,
+    HISTORY_DAYS,
+    MODE_SCHOOL,
+    ROUTINE_BLOCKS,
     SIGNAL_ABSENCE_UPDATED,
     SIGNAL_HOMEWORK_UPDATED,
     SIGNAL_ROUTINE_UPDATED,
     STORAGE_KEY,
     STORAGE_KEY_ABSENCE,
+    STORAGE_KEY_HISTORY,
     STORAGE_KEY_HOMEWORK,
     STORAGE_VERSION,
 )
@@ -121,6 +137,235 @@ class RoutineStore:
         if self._roll_day():
             await self._async_save()
         async_dispatcher_send(self._hass, SIGNAL_ROUTINE_UPDATED)
+
+
+class HistoryStore:
+    """What each day asked of each child, and how much of it they did.
+
+    The ticks in `RoutineStore` are wiped every midnight, and rightly so — a wall panel
+    still showing yesterday's is a wall panel nobody believes. But wiping them also
+    throws away the only answer to the question a parent actually has: is the evening
+    routine working, or is it the same three steps that never happen?
+
+    So the day is written down as it goes. Deliberately as the *record* and not as a
+    score: what the board asked for, what got ticked, and what kind of day it was —
+    because a holiday that asked for nothing is not a day anybody failed, and it must
+    not read as one.
+
+    Written by the member sensors, which are the only thing that knows both halves: the
+    store knows what was ticked, and only the sensor knows what was on the list, since
+    the evening list is partly generated from tomorrow's lessons.
+    """
+
+    #: How long the record reaches back. Everything older is swept.
+    KEEP_DAYS = HISTORY_DAYS
+
+    #: Ticks arrive in bursts — a child stands at the panel and taps four things. The
+    #: live store saves each one at once because the board depends on it; this one is
+    #: only ever read afterwards, so it coalesces the burst into a single write. Home
+    #: Assistant flushes a delayed save on shutdown, so nothing is lost by waiting.
+    SAVE_DELAY = 30
+
+    def __init__(self, hass: HomeAssistant) -> None:
+        """Set up the backing store."""
+        self._hass = hass
+        self._store: Store[dict[str, Any]] = Store(
+            hass, STORAGE_VERSION, STORAGE_KEY_HISTORY
+        )
+        # day -> member id -> {"mode": str, "blocks": {block: {"asked": [], "done": []}}}
+        self._days: dict[str, dict[str, dict[str, Any]]] = {}
+
+    @staticmethod
+    def _today() -> str:
+        return _today().isoformat()
+
+    async def async_load(self) -> None:
+        """Load the record, dropping anything older than the window."""
+        data = await self._store.async_load() or {}
+        self._days = {
+            str(day): {
+                str(member_id): self._clean(record)
+                for member_id, record in (members or {}).items()
+                if isinstance(record, dict)
+            }
+            for day, members in (data.get(ATTR_DAYS) or {}).items()
+        }
+        if self._sweep():
+            await self._store.async_save(self._data_to_save())
+
+    @staticmethod
+    def _clean(record: dict[str, Any]) -> dict[str, Any]:
+        """One stored day for one member, with anything unreadable dropped."""
+        blocks: dict[str, dict[str, list[str]]] = {}
+        for block, entry in (record.get(ATTR_BLOCKS) or {}).items():
+            if not isinstance(entry, dict):
+                continue
+            asked = [str(step) for step in (entry.get(ATTR_ASKED) or [])]
+            done = {str(step) for step in (entry.get(ATTR_DONE) or [])}
+            blocks[str(block)] = {
+                ATTR_ASKED: asked,
+                # Intersected rather than trusted: a step deleted from the routine after
+                # it was ticked would otherwise count as done out of a total it is no
+                # longer part of, and a child would be shown doing 4 of 3 things.
+                ATTR_DONE: [step for step in asked if step in done],
+            }
+        return {ATTR_MODE: str(record.get(ATTR_MODE) or MODE_SCHOOL), ATTR_BLOCKS: blocks}
+
+    def _data_to_save(self) -> dict[str, Any]:
+        return {ATTR_DAYS: self._days}
+
+    def _sweep(self) -> bool:
+        """Drop days that have fallen out of the window."""
+        cutoff = (_today() - timedelta(days=self.KEEP_DAYS - 1)).isoformat()
+        stale = [day for day in self._days if day < cutoff]
+        for day in stale:
+            del self._days[day]
+        return bool(stale)
+
+    @callback
+    def record(
+        self,
+        member_id: str,
+        mode: str,
+        block: str,
+        asked: list[str],
+        done: list[str],
+    ) -> None:
+        """Write down what this block asked of this member today, and what is ticked.
+
+        Called on every publish rather than once at the end of the day, and that is the
+        point: at midnight the ticks are already gone, so there is no end of the day
+        left to read. Writing it as it happens also means a day is on the record even
+        when nothing was ticked at all, which is exactly the day worth knowing about.
+        """
+        ticked = set(done)
+        entry = {
+            ATTR_ASKED: list(asked),
+            ATTR_DONE: [step for step in asked if step in ticked],
+        }
+        record = self._days.setdefault(self._today(), {}).setdefault(
+            member_id, {ATTR_MODE: mode, ATTR_BLOCKS: {}}
+        )
+        if record[ATTR_MODE] == mode and record[ATTR_BLOCKS].get(block) == entry:
+            return
+        record[ATTR_MODE] = mode
+        record[ATTR_BLOCKS][block] = entry
+        self._store.async_delay_save(self._data_to_save, self.SAVE_DELAY)
+
+    def stats(self, member_id: str) -> dict[str, Any]:
+        """One member's record, in the shape the statistics card and templates read.
+
+        Today is in `days` so the card can draw the day in progress, but it is left out
+        of every figure below it. An evening routine is 0 of 3 all morning, and a rate
+        that dips at breakfast and recovers at bedtime is not measuring the child — it
+        is measuring the clock.
+        """
+        today = self._today()
+        days: list[dict[str, Any]] = []
+        blocks = {block: [0, 0] for block in ROUTINE_BLOCKS}
+        tallies: dict[tuple[str, str], list[int]] = {}
+        #: One entry per counted day, oldest first: was everything asked for done?
+        outcomes: list[bool] = []
+
+        for day in sorted(self._days):
+            record = self._days[day].get(member_id)
+            if record is None:
+                continue
+            counting = day != today
+            asked = done = 0
+            for block, entry in record[ATTR_BLOCKS].items():
+                asked += len(entry[ATTR_ASKED])
+                done += len(entry[ATTR_DONE])
+                if not counting:
+                    continue
+                if block in blocks:
+                    blocks[block][0] += len(entry[ATTR_ASKED])
+                    blocks[block][1] += len(entry[ATTR_DONE])
+                ticked = set(entry[ATTR_DONE])
+                for step in entry[ATTR_ASKED]:
+                    tally = tallies.setdefault((block, step), [0, 0])
+                    tally[0] += 1
+                    tally[1] += step in ticked
+            days.append(
+                {
+                    ATTR_DATE: day,
+                    ATTR_MODE: record[ATTR_MODE],
+                    ATTR_ASKED: asked,
+                    ATTR_DONE: done,
+                }
+            )
+            # A day that asked for nothing — a holiday with no list, a day at home ill —
+            # is not a day anybody failed, so it neither counts against the rate nor
+            # breaks a streak. Today counts only once it is finished, so a streak grows
+            # at bedtime instead of collapsing at breakfast.
+            if asked and (counting or done == asked):
+                outcomes.append(done == asked)
+
+        asked_total = sum(entry[0] for entry in blocks.values())
+        done_total = sum(entry[1] for entry in blocks.values())
+        return {
+            ATTR_DATE: today,
+            ATTR_RATE: _percent(done_total, asked_total),
+            ATTR_STREAK: _trailing_run(outcomes),
+            ATTR_BEST_STREAK: _longest_run(outcomes),
+            ATTR_BLOCKS: {
+                block: {
+                    ATTR_ASKED: entry[0],
+                    ATTR_DONE: entry[1],
+                    ATTR_RATE: _percent(entry[1], entry[0]),
+                }
+                for block, entry in blocks.items()
+            },
+            # Worst first: the point of this list is which step keeps being skipped, and
+            # that one should not be at the bottom of it.
+            ATTR_STEPS: sorted(
+                (
+                    {
+                        ATTR_BLOCK: block,
+                        ATTR_STEP: step,
+                        ATTR_ASKED: tally[0],
+                        ATTR_DONE: tally[1],
+                        ATTR_RATE: _percent(tally[1], tally[0]),
+                    }
+                    for (block, step), tally in tallies.items()
+                ),
+                key=lambda entry: (entry[ATTR_RATE], -entry[ATTR_ASKED], entry[ATTR_STEP]),
+            ),
+            ATTR_DAYS: days,
+        }
+
+    async def async_handle_midnight(self) -> None:
+        """Let the window move on, so the record cannot grow without end."""
+        if self._sweep():
+            await self._store.async_save(self._data_to_save())
+
+
+def _percent(done: int, asked: int) -> int | None:
+    """A completion rate in whole percent, or None when nothing was ever asked.
+
+    None rather than 0: a child who has never been asked to do anything has not failed
+    to do it, and a card drawing that as an empty bar would be stating the opposite.
+    """
+    return round(100 * done / asked) if asked else None
+
+
+def _trailing_run(outcomes: list[bool]) -> int:
+    """How many days in a row, up to the last one counted, went completely."""
+    run = 0
+    for outcome in reversed(outcomes):
+        if not outcome:
+            break
+        run += 1
+    return run
+
+
+def _longest_run(outcomes: list[bool]) -> int:
+    """The best such run anywhere in the window."""
+    best = run = 0
+    for outcome in outcomes:
+        run = run + 1 if outcome else 0
+        best = max(best, run)
+    return best
 
 
 class AbsenceStore:

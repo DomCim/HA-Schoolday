@@ -22,6 +22,7 @@ from homeassistant.helpers.event import async_track_time_change
 from .const import (
     DATA_ABSENCE,
     DATA_FRONTEND_REGISTERED,
+    DATA_HISTORY,
     DATA_HOMEWORK,
     DATA_STORE,
     FRONTEND_DIR,
@@ -30,7 +31,7 @@ from .const import (
     VERSION,
 )
 from .services import async_register_services
-from .store import AbsenceStore, HomeworkStore, RoutineStore
+from .store import AbsenceStore, HistoryStore, HomeworkStore, RoutineStore
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -57,17 +58,24 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await homework.async_load()
         hass.data[DATA_HOMEWORK] = homework
 
+    if DATA_HISTORY not in hass.data:
+        history = HistoryStore(hass)
+        await history.async_load()
+        hass.data[DATA_HISTORY] = history
+
     async_register_services(hass)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))
 
-    # Correctness does not depend on either of these — a stale day already reads as
-    # "nothing done", and an absence that has run out already reads as over. They are
+    # Correctness does not depend on any of these — a stale day already reads as
+    # "nothing done", an absence that has run out already reads as over, and a day that
+    # has fallen out of the history window is already left out of the figures. They are
     # here so the wall panel clears itself overnight, unattended.
     async def _handle_midnight(_now: Any) -> None:
         await hass.data[DATA_STORE].async_handle_midnight()
         await hass.data[DATA_ABSENCE].async_handle_midnight()
         await hass.data[DATA_HOMEWORK].async_handle_midnight()
+        await hass.data[DATA_HISTORY].async_handle_midnight()
 
     entry.async_on_unload(
         async_track_time_change(hass, _handle_midnight, hour=0, minute=0, second=10)

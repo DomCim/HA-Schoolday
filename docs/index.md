@@ -59,7 +59,7 @@ It is built for one thing: a tablet on the kitchen wall that a family walks past
   </a>
   <a class="tile orange" href="cards.html">
     <span class="tile-title">The cards</span>
-    <p>Five Lovelace cards that configure themselves. A card with no options at all is the
+    <p>Six Lovelace cards that configure themselves. A card with no options at all is the
     normal case here, not the fallback.</p>
   </a>
 </div>
@@ -96,7 +96,9 @@ there is a plan.
 
 Not a school-management system, not a homework nag, and not a reward chart. Routines are
 the things that have to happen whether or not anybody notices, and Schoolday does not
-score them.
+score them. It keeps [a record](routines.md#the-record) of what got done — but that is
+for the grown-ups working out whether a routine is working, not a league table on the
+wall.
 
 It also does not talk to your school's portal. If yours has one the data may well be
 reachable — but Schoolday holds what you type in, and that is what makes it work the same

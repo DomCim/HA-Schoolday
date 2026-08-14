@@ -117,6 +117,29 @@ export class SchooldayRoutinesCardEditor extends SchooldayCardEditor {
   }
 }
 
+@customElement('schoolday-stats-card-editor')
+export class SchooldayStatsCardEditor extends SchooldayCardEditor {
+  protected schema(): FormItem[] {
+    const members = memberOptions(this.hass);
+
+    return [
+      ...(members.length > 1 ? [select('member', members)] : []),
+      // Not open-ended: the integration keeps thirty days, so asking for a year would
+      // be a field that quietly does nothing.
+      number('days', 7, 30),
+      boolean('show_steps'),
+      ...(members.length > 1
+        ? [
+            select('sort', [
+              { value: 'board', label: t(this.hass, 'stats.sort_board') },
+              { value: 'rate', label: t(this.hass, 'stats.sort_rate') },
+            ]),
+          ]
+        : []),
+    ];
+  }
+}
+
 @customElement('schoolday-timetable-card-editor')
 export class SchooldayTimetableCardEditor extends SchooldayCardEditor {
   protected schema(): FormItem[] {
@@ -189,6 +212,7 @@ export class SchooldayHeaderCardEditor extends SchooldayCardEditor {
 declare global {
   interface HTMLElementTagNameMap {
     'schoolday-routines-card-editor': SchooldayRoutinesCardEditor;
+    'schoolday-stats-card-editor': SchooldayStatsCardEditor;
     'schoolday-timetable-card-editor': SchooldayTimetableCardEditor;
     'schoolday-header-card-editor': SchooldayHeaderCardEditor;
     'schoolday-homework-card-editor': SchooldayHomeworkCardEditor;

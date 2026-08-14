@@ -56,6 +56,44 @@ type: custom:schoolday-routines-card
 A child [at home ill](exceptions.md#off-ill) stays on the board either way, with the
 reason instead of a list: dropping them would answer the wrong question.
 
+## Routine record card
+
+```yaml
+type: custom:schoolday-stats-card
+```
+
+How the routines are actually going, from [the record](routines.md#the-record) the
+integration keeps. Not a card for the wall next to the routines — it is for whoever has
+to decide whether the evening routine is working, which is a different question and has
+never had an answer, because the ticks are wiped every midnight.
+
+
+![One column per child: the rate over the window, the run of complete days, one bar per day, morning against evening, and the steps that keep being skipped](images/stats.png)
+*One column per child: the rate over the window, the run of complete days, one bar per day, morning against evening, and the steps that keep being skipped*
+
+Each bar is a day, as tall as the share of that day that got done. A day that asked for
+nothing — a weekend, a holiday with no list, a day [at home ill](exceptions.md#off-ill) —
+is a baseline tick rather than a short bar: it is not a day anybody failed, and it must
+not read as one. Today's bar is drawn faded, because today is not over.
+
+The list underneath is the interesting one. A routine that fails is rarely failing
+everywhere at once; it is the same two steps, and they are usually the ones that belong
+somewhere else in the day. Worst first, so that step is at the top rather than the bottom.
+
+| Option | Default | What it does |
+|---|---|---|
+| `member` | all | One child only. Unset shows everyone who has a routine. |
+| `days` | `30` | How far the strip reaches back. Thirty is everything the integration keeps. |
+| `show_steps` | `true` | The tally per step under the bars. |
+| `sort` | `board` | `board` keeps the family's usual order; `rate` puts the best record first. |
+
+Ranking is deliberately **opt-in**. A wall panel whose columns move about from one day to
+the next is harder to read than one that does not, and the percentages compare perfectly
+well standing still.
+
+A child with no routine at all is left off the card rather than reported as 0 %: they were
+never asked for anything, and failing to do nothing is not a thing that happened.
+
 ## Homework card
 
 ```yaml

@@ -398,6 +398,124 @@ check("Vertretungsfach bekommt eine Farbe",
 out = W.clear_exception(merged(out), MEMBER, SOON, today=TODAY)
 check("zuruecksetzen raeumt das Datum weg", out["exceptions"] == {}, str(out["exceptions"]))
 
+# --- the record of what actually got done ----------------------------------
+# The figures the statistics card draws. Worth a test rather than an eyeball, because
+# every one of them is a rule about what does *not* count: a holiday that asked for
+# nothing is not a day anybody failed, and today is half over whenever it is looked at.
+core = types.ModuleType("homeassistant.core")
+core.HomeAssistant = object
+core.callback = lambda func: func
+helpers = types.ModuleType("homeassistant.helpers")
+storage = types.ModuleType("homeassistant.helpers.storage")
+dispatcher = types.ModuleType("homeassistant.helpers.dispatcher")
+dispatcher.async_dispatcher_send = lambda *args, **kwargs: None
+
+
+class FakeStore:
+    """Enough of homeassistant.helpers.storage.Store to run the history off disk."""
+
+    def __init__(self, *args, **kwargs):
+        self.writes = 0
+
+    async def async_load(self):
+        return None
+
+    async def async_save(self, data):
+        self.writes += 1
+
+    def async_delay_save(self, factory, delay):
+        self.writes += 1
+
+
+storage.Store = FakeStore
+helpers.storage = storage
+helpers.dispatcher = dispatcher
+ha.core = core
+ha.helpers = helpers
+sys.modules.update({
+    "homeassistant.core": core,
+    "homeassistant.helpers": helpers,
+    "homeassistant.helpers.storage": storage,
+    "homeassistant.helpers.dispatcher": dispatcher,
+})
+S = importlib.import_module("schoolday.store")
+
+NOW = Models.today()
+def days_ago(count):
+    return (NOW - datetime.timedelta(days=count)).isoformat()
+
+def entry(mode, morning, evening):
+    """One stored day: (asked, done) per block, the way the sensor writes it."""
+    return {
+        "mode": mode,
+        "blocks": {
+            block: {"asked": list(asked), "done": list(done)}
+            for block, (asked, done) in (("morning", morning), ("evening", evening))
+        },
+    }
+
+history = S.HistoryStore(None)
+history._days = {
+    days_ago(3): {MEMBER: entry("school", (["a", "b"], ["a", "b"]), (["c"], ["c"]))},
+    days_ago(2): {MEMBER: entry("free", ([], []), ([], []))},
+    days_ago(1): {MEMBER: entry("school", (["a", "b"], ["a"]), (["c"], []))},
+    NOW.isoformat(): {MEMBER: entry("school", (["a", "b"], []), (["c"], []))},
+}
+stats = history.stats(MEMBER)
+
+check("die Quote laesst den laufenden Tag aus",
+      stats["rate"] == 67, f"{stats['rate']} %")
+check("jeder Tag steht in der Liste, der laufende eingeschlossen",
+      [day["date"] for day in stats["days"]] == sorted(history._days)
+      and stats["days"][-1] == {"date": NOW.isoformat(), "mode": "school", "asked": 3, "done": 0},
+      str(stats["days"][-1]))
+check("Quoten je Block", stats["blocks"]["morning"]["rate"] == 75
+      and stats["blocks"]["evening"]["rate"] == 50, str(stats["blocks"]))
+check("Schritte stehen schlechtester zuerst",
+      [(s["block"], s["step"], s["rate"]) for s in stats["steps"]]
+      == [("morning", "b", 50), ("evening", "c", 50), ("morning", "a", 100)],
+      str([(s["step"], s["rate"]) for s in stats["steps"]]))
+check("ein halb erledigter Tag beendet die Serie",
+      stats["streak"] == 0 and stats["best_streak"] == 1,
+      f"{stats['streak']} / {stats['best_streak']}")
+
+# A day that asked for nothing is not a day anybody failed: it must not count against
+# the rate, and it must not break a run either.
+history._days = {
+    days_ago(3): {MEMBER: entry("school", (["a"], ["a"]), ([], []))},
+    days_ago(2): {MEMBER: entry("free", ([], []), ([], []))},
+    days_ago(1): {MEMBER: entry("sick", ([], []), ([], []))},
+    NOW.isoformat(): {MEMBER: entry("school", (["a"], ["a"]), ([], []))},
+}
+stats = history.stats(MEMBER)
+check("ein Tag ohne Aufgaben unterbricht die Serie nicht",
+      stats["streak"] == 2 and stats["rate"] == 100,
+      f"{stats['streak']} Tage, {stats['rate']} %")
+
+# The same day, before it is finished: it is left out rather than counted as a miss.
+history._days[NOW.isoformat()] = {MEMBER: entry("school", (["a", "b"], ["a"]), ([], []))}
+stats = history.stats(MEMBER)
+check("der laufende Tag zaehlt erst, wenn er fertig ist",
+      stats["streak"] == 1 and stats["rate"] == 100,
+      f"{stats['streak']} Tage, {stats['rate']} %")
+
+# Nobody has ever been asked for anything, which is not the same as failing at it.
+check("ohne Aufgaben gibt es keine Quote", history.stats("nobody")["rate"] is None,
+      str(history.stats("nobody")["rate"]))
+
+# A step deleted from the routine after it was ticked must not survive as an extra
+# tick, or a child is shown doing four of three things.
+history._days = {}
+history.record(MEMBER, "school", "morning", ["a", "b"], ["a", "weg"])
+stored = history._days[NOW.isoformat()][MEMBER]["blocks"]["morning"]
+check("nur abgehakte Schritte zaehlen, die es noch gibt",
+      stored == {"asked": ["a", "b"], "done": ["a"]}, str(stored))
+
+writes = history._store.writes
+history.record(MEMBER, "school", "morning", ["a", "b"], ["a"])
+check("unveraenderte Tage werden nicht erneut geschrieben",
+      history._store.writes == writes, f"{history._store.writes - writes} Schreibvorgaenge")
+
 # --- the base must never be mutated ---------------------------------------
 check("Ausgangs-Optionen bleiben unveraendert",
       BASE["timetable"]["lessons"][MEMBER]["0"] == {"1": {"subject": "Deutsch", "room": None}}

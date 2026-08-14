@@ -19,6 +19,8 @@ export interface AdminMember {
   order: number;
   /** This member's own calendar, searched for the holiday-care keywords. */
   calendar: string | null;
+  /** Which named set of lesson times their school rings to; null is the household's. */
+  schedule: string | null;
 }
 
 /** Routine day keys: "0".."6", plus "free" for a day off and "care" for holiday care. */
@@ -28,8 +30,10 @@ export interface AdminConfig {
   members: AdminMember[];
   /** member id -> block -> day -> steps */
   routines: Record<string, Record<string, Record<RoutineDay, string[]>>>;
-  /** `HH:MM-HH:MM`, one per period, in order. */
+  /** `HH:MM-HH:MM`, one per period, in order. The times a member gets by default. */
   periods: string[];
+  /** Another school's times, by name, for a household whose children are at two. */
+  schedules: Record<string, string[]>;
   /** Only the subjects somebody recoloured; the rest derive theirs from the name. */
   colors: Record<string, string>;
   schoolCalendars: string[];
@@ -59,6 +63,7 @@ const EMPTY: AdminConfig = {
   members: [],
   routines: {},
   periods: [],
+  schedules: {},
   colors: {},
   schoolCalendars: [],
   careKeywords: [],
@@ -91,6 +96,7 @@ export function parseAdmin(raw: unknown): AdminConfig {
       avatar: typeof entry.avatar === 'string' && entry.avatar ? entry.avatar : null,
       order: Number(entry.order ?? 0),
       calendar: typeof entry.calendar === 'string' && entry.calendar ? entry.calendar : null,
+      schedule: typeof entry.schedule === 'string' && entry.schedule ? entry.schedule : null,
     }))
     .sort((a, b) => a.order - b.order);
 
@@ -164,6 +170,11 @@ export function parseAdmin(raw: unknown): AdminConfig {
     routines,
     exceptions,
     periods: stringList(data.periods),
+    schedules: Object.fromEntries(
+      Object.entries((data.schedules as Record<string, unknown>) ?? {}).map(
+        ([name, lines]) => [name, stringList(lines)],
+      ),
+    ),
     colors,
     schoolCalendars: stringList(data.school_calendars),
     careKeywords: stringList(data.care_keywords),

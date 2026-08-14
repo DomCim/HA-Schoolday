@@ -32,6 +32,7 @@ from .const import (
     CONF_NAME,
     CONF_ORDER,
     CONF_PERIODS,
+    CONF_SCHEDULE,
     CONF_ROUTINES,
     CONF_SCHOOL_CALENDARS,
     CONF_TIMETABLE,
@@ -148,16 +149,22 @@ class SchooldayOptionsFlow(OptionsFlow):
         return await self.async_step_init()
 
     def _member_schema(self) -> vol.Schema:
-        return vol.Schema(
-            {
-                vol.Required(CONF_NAME): selector.TextSelector(),
-                vol.Required(CONF_COLOR): selector.ColorRGBSelector(),
-                vol.Optional(CONF_CALENDAR): selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain="calendar")
-                ),
-                vol.Optional(CONF_AVATAR): selector.TextSelector(),
-            }
-        )
+        fields: dict[Any, Any] = {
+            vol.Required(CONF_NAME): selector.TextSelector(),
+            vol.Required(CONF_COLOR): selector.ColorRGBSelector(),
+            vol.Optional(CONF_CALENDAR): selector.EntitySelector(
+                selector.EntitySelectorConfig(domain="calendar")
+            ),
+            vol.Optional(CONF_AVATAR): selector.TextSelector(),
+        }
+        # Only where there is a choice. A household with one school would otherwise be
+        # asked which of its one schools each child attends, and the answer to a
+        # question with one answer is not worth a field.
+        if names := sorted(self._timetable.schedules):
+            fields[vol.Optional(CONF_SCHEDULE)] = selector.SelectSelector(
+                selector.SelectSelectorConfig(options=names, custom_value=False)
+            )
+        return vol.Schema(fields)
 
     @staticmethod
     def _from_form(user_input: dict[str, Any]) -> dict[str, Any]:
@@ -187,6 +194,10 @@ class SchooldayOptionsFlow(OptionsFlow):
             options += ["edit_member", "remove_member", "routines"]
         options.append("timetable_times")
         timetable = self._timetable
+        # Offered once there are times to differ from, because a second school's times
+        # are only meaningful next to a first school's.
+        if timetable.periods:
+            options.append("timetable_schedules")
         if self._members and timetable.periods:
             options.append("timetable_lessons")
         if timetable.subjects:
@@ -319,6 +330,74 @@ class SchooldayOptionsFlow(OptionsFlow):
                 vol.Optional(CONF_PERIODS): selector.TextSelector(
                     selector.TextSelectorConfig(multiline=True)
                 )
+            }
+        )
+
+    async def async_step_timetable_schedules(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Keep a second school's lesson times, for households that have one.
+
+        One name and one box of times per trip: the household names the school, types
+        what it rings, and puts the children on it from their own form. Clearing the
+        times removes the school again, which is deliberately the only way it goes —
+        there is no separate delete to reach for, and no way to remove one by accident
+        while renaming it.
+        """
+        timetable = self._timetable
+
+        if user_input is not None:
+            name = str(user_input.get(CONF_SCHEDULE) or "").strip()
+            if not name:
+                return self.async_show_form(
+                    step_id="timetable_schedules",
+                    data_schema=self._schedule_schema(),
+                    errors={CONF_SCHEDULE: "schedule_needs_name"},
+                )
+            try:
+                periods = periods_from_text(user_input.get(CONF_PERIODS))
+            except InvalidPeriod as err:
+                return self.async_show_form(
+                    step_id="timetable_schedules",
+                    data_schema=self.add_suggested_values_to_schema(
+                        self._schedule_schema(),
+                        {
+                            CONF_SCHEDULE: name,
+                            CONF_PERIODS: user_input.get(CONF_PERIODS),
+                        },
+                    ),
+                    errors={CONF_PERIODS: "invalid_period"},
+                    description_placeholders={"line": err.line},
+                )
+            if periods:
+                timetable.schedules[name] = periods
+            else:
+                timetable.schedules.pop(name, None)
+            self._persist(**{CONF_TIMETABLE: timetable.as_options()})
+            return await self.async_step_init()
+
+        return self.async_show_form(
+            step_id="timetable_schedules",
+            data_schema=self._schedule_schema(),
+            description_placeholders={
+                "known": ", ".join(sorted(timetable.schedules)) or "—"
+            },
+        )
+
+    def _schedule_schema(self) -> vol.Schema:
+        # The name is free text with the known ones offered: a household adding its
+        # second school types it once, and one correcting the first picks it back out
+        # of the list rather than retyping it and creating a third by a typo.
+        return vol.Schema(
+            {
+                vol.Required(CONF_SCHEDULE): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=sorted(self._timetable.schedules), custom_value=True
+                    )
+                ),
+                vol.Optional(CONF_PERIODS): selector.TextSelector(
+                    selector.TextSelectorConfig(multiline=True)
+                ),
             }
         )
 

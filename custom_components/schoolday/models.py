@@ -34,7 +34,10 @@ from .const import (
     CONF_ORDER,
     CONF_PERIODS,
     CONF_ROUTINES,
+    CONF_SCHEDULE,
+    CONF_SCHEDULES,
     CONF_SCHOOL_CALENDARS,
+    ATTR_SCHEDULES,
     CONF_SUBJECT_COLORS,
     CONF_TIMETABLE,
     DEFAULT_COLORS,
@@ -115,6 +118,9 @@ class Member:
     #: This member's own calendar, if they have one. Only ever read for the
     #: holiday-care keyword — Schoolday shows no events anywhere.
     calendar: str | None = None
+    #: Which named lesson-time grid this member's school rings to. None is the
+    #: household's usual times, which is what most members are.
+    schedule: str | None = None
 
     @classmethod
     def from_dict(cls, data: dict[str, Any], index: int = 0) -> Member:
@@ -127,6 +133,7 @@ class Member:
             avatar=data.get(CONF_AVATAR) or None,
             order=int(data.get(CONF_ORDER, index)),
             calendar=data.get(CONF_CALENDAR) or None,
+            schedule=str(data.get(CONF_SCHEDULE) or "").strip() or None,
         )
 
     def as_card_dict(self) -> dict[str, Any]:
@@ -141,7 +148,11 @@ class Member:
 
     def as_admin_dict(self) -> dict[str, Any]:
         """As above, plus the calendar — which only something editing them needs."""
-        return {**self.as_card_dict(), "calendar": self.calendar}
+        return {
+            **self.as_card_dict(),
+            "calendar": self.calendar,
+            CONF_SCHEDULE: self.schedule,
+        }
 
 
 @dataclass(slots=True)
@@ -401,17 +412,35 @@ def text_from_lessons(lessons: list[Lesson]) -> str:
 
 @dataclass(slots=True)
 class Timetable:
-    """The school timetable: one grid of periods, one week per member.
+    """The school timetable: the lesson times, and one week per member.
 
     Like the routines, this is typed in once — a timetable is fixed for a school
     year — rather than read from a calendar that would have to hold 40 events a week.
+
+    Most households ring to one set of times, which is what `periods` is. A household
+    whose children are at two schools has a second set, and `schedules` holds it under
+    a name that the children who go there point at. Named rather than one list per
+    child on purpose: what differs is the school, not the child, so siblings share one
+    and a bell time that moves is typed once.
     """
 
     periods: list[Period] = field(default_factory=list)
+    #: name -> that school's lesson times. Empty for the households that need nothing.
+    schedules: dict[str, list[Period]] = field(default_factory=dict)
     #: subject -> "#rrggbb", only where somebody picked a colour
     colors: dict[str, str] = field(default_factory=dict)
     #: member id -> weekday (0 = Monday) -> lessons
     lessons: dict[str, dict[int, list[Lesson]]] = field(default_factory=dict)
+
+    def schedule(self, name: str | None) -> list[Period]:
+        """The lesson times a name stands for, falling back to the household's own.
+
+        An unknown name reads as the default rather than as an error. A schedule
+        deleted while a child still points at it would otherwise leave that child with
+        no times at all — no running lesson, no boundaries, an empty week — which is a
+        worse answer to "which school do you go to" than the wrong bell by ten minutes.
+        """
+        return self.schedules.get(name or "") or self.periods
 
     @classmethod
     def from_dict(cls, data: dict[str, Any] | None) -> Timetable:
@@ -422,6 +451,18 @@ class Timetable:
         except InvalidPeriod:
             # Hand-edited options should not take the whole integration down.
             periods = []
+
+        schedules: dict[str, list[Period]] = {}
+        for raw_name, lines in (raw.get(CONF_SCHEDULES) or {}).items():
+            if not (name := str(raw_name).strip()):
+                continue
+            try:
+                times = periods_from_text("\n".join(lines or []))
+            except InvalidPeriod:
+                # One unreadable schedule loses that school's times, not the household's.
+                continue
+            if times:
+                schedules[name] = times
 
         colors = {
             str(subject): hex_value
@@ -457,12 +498,16 @@ class Timetable:
                     days[slot] = sorted(day, key=lambda lesson: lesson.period)
             if days:
                 lessons[str(member_id)] = days
-        return cls(periods=periods, colors=colors, lessons=lessons)
+        return cls(periods=periods, schedules=schedules, colors=colors, lessons=lessons)
 
     def as_options(self) -> dict[str, Any]:
         """The stored shape, ready to be written back into the config entry."""
         return {
             CONF_PERIODS: [f"{p.start}-{p.end}" for p in self.periods],
+            CONF_SCHEDULES: {
+                name: [f"{p.start}-{p.end}" for p in times]
+                for name, times in sorted(self.schedules.items())
+            },
             CONF_SUBJECT_COLORS: dict(self.colors),
             CONF_LESSONS: {
                 member_id: {
@@ -519,16 +564,19 @@ class Timetable:
         """The colour of a subject: the one that was picked, or a stable default."""
         return self.colors.get(subject) or subject_color(subject)
 
-    @property
-    def breaks(self) -> list[dict[str, Any]]:
+    @staticmethod
+    def breaks_in(periods: list[Period]) -> list[dict[str, Any]]:
         """The gaps between periods, so breaks never have to be configured.
 
         Anything from :data:`BREAK_MIN_MINUTES` upwards counts — which is exactly the
-        five-, ten- and sixty-minute gaps a school day already has in its times.
+        five-, ten- and sixty-minute gaps a school day already has in its times. Taking
+        the periods rather than reading them off the household means a school with a
+        longer morning break gets its own, from its own times, with nothing to configure
+        there either.
         """
         gaps: list[dict[str, Any]] = []
         # Deliberately uneven: the last period has no successor and therefore no gap.
-        for before, after in zip(self.periods, self.periods[1:], strict=False):
+        for before, after in zip(periods, periods[1:], strict=False):
             minutes = after.start_minutes - before.end_minutes
             if minutes >= BREAK_MIN_MINUTES:
                 gaps.append(
@@ -541,20 +589,33 @@ class Timetable:
                 )
         return gaps
 
-    def period_at(self, minutes: int) -> Period | None:
-        """The period running at a point in the day, if any."""
+    @property
+    def breaks(self) -> list[dict[str, Any]]:
+        """The gaps in the household's own times."""
+        return self.breaks_in(self.periods)
+
+    @staticmethod
+    def period_at(minutes: int, periods: list[Period]) -> Period | None:
+        """The period running at a point in the day, if any.
+
+        The periods are passed in rather than taken from the household, because which
+        lesson is running is the one question whose answer differs per child the moment
+        two schools ring at different minutes.
+        """
         return next(
             (
                 period
-                for period in self.periods
+                for period in periods
                 if period.start_minutes <= minutes < period.end_minutes
             ),
             None,
         )
 
-    def lesson_at(self, member_id: str, weekday: int, minutes: int) -> tuple[Lesson, Period] | None:
+    def lesson_at(
+        self, member_id: str, weekday: int, minutes: int, periods: list[Period]
+    ) -> tuple[Lesson, Period] | None:
         """The lesson a member has at a point in the day, if any."""
-        period = self.period_at(minutes)
+        period = self.period_at(minutes, periods)
         if period is None:
             return None
         lesson = next(
@@ -564,25 +625,28 @@ class Timetable:
         return (lesson, period) if lesson else None
 
     def next_lesson(
-        self, member_id: str, weekday: int, minutes: int
+        self, member_id: str, weekday: int, minutes: int, periods: list[Period]
     ) -> tuple[Lesson, Period] | None:
         """The member's next lesson that day, skipping free periods."""
         day = {item.period: item for item in self.day(member_id, weekday)}
-        for period in self.periods:
+        for period in periods:
             if period.start_minutes <= minutes:
                 continue
             if lesson := day.get(period.index):
                 return lesson, period
         return None
 
-    def boundaries(self) -> list[int]:
+    @staticmethod
+    def boundaries_in(periods: list[Period]) -> list[int]:
         """Every minute of the day at which a lesson starts or ends, sorted.
 
         These are the only moments a member sensor can change on its own, so they are
-        also the only moments worth waking up for.
+        also the only moments worth waking up for — and now the only ones *that child*
+        can change at, which is why a member sensor asks with its own times rather than
+        the household's.
         """
-        marks = {period.start_minutes for period in self.periods}
-        marks.update(period.end_minutes for period in self.periods)
+        marks = {period.start_minutes for period in periods}
+        marks.update(period.end_minutes for period in periods)
         return sorted(marks)
 
     @property
@@ -607,6 +671,17 @@ class Timetable:
         return {
             "periods": [period.as_card_dict() for period in self.periods],
             "breaks": self.breaks,
+            # The other schools' times, published once here however many children go to
+            # them: a card reads the name off the child and the times out of this. A
+            # household with one school publishes an empty object and nothing else
+            # changes for it.
+            ATTR_SCHEDULES: {
+                name: {
+                    "periods": [period.as_card_dict() for period in times],
+                    "breaks": self.breaks_in(times),
+                }
+                for name, times in sorted(self.schedules.items())
+            },
             "subjects": {subject: self.color(subject) for subject in names},
             # Published rather than inferred. A card could guess the cycle from whether
             # the outlook holds two weeks, but the window is sometimes only seven days
@@ -863,6 +938,18 @@ class SchooldayConfig:
         """Look up a member by id."""
         return next((m for m in self.members if m.id == member_id), None)
 
+    def periods_for(self, member_id: str) -> list[Period]:
+        """The lesson times this member's school rings to.
+
+        Every question that depends on the clock goes through here rather than reaching
+        for `timetable.periods`: which lesson is running, when the sensor next wakes,
+        which gaps are breaks. Reaching for the household's own times instead is how a
+        child who starts a quarter of an hour later gets announced into the wrong
+        lesson — quietly, and only in the households that have two schools.
+        """
+        member = self.member_by_id(member_id)
+        return self.timetable.schedule(member.schedule if member else None)
+
     def as_admin_dict(self) -> dict[str, Any]:
         """Everything the options flow can change, for a card that offers the same.
 
@@ -880,6 +967,12 @@ class SchooldayConfig:
                 for member in self.members
             },
             "periods": [f"{p.start}-{p.end}" for p in self.timetable.periods],
+            # The other schools' times, for the editor that maintains them and for the
+            # dropdown that puts a child on one.
+            CONF_SCHEDULES: {
+                name: [f"{p.start}-{p.end}" for p in times]
+                for name, times in sorted(self.timetable.schedules.items())
+            },
             "colors": dict(self.timetable.colors),
             "school_calendars": list(self.school_calendars),
             "care_keywords": list(self.care_keywords),

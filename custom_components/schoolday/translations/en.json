@@ -25,7 +25,8 @@
           "timetable_colors": "Subject colours",
           "timetable_materials": "What each subject needs",
           "timetable_calendars": "Days off and holiday care",
-          "done": "Done"
+          "done": "Done",
+          "timetable_schedules": "Another school's lesson times"
         }
       },
       "add_member": {
@@ -34,12 +35,14 @@
           "name": "Name",
           "color": "Colour",
           "avatar": "Avatar image",
-          "calendar": "Calendar"
+          "calendar": "Calendar",
+          "schedule": "School"
         },
         "data_description": {
           "color": "Used for this person's highlights across every Schoolday card.",
           "avatar": "Path to an image, for example /local/schoolday/ben.png. Optional.",
-          "calendar": "This child's own calendar, if they have one. Only ever searched for the holiday-care keywords below — Schoolday shows no events anywhere."
+          "calendar": "This child's own calendar, if they have one. Only ever searched for the holiday-care keywords below — Schoolday shows no events anywhere.",
+          "schedule": "Leave empty for the household's usual lesson times."
         }
       },
       "edit_member": {
@@ -54,12 +57,14 @@
           "name": "Name",
           "color": "Colour",
           "avatar": "Avatar image",
-          "calendar": "Calendar"
+          "calendar": "Calendar",
+          "schedule": "School"
         },
         "data_description": {
           "color": "Used for this person's highlights across every Schoolday card.",
           "avatar": "Path to an image, for example /local/schoolday/ben.png. Optional.",
-          "calendar": "This child's own calendar, if they have one. Only ever searched for the holiday-care keywords below — Schoolday shows no events anywhere."
+          "calendar": "This child's own calendar, if they have one. Only ever searched for the holiday-care keywords below — Schoolday shows no events anywhere.",
+          "schedule": "Leave empty for the household's usual lesson times."
         }
       },
       "remove_member": {
@@ -142,10 +147,23 @@
       "timetable_materials": {
         "title": "What each subject needs",
         "description": "One thing per line. They are added to the evening routine on the day before that subject, for whoever has it — so nobody has to keep a packing list in step with the timetable."
+      },
+      "timetable_schedules": {
+        "title": "Another school's lesson times",
+        "description": "For a household whose children are at two schools that do not ring at the same minute.\n\nName the school, then give its periods one per line as HH:MM-HH:MM. Put a child on it from their own form under \"Edit a family member\".\n\nAlready set up: {known}\n\nClearing the periods removes that school again. The children who were on it go back to the household's usual times.",
+        "data": {
+          "schedule": "School",
+          "periods": "Periods"
+        },
+        "data_description": {
+          "schedule": "Pick one to change it, or type a new name to add one.",
+          "periods": "One per line, as HH:MM-HH:MM. Leave empty to remove this school."
+        }
       }
     },
     "error": {
-      "invalid_period": "\"{line}\" is not a time range. Write every line as HH:MM-HH:MM, for example 08:00-08:45."
+      "invalid_period": "\"{line}\" is not a time range. Write every line as HH:MM-HH:MM, for example 08:00-08:45.",
+      "schedule_needs_name": "Give the school a name first."
     },
     "abort": {
       "member_not_found": "That family member no longer exists."

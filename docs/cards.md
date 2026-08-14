@@ -144,6 +144,11 @@ refused value comes back as a readable reason.
 ![Tap a cell to set a lesson. With a two-week timetable, the cycle and an A/B switch sit above the grid.](images/admin-timetable.png)
 *Tap a cell to set a lesson. With a two-week timetable, the cycle and an A/B switch sit above the grid.*
 
+The lesson times live at the top of this section, and under them any
+[other school's](timetable.md#two-schools-that-do-not-ring-together) — for a household
+whose children are at two that do not ring at the same minute. A child is put on one in
+the **Family** section.
+
 ### Routines
 
 ![One block, one day at a time — including the two kinds of day off](images/admin-routines.png)

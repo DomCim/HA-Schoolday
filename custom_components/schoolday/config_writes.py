@@ -34,7 +34,9 @@ from .const import (
     CONF_NAME,
     CONF_ORDER,
     CONF_ROUTINES,
+    CONF_SCHEDULE,
     CONF_SCHOOL_CALENDARS,
+    SCHEDULE_NAME_MAX,
     CONF_TIMETABLE,
     CYCLE_MAX_WEEKS,
     ROUTINE_BLOCKS,
@@ -68,20 +70,53 @@ def _members(options: dict[str, Any]) -> list[dict[str, Any]]:
     return [dict(member) for member in (options.get(CONF_MEMBERS) or [])]
 
 
-def set_periods(options: dict[str, Any], periods: list[str]) -> dict[str, Any]:
-    """Replace the household's lesson times.
+def set_periods(
+    options: dict[str, Any], periods: list[str], schedule: str | None = None
+) -> dict[str, Any]:
+    """Replace the household's lesson times, or one named school's.
 
     Taken as a list of `HH:MM-HH:MM`, parsed by the same function the options flow
     uses, so an impossible period is refused here exactly as it is refused there.
+
+    With no name this writes the times a member gets when nothing else is said. With
+    one it writes that school's, and an empty list removes it -- which is the only way
+    a schedule goes away, and deliberately leaves the children who pointed at it on the
+    household's times rather than on none.
     """
     timetable = _timetable(options)
     try:
-        timetable.periods = periods_from_text("\n".join(periods))
+        parsed = periods_from_text("\n".join(periods))
     except InvalidPeriod as err:
         raise SchooldayValueError(
             f"'{err.line}' is not a lesson time. Write it as HH:MM-HH:MM, for example 08:00-08:45."
         ) from err
+
+    if schedule is None:
+        timetable.periods = parsed
+        return {CONF_TIMETABLE: timetable.as_options()}
+
+    name = _schedule_name(schedule)
+    if parsed:
+        timetable.schedules[name] = parsed
+    else:
+        timetable.schedules.pop(name, None)
     return {CONF_TIMETABLE: timetable.as_options()}
+
+
+def _schedule_name(schedule: str) -> str:
+    """Check a schedule name, and hand back the form it is stored under.
+
+    Trimmed rather than taken literally, because "Gymnasium " and "Gymnasium" are one
+    school and two entries would be a dropdown with the same word in it twice.
+    """
+    name = str(schedule).strip()
+    if not name:
+        raise SchooldayValueError("A set of lesson times needs a name.")
+    if len(name) > SCHEDULE_NAME_MAX:
+        raise SchooldayValueError(
+            f"'{name}' is too long for a name. Keep it under {SCHEDULE_NAME_MAX} characters."
+        )
+    return name
 
 
 def _slot(weekday: int, week: int) -> int:
@@ -262,6 +297,7 @@ def set_member(
     color: Any = None,
     calendar: str | None = None,
     avatar: str | None = None,
+    schedule: str | None = None,
 ) -> tuple[dict[str, Any], str]:
     """Add a family member, or change one that exists.
 
@@ -296,6 +332,10 @@ def set_member(
         (CONF_COLOR, hex_color),
         (CONF_CALENDAR, (calendar or "").strip() or None),
         (CONF_AVATAR, (avatar or "").strip() or None),
+        # Not checked against the schedules that exist: one can be written before the
+        # times behind it are, and a name that stands for nothing already reads as the
+        # household's own times rather than as an error.
+        (CONF_SCHEDULE, (schedule or "").strip() or None),
     ):
         if value:
             entry[key] = value

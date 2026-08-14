@@ -398,6 +398,60 @@ check("Vertretungsfach bekommt eine Farbe",
 out = W.clear_exception(merged(out), MEMBER, SOON, today=TODAY)
 check("zuruecksetzen raeumt das Datum weg", out["exceptions"] == {}, str(out["exceptions"]))
 
+# --- two schools, two sets of lesson times ---------------------------------
+# The one question that has to be answered per child rather than per household: a
+# sibling who starts a quarter of an hour later must not be announced into the lesson
+# the other one is in.
+TWO = W.set_periods(BASE, ["08:15-09:00", "09:00-09:45"], schedule="Gymnasium")
+check("ein benanntes Zeitraster wird gespeichert",
+      TWO["timetable"]["schedules"] == {"Gymnasium": ["08:15-09:00", "09:00-09:45"]},
+      str(TWO["timetable"]["schedules"]))
+check("die Zeiten des Haushalts bleiben daneben stehen",
+      TWO["timetable"]["periods"] == BASE["timetable"]["periods"],
+      str(TWO["timetable"]["periods"]))
+
+out = W.set_periods(merged(TWO), [], schedule="Gymnasium")
+check("leere Zeiten entfernen das Raster wieder",
+      out["timetable"]["schedules"] == {}, str(out["timetable"]["schedules"]))
+
+for bad, why in ((" ", "ohne Namen"), ("x" * 41, "mit zu langem Namen")):
+    try:
+        W.set_periods(BASE, ["08:00-08:45"], schedule=bad)
+        check(f"Raster {why} wird abgewiesen", False, "keine Ausnahme")
+    except SchooldayValueError as e:
+        check(f"Raster {why} wird abgewiesen", True, str(e)[:50])
+
+# The assignment lives on the member, and survives a save that does not mention it.
+out, mid = W.set_member(merged(TWO), MEMBER, "Ben", schedule="Gymnasium")
+check("ein Kind wird einem Raster zugeordnet",
+      out["members"][0]["schedule"] == "Gymnasium", str(out["members"][0]))
+
+cfg = Models.SchooldayConfig.from_options(merged({**TWO, **out}))
+check("das Kind bekommt die Zeiten seiner Schule",
+      [f"{p.start}-{p.end}" for p in cfg.periods_for(MEMBER)] == ["08:15-09:00", "09:00-09:45"],
+      str([f"{p.start}-{p.end}" for p in cfg.periods_for(MEMBER)]))
+# 08:50: die zweite Stunde des Haushalts laeuft schon, im Gymnasium noch die erste.
+# Genau diese fuenf Minuten Unterschied sind es, die ohne Zeitraster die falsche
+# Durchsage in die Kueche schicken.
+check("die laufende Stunde wird im Raster des Kindes gesucht",
+      Models.Timetable.period_at(8 * 60 + 50, cfg.periods_for(MEMBER)).index == 1
+      and Models.Timetable.period_at(8 * 60 + 50, cfg.timetable.periods).index == 2,
+      "08:50 ist Stunde 1 der einen und Stunde 2 der anderen Schule")
+
+# A schedule deleted under a child leaves them on a working timetable, not on none.
+gone = Models.SchooldayConfig.from_options(merged({**out, "timetable": {
+    **TWO["timetable"], "schedules": {}}}))
+check("ein geloeschtes Raster faellt auf die Zeiten des Haushalts zurueck",
+      [f"{p.start}-{p.end}" for p in gone.periods_for(MEMBER)]
+      == gone_expected if (gone_expected := BASE["timetable"]["periods"]) else False,
+      str([f"{p.start}-{p.end}" for p in gone.periods_for(MEMBER)]))
+
+# Pausen kommen aus den Luecken des jeweiligen Rasters, nicht aus denen des Haushalts.
+long_break = Models.periods_from_text("08:15-09:00\n09:00-09:45\n10:15-11:00")
+check("Pausen werden je Raster aus dessen Luecken abgeleitet",
+      [gap["minutes"] for gap in Models.Timetable.breaks_in(long_break)] == [30],
+      str(Models.Timetable.breaks_in(long_break)))
+
 # --- the record of what actually got done ----------------------------------
 # The figures the statistics card draws. Worth a test rather than an eyeball, because
 # every one of them is a rule about what does *not* count: a holiday that asked for

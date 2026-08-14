@@ -20,6 +20,7 @@ sensor.schoolday_ben        →  Sport
 | `today_subjects` | Today's subjects, de-duplicated: `["Deutsch", "Mathe", "Sport"]` |
 | `today_summary` | The same, ready to speak: `"Deutsch, Mathe, Sport"` |
 | `lesson_now` / `lesson_next` | The running and the next lesson, or `null` |
+| `schedule` | Which named [set of lesson times](timetable.md#two-schools-that-do-not-ring-together) this child's school rings to, or `null` for the household's |
 | `day_mode` | `school`, `care`, `free`, `event` or `sick` — which routine is showing, and why |
 | `sick_until` | The last day of an illness, or `null` |
 | `outlook` | This week and the next seven days, each with its date, mode and week of the cycle |

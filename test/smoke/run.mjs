@@ -160,10 +160,42 @@ await page.locator('schoolday-timetable-card .chip', { hasText: 'Nik' }).click()
 await page.waitForTimeout(300);
 const nikTitle = await page.locator('schoolday-timetable-card .title').textContent();
 const nikRows = await page.locator('schoolday-timetable-card .time').count();
+// Nik's school rings a quarter of an hour later, and the rows have to follow the child
+// rather than the household. Without this the two siblings share one axis and one of
+// them is reading somebody else's bells.
+const nikTimes = await page
+  .locator('schoolday-timetable-card .time')
+  .allTextContents();
+check(
+  "the rows are the times of the child on screen, not the household's",
+  nikTimes.some((text) => text.includes('08:15')) &&
+    !nikTimes.some((text) => text.includes('08:00')),
+  nikTimes.map((text) => text.replace(/\s+/g, ' ').trim()).join(' | '),
+);
+
 check(
   "tapping a chip switches to that child's week",
   nikTitle.trim() === 'Nik' && nikRows === 2,
   `${nikTitle.trim()}, ${nikRows} period rows`,
+);
+
+// ...and back on the child who is on the household's own times.
+await page.evaluate(() =>
+  window.__mount(
+    { type: 'custom:schoolday-timetable-card', member: 'Ben', layout: 'week' },
+    'schoolday-timetable-card',
+  ),
+);
+await page.waitForTimeout(300);
+const benTimes = await page.locator('schoolday-timetable-card .time').allTextContents();
+const benBreaks = await page
+  .locator('schoolday-timetable-card .t-break')
+  .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('title')));
+check(
+  "a child on no named school keeps the household's times and breaks",
+  benTimes.some((text) => text.includes('08:00')) &&
+    benBreaks.some((title) => /09:30–09:50/.test(title ?? '')),
+  `${benTimes[0]?.replace(/\s+/g, ' ').trim()} | ${benBreaks[0]}`,
 );
 
 // One day at a time, the way the card falls back on a phone.

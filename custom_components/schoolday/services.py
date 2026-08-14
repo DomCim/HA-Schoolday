@@ -69,6 +69,7 @@ from .const import (
     SERVICE_SET_EXCEPTION,
     SERVICE_SET_LESSON,
     SERVICE_SET_MATERIALS,
+    ATTR_SCHEDULE_FIELD,
     SERVICE_SET_MEMBER,
     SERVICE_SET_PERIODS,
     SERVICE_SET_ROUTINE,
@@ -98,7 +99,14 @@ _LESSON = vol.Schema(
 )
 _WEEKDAY = vol.All(vol.Coerce(int), vol.Range(min=0, max=6))
 
-SET_PERIODS_SCHEMA = vol.Schema({vol.Required(ATTR_PERIODS): vol.All(cv.ensure_list, [cv.string])})
+SET_PERIODS_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_PERIODS): vol.All(cv.ensure_list, [cv.string]),
+        # Absent writes the household's own times; a name writes that school's, and an
+        # empty list under a name removes it.
+        vol.Optional(ATTR_SCHEDULE_FIELD): cv.string,
+    }
+)
 
 _CYCLE_WEEK = vol.All(vol.Coerce(int), vol.Range(min=0, max=CYCLE_MAX_WEEKS - 1))
 
@@ -154,6 +162,7 @@ SET_MEMBER_SCHEMA = vol.Schema(
         vol.Optional(ATTR_COLOR): vol.Any(cv.string, [vol.Coerce(int)], None),
         vol.Optional(CONF_CALENDAR): cv.string,
         vol.Optional(CONF_AVATAR): cv.string,
+        vol.Optional(ATTR_SCHEDULE_FIELD): cv.string,
     }
 )
 
@@ -320,7 +329,14 @@ def async_register_services(hass: HomeAssistant) -> None:
 
     @_guard
     def _set_periods(call: ServiceCall) -> None:
-        _apply(call, config_writes.set_periods(_options(call), call.data[ATTR_PERIODS]))
+        _apply(
+            call,
+            config_writes.set_periods(
+                _options(call),
+                call.data[ATTR_PERIODS],
+                call.data.get(ATTR_SCHEDULE_FIELD),
+            ),
+        )
 
     @_guard
     def _set_lesson(call: ServiceCall) -> None:
@@ -383,6 +399,7 @@ def async_register_services(hass: HomeAssistant) -> None:
             call.data.get(ATTR_COLOR),
             call.data.get(CONF_CALENDAR),
             call.data.get(CONF_AVATAR),
+            call.data.get(ATTR_SCHEDULE_FIELD),
         )
         _apply(call, changes)
 

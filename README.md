@@ -1,8 +1,11 @@
-<!-- Absolute, and it has to be. HACS renders this file inside Home Assistant, where a
-     relative path resolves against the Home Assistant address rather than against the
-     repository — so `assets/logo.png` asks the house for a file it has never had, and the
-     mark is a broken image on the one page somebody reads before installing. -->
-<img src="https://raw.githubusercontent.com/DomCim/HA-Schoolday/main/assets/logo.png" alt="Schoolday" width="320">
+<!-- Markdown rather than an <img>, and absolute rather than relative, and both for the
+     same reader: HACS renders this file inside Home Assistant, which resolves a relative
+     path against the house instead of against the repository, and which drops raw HTML
+     on the way through its own renderer. Either mistake leaves a broken image at the top
+     of the page somebody reads immediately before deciding whether to install. The cost
+     is the width attribute -- markdown has no way to set one -- so the mark now renders
+     at its own 888px rather than the 320 it used to be held to. -->
+![Schoolday](https://raw.githubusercontent.com/DomCim/HA-Schoolday/main/assets/logo.png)
 
 The school week and the daily routines, on the wall — a Home Assistant integration that owns the
 timetable, hands it to its own Lovelace cards, and exposes it to your automations.

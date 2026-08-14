@@ -29,8 +29,42 @@ One `HH:MM-HH:MM` per line, in order:
 a break and is drawn as one — which is exactly the five-, ten- and sixty-minute gaps a
 school day already has. There is nothing to configure.
 
-The times are shared by the whole household. A child whose day starts later simply has
-no lesson in the first period.
+These are the times a child gets when nothing else is said, which for most households is
+everybody. A child whose day starts later at the *same* school simply has no lesson in the
+first period.
+
+## Two schools that do not ring together
+
+A sibling at another school is a different matter: their first period may start at 08:15
+and their morning break may be half an hour. Nothing in the grid above can say that, and
+guessing it wrong is not cosmetic — it is the running-lesson line, the sensor state, and
+the `schoolday_lesson_started` event all landing a quarter of an hour early.
+
+So a second school gets its **own named times**, under **Configure → Another school's
+lesson times** or in the timetable section of the [admin card](cards.md#admin-card):
+
+```
+Gymnasium
+  08:15-09:00
+  09:00-09:45
+  10:15-11:00
+```
+
+Then put the children who go there on it, in their own form under **Edit a family
+member**. Everybody else stays on the household's times without being asked.
+
+Named after the school rather than kept per child, and that is the point: two siblings at
+the same school share one entry, so a bell time that moves is typed once instead of twice.
+It is the same reason [materials](routines.md#what-each-subject-needs) are held per subject
+rather than per child.
+
+From there everything follows the child. Their card draws their rows, their breaks come
+out of *their* gaps, their sensor wakes at their boundaries, and their events fire when
+their lessons actually start.
+
+Clearing a school's times removes it. The children who were on it fall back to the
+household's times rather than to none — a school deleted out from under a child leaves
+them with a working timetable, which is the better of the two wrong answers.
 
 ## One week per child
 

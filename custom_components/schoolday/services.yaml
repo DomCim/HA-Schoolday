@@ -43,6 +43,13 @@ set_periods:
       example: ["08:00-08:45", "08:45-09:30"]
       selector:
         object:
+    # Omit for the household's usual times. Naming a school writes that school's
+    # instead, and an empty list of periods under a name removes it.
+    schedule:
+      required: false
+      example: Gymnasium
+      selector:
+        text:
 
 set_lesson:
   fields:
@@ -180,6 +187,13 @@ set_member:
           domain: calendar
     avatar:
       required: false
+      selector:
+        text:
+    # Which named set of lesson times this member's school rings to. Omit or leave
+    # empty for the household's usual ones.
+    schedule:
+      required: false
+      example: Gymnasium
       selector:
         text:
 

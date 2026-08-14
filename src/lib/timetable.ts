@@ -32,6 +32,12 @@ export interface TimetableGrid {
   subjects: Record<string, string>;
   /** How many weeks the timetable takes to repeat: 1, or 2 for an A/B school. */
   cycleWeeks: number;
+  /**
+   * Other schools' lesson times, by name, for a household whose children are at two
+   * that do not ring at the same minute. Empty for everybody else, which is most
+   * households — they never leave the periods above.
+   */
+  schedules: Record<string, { periods: TimetablePeriod[]; breaks: TimetableBreak[] }>;
 }
 
 export interface TimetableLesson {
@@ -135,32 +141,23 @@ export function parseGrid(raw: unknown): TimetableGrid | null {
     return null;
   }
   const data = raw as Record<string, unknown>;
-  const rawPeriods = Array.isArray(data.periods) ? data.periods : [];
-
-  const periods: TimetablePeriod[] = rawPeriods
-    .map((entry) => entry as Record<string, unknown>)
-    .filter((entry) => typeof entry?.start === 'string' && typeof entry?.end === 'string')
-    .map((entry, position) => ({
-      index: Number(entry.index ?? position + 1),
-      start: String(entry.start),
-      end: String(entry.end),
-      startMinutes: toMinutes(String(entry.start)),
-      endMinutes: toMinutes(String(entry.end)),
-    }));
+  const periods = parsePeriods(data.periods);
 
   if (!periods.length) {
     return null;
   }
 
-  const breaks: TimetableBreak[] = (Array.isArray(data.breaks) ? data.breaks : [])
-    .map((entry) => entry as Record<string, unknown>)
-    .filter((entry) => typeof entry?.start === 'string' && typeof entry?.end === 'string')
-    .map((entry) => ({
-      after: Number(entry.after ?? 0),
-      start: String(entry.start),
-      end: String(entry.end),
-      minutes: Number(entry.minutes ?? 0),
-    }));
+  const breaks = parseBreaks(data.breaks);
+
+  const schedules: TimetableGrid['schedules'] = {};
+  for (const [name, entry] of Object.entries(
+    (data.schedules as Record<string, unknown>) ?? {},
+  )) {
+    const times = parsePeriods((entry as Record<string, unknown>)?.periods);
+    if (times.length) {
+      schedules[name] = { periods: times, breaks: parseBreaks((entry as Record<string, unknown>)?.breaks) };
+    }
+  }
 
   const subjects: Record<string, string> = {};
   for (const [subject, color] of Object.entries(
@@ -171,7 +168,52 @@ export function parseGrid(raw: unknown): TimetableGrid | null {
     }
   }
 
-  return { periods, breaks, subjects, cycleWeeks: Number(data.cycle_weeks ?? 1) === 2 ? 2 : 1 };
+  return {
+    periods,
+    breaks,
+    subjects,
+    cycleWeeks: Number(data.cycle_weeks ?? 1) === 2 ? 2 : 1,
+    schedules,
+  };
+}
+
+function parsePeriods(raw: unknown): TimetablePeriod[] {
+  return (Array.isArray(raw) ? raw : [])
+    .map((entry) => entry as Record<string, unknown>)
+    .filter((entry) => typeof entry?.start === 'string' && typeof entry?.end === 'string')
+    .map((entry, position) => ({
+      index: Number(entry.index ?? position + 1),
+      start: String(entry.start),
+      end: String(entry.end),
+      startMinutes: toMinutes(String(entry.start)),
+      endMinutes: toMinutes(String(entry.end)),
+    }));
+}
+
+function parseBreaks(raw: unknown): TimetableBreak[] {
+  return (Array.isArray(raw) ? raw : [])
+    .map((entry) => entry as Record<string, unknown>)
+    .filter((entry) => typeof entry?.start === 'string' && typeof entry?.end === 'string')
+    .map((entry) => ({
+      after: Number(entry.after ?? 0),
+      start: String(entry.start),
+      end: String(entry.end),
+      minutes: Number(entry.minutes ?? 0),
+    }));
+}
+
+/**
+ * The grid as one child sees it.
+ *
+ * The subjects and the cycle belong to the household and are the same whichever school
+ * a child goes to; only the times and therefore the breaks change. An unknown name
+ * falls back to the household's own times, exactly as the integration does — a school
+ * deleted while a child still points at it leaves that child with a working timetable
+ * rather than an empty card.
+ */
+export function gridFor(grid: TimetableGrid, schedule: string | null): TimetableGrid {
+  const named = schedule ? grid.schedules[schedule] : undefined;
+  return named ? { ...grid, periods: named.periods, breaks: named.breaks } : grid;
 }
 
 /** Parse the `timetable` attribute of a member sensor. */

@@ -25,7 +25,8 @@
           "timetable_colors": "Fächerfarben",
           "timetable_materials": "Material pro Fach",
           "timetable_calendars": "Freie Tage und Ferienbetreuung",
-          "done": "Fertig"
+          "done": "Fertig",
+          "timetable_schedules": "Stundenzeiten einer weiteren Schule"
         }
       },
       "add_member": {
@@ -34,12 +35,14 @@
           "name": "Name",
           "color": "Farbe",
           "avatar": "Avatarbild",
-          "calendar": "Kalender"
+          "calendar": "Kalender",
+          "schedule": "Schule"
         },
         "data_description": {
           "color": "Kennzeichnet diese Person auf allen Schoolday-Karten.",
           "avatar": "Pfad zu einem Bild, zum Beispiel /local/schoolday/ben.png. Optional.",
-          "calendar": "Der eigene Kalender dieses Kindes, falls es einen hat. Er wird ausschließlich nach den Betreuungs-Stichwörtern durchsucht – Schoolday zeigt nirgends Termine an."
+          "calendar": "Der eigene Kalender dieses Kindes, falls es einen hat. Er wird ausschließlich nach den Betreuungs-Stichwörtern durchsucht – Schoolday zeigt nirgends Termine an.",
+          "schedule": "Leer lassen für die üblichen Stundenzeiten des Haushalts."
         }
       },
       "edit_member": {
@@ -54,12 +57,14 @@
           "name": "Name",
           "color": "Farbe",
           "avatar": "Avatarbild",
-          "calendar": "Kalender"
+          "calendar": "Kalender",
+          "schedule": "Schule"
         },
         "data_description": {
           "color": "Kennzeichnet diese Person auf allen Schoolday-Karten.",
           "avatar": "Pfad zu einem Bild, zum Beispiel /local/schoolday/ben.png. Optional.",
-          "calendar": "Der eigene Kalender dieses Kindes, falls es einen hat. Er wird ausschließlich nach den Betreuungs-Stichwörtern durchsucht – Schoolday zeigt nirgends Termine an."
+          "calendar": "Der eigene Kalender dieses Kindes, falls es einen hat. Er wird ausschließlich nach den Betreuungs-Stichwörtern durchsucht – Schoolday zeigt nirgends Termine an.",
+          "schedule": "Leer lassen für die üblichen Stundenzeiten des Haushalts."
         }
       },
       "remove_member": {
@@ -142,10 +147,23 @@
       "timetable_materials": {
         "title": "Material pro Fach",
         "description": "Eine Sache pro Zeile. Sie erscheinen am Abend vor diesem Fach in der Abendroutine, bei jedem Kind, das es hat — so muss niemand eine Packliste mit dem Stundenplan im Gleichschritt halten."
+      },
+      "timetable_schedules": {
+        "title": "Stundenzeiten einer weiteren Schule",
+        "description": "Für Haushalte, deren Kinder an zwei Schulen sind, die nicht zur selben Minute klingeln.\n\nSchule benennen, dann ihre Stunden eine pro Zeile als HH:MM-HH:MM eintragen. Ein Kind wird ihr in seinem eigenen Formular unter „Familienmitglied bearbeiten“ zugeordnet.\n\nBereits angelegt: {known}\n\nWerden die Stunden geleert, verschwindet die Schule wieder. Die Kinder, die ihr zugeordnet waren, gehen zurück auf die üblichen Zeiten des Haushalts.",
+        "data": {
+          "schedule": "Schule",
+          "periods": "Stunden"
+        },
+        "data_description": {
+          "schedule": "Eine auswählen zum Ändern, oder einen neuen Namen eintippen zum Anlegen.",
+          "periods": "Eine pro Zeile, als HH:MM-HH:MM. Leer lassen, um diese Schule zu entfernen."
+        }
       }
     },
     "error": {
-      "invalid_period": "„{line}“ ist keine Zeitspanne. Schreibe jede Zeile als HH:MM-HH:MM, zum Beispiel 08:00-08:45."
+      "invalid_period": "„{line}“ ist keine Zeitspanne. Schreibe jede Zeile als HH:MM-HH:MM, zum Beispiel 08:00-08:45.",
+      "schedule_needs_name": "Gib der Schule zuerst einen Namen."
     },
     "abort": {
       "member_not_found": "Dieses Familienmitglied existiert nicht mehr."

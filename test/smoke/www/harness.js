@@ -153,6 +153,26 @@ const TIMETABLE = {
   // One week by default. __setCycle switches the household to A/B weeks, exactly as
   // the board sensor would after the option changed.
   cycle_weeks: 1,
+  // Nik's school rings a quarter of an hour later than Ben's and takes a longer
+  // morning break, which is the whole reason named schedules exist.
+  schedules: {
+    Gymnasium: {
+      periods: [
+        { index: 1, start: '08:15', end: '09:00' },
+        { index: 2, start: '09:00', end: '09:45' },
+        { index: 3, start: '10:15', end: '11:00' },
+        { index: 4, start: '11:00', end: '11:45' },
+        { index: 5, start: '11:55', end: '12:40' },
+        { index: 6, start: '12:40', end: '13:25' },
+        { index: 7, start: '13:40', end: '14:25' },
+      ],
+      breaks: [
+        { after: 2, start: '09:45', end: '10:15', minutes: 30 },
+        { after: 4, start: '11:45', end: '11:55', minutes: 10 },
+        { after: 6, start: '13:25', end: '13:40', minutes: 15 },
+      ],
+    },
+  },
   subjects: {
     Chor: '#476d80',
     Deutsch: '#4f9d69',
@@ -221,6 +241,10 @@ const OUTLOOK = (() => {
   return days;
 })();
 
+// Which school each child rings to. Only Nik is on another one; everybody else gets
+// the household's usual times by saying nothing, which is the common case.
+const SCHEDULE_OF = { m3: 'Gymnasium' };
+
 // One sensor per member, matching what custom_components/schoolday/sensor.py publishes:
 // the running subject as the state, the day and the routines as attributes.
 function memberState(entityId, name, memberId, color) {
@@ -237,6 +261,7 @@ function memberState(entityId, name, memberId, color) {
       routine_morning: ROUTINES[memberId]?.morning ?? [],
       routine_evening: ROUTINES[memberId]?.evening ?? [],
       routine_stats: routineStats(memberId),
+      schedule: SCHEDULE_OF[memberId] ?? null,
       timetable: WEEKS[memberId] ?? {},
       outlook: JSON.parse(JSON.stringify(OUTLOOK)),
       today: [],
@@ -308,9 +333,9 @@ const hass = {
         // What the management card edits, exactly as the board sensor publishes it.
         admin: {
           members: [
-            { id: 'm1', name: 'Ben', color: '#e0603a', avatar: 'person.ben', order: 0, calendar: 'calendar.ben' },
-            { id: 'm2', name: 'Jan', color: '#3a86c8', avatar: null, order: 1, calendar: null },
-            { id: 'm3', name: 'Nik', color: '#4f9d69', avatar: null, order: 2, calendar: null },
+            { id: 'm1', name: 'Ben', color: '#e0603a', avatar: 'person.ben', order: 0, calendar: 'calendar.ben', schedule: null },
+            { id: 'm2', name: 'Jan', color: '#3a86c8', avatar: null, order: 1, calendar: null, schedule: null },
+            { id: 'm3', name: 'Nik', color: '#4f9d69', avatar: null, order: 2, calendar: null, schedule: 'Gymnasium' },
           ],
           routines: {
             m1: { morning: { 0: ['Zähne putzen', 'Sportsachen einpacken'], care: ['Brotdose'] }, evening: {} },
@@ -318,6 +343,11 @@ const hass = {
             m3: { morning: { 2: ['Zähne putzen'] }, evening: {} },
           },
           periods: TIMETABLE.periods.map((period) => `${period.start}-${period.end}`),
+          schedules: {
+            Gymnasium: TIMETABLE.schedules.Gymnasium.periods.map(
+              (period) => `${period.start}-${period.end}`,
+            ),
+          },
           colors: { Deutsch: '#ff4015' },
           school_calendars: ['calendar.ferien'],
           care_keywords: ['Ferienbetreuung'],

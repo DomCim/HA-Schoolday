@@ -7,7 +7,7 @@ from typing import Final
 DOMAIN: Final = "schoolday"
 
 # Keep in sync with manifest.json, package.json and src/lib/const.ts.
-VERSION: Final = "0.11.1"
+VERSION: Final = "0.12.0"
 
 # Where the bundled Lovelace cards are served from.
 FRONTEND_URL_BASE: Final = "/schoolday-frontend"
@@ -78,6 +78,29 @@ WEEKDAYS: Final[tuple[str, ...]] = ("0", "1", "2", "3", "4", "5", "6")
 CONF_PERIODS: Final = "periods"
 CONF_SUBJECT_COLORS: Final = "colors"
 CONF_LESSONS: Final = "lessons"
+
+# Lesson times for a school that rings at different minutes from the household's usual
+# one: name -> the same "HH:MM-HH:MM" lines as CONF_PERIODS.
+#
+# CONF_PERIODS stays what it always was — the times a member gets when nothing else is
+# said — so a household with one school never meets this at all, and no timetable
+# written before it existed has to be migrated. A second school is a second entry here
+# and a name on the children who go to it.
+#
+# Named rather than one list per child, because the thing that differs is the school and
+# not the child: siblings at the same school share a schedule, and a bell time that moves
+# is then typed once instead of once per sibling — the same reason materials are held per
+# subject rather than per member.
+CONF_SCHEDULES: Final = "schedules"
+
+# Which of them a member follows, on the member itself. Absent, empty, or naming one that
+# no longer exists all mean the household's usual times: a schedule deleted out from under
+# a child leaves them on a working timetable rather than on none.
+CONF_SCHEDULE: Final = "schedule"
+
+# What a schedule may be called. Long enough for "Grundschule Naila", short enough to sit
+# in a dropdown, and free text because every household names its schools itself.
+SCHEDULE_NAME_MAX: Final = 40
 
 # How many weeks the timetable takes to repeat: 1 for the usual one, 2 for schools that
 # alternate an A week and a B week.
@@ -174,6 +197,15 @@ ATTR_ROUTINE_BLOCKS: Final = "routine_blocks"
 # The lesson grid — periods, breaks and subject colours — on the board sensor; one
 # member's week on their own sensor, which keeps either attribute set small.
 ATTR_TIMETABLE: Final = "timetable"
+
+# The named lesson-time grids, on the board next to the default one: name -> periods and
+# breaks. A card reads the name off the member sensor and the times from here, so the
+# times are published once however many children follow them.
+ATTR_SCHEDULES: Final = "schedules"
+
+# Which of them this member follows, on their sensor. Null for the household's usual
+# times, which is what most members are.
+ATTR_SCHEDULE: Final = "schedule"
 
 # Today's lessons, ready for a template: the morning announcement should not have to
 # work out which weekday it is and index into a week.
@@ -319,6 +351,7 @@ ATTR_LESSONS: Final = "lessons"
 ATTR_STEPS: Final = "steps"
 ATTR_DAY: Final = "day"
 ATTR_PERIODS: Final = "periods"
+ATTR_SCHEDULE_FIELD: Final = "schedule"
 ATTR_NAME: Final = "name"
 ATTR_KEYWORDS: Final = "care_keywords"
 ATTR_CALENDAR_FIELD: Final = "school_calendars"

@@ -27,7 +27,7 @@ import {
 import { localeOf } from '../lib/dates';
 import { t } from '../lib/i18n';
 import { schooldayButtons, schooldayTokens } from '../lib/styles';
-import { lessonAt, SLOTS_PER_WEEK, weekOf, type TimetableWeek } from '../lib/timetable';
+import { gridFor, lessonAt, SLOTS_PER_WEEK, weekOf, type TimetableWeek } from '../lib/timetable';
 import { findBoard, memberSensor } from '../lib/board';
 import type {
   HomeAssistant,
@@ -81,6 +81,8 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
   @state() private _week?: number;
   /** The cell being edited, as `weekday:period`. */
   @state() private _cell?: string;
+  /** Whether the "add a school" name box is open in the timetable section. */
+  @state() private _adding = false;
   @state() private _draftSubject = '';
   @state() private _draftRoom = '';
   /**
@@ -416,6 +418,7 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
         '08:00-08:45',
         (lines) => this._call('set_periods', { periods: lines }),
       )}
+      ${this._renderSchedules(config)}
       ${!grid?.periods.length
         ? html`<div class="notice">${t(this.hass, 'admin.periods_first')}</div>`
         : !member
@@ -619,6 +622,66 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
     `;
   }
 
+  /**
+   * A second school's lesson times, for the households that have one.
+   *
+   * Below the household's own times and not beside them, because that is the
+   * relationship: one set is what a child gets unless something else is said, and these
+   * are the exceptions to it. A household with one school sees only the button.
+   *
+   * Emptying a box removes that school, which is the only way one goes — the children
+   * on it fall back to the household's times rather than to nothing.
+   */
+  private _renderSchedules(config: AdminConfig): TemplateResult {
+    const names = Object.keys(config.schedules);
+    return html`
+      ${names.map((name) =>
+        this._lines(
+          name,
+          config.schedules[name],
+          '08:15-09:00',
+          (lines) => this._call('set_periods', { schedule: name, periods: lines }),
+        ),
+      )}
+      ${this._adding
+        ? html`
+            <div class="row">
+              <label class="field grow">
+                <span class="label">${t(this.hass, 'admin.schedule_name')}</span>
+                <input id="schedule-new" placeholder=${t(this.hass, 'admin.schedule_hint')} />
+              </label>
+              <button
+                class="apply"
+                ?disabled=${this._busy}
+                @click=${(event: Event) => {
+                  const root = (event.target as HTMLElement).getRootNode() as ShadowRoot;
+                  const name = (root.querySelector('#schedule-new') as HTMLInputElement)?.value.trim();
+                  if (!name) return;
+                  // Created with the household's times in it rather than empty: a school
+                  // that rings a quarter of an hour later is the same day shifted, so
+                  // the useful starting point is the one already typed in.
+                  this._call('set_periods', {
+                    schedule: name,
+                    periods: config.periods.length ? config.periods : ['08:00-08:45'],
+                  }).then(() => {
+                    this._adding = false;
+                  });
+                }}
+              >
+                ${t(this.hass, 'admin.add')}
+              </button>
+            </div>
+          `
+        : html`
+            <button class="apply" ?disabled=${this._busy} @click=${() => {
+              this._adding = true;
+            }}>
+              ${t(this.hass, 'admin.schedule_add')}
+            </button>
+          `}
+    `;
+  }
+
   // --- family -------------------------------------------------------------
 
   private _renderFamily(config: AdminConfig): TemplateResult {
@@ -657,6 +720,27 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
               true,
             )}
           </div>
+          ${Object.keys(config.schedules).length
+            ? html`
+                <div class="row">
+                  <label class="field grow">
+                    <span class="label">${t(this.hass, 'admin.schedule')}</span>
+                    <select id=${`schedule-${key}`}>
+                      <option value="" ?selected=${!member?.schedule}>
+                        ${t(this.hass, 'admin.schedule_default')}
+                      </option>
+                      ${Object.keys(config.schedules).map(
+                        (name) => html`
+                          <option value=${name} ?selected=${member?.schedule === name}>
+                            ${name}
+                          </option>
+                        `,
+                      )}
+                    </select>
+                  </label>
+                </div>
+              `
+            : nothing}
           <div class="row">
             <button
               class="apply"
@@ -671,6 +755,10 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
                   color: read('color'),
                   calendar: this._draft(key, 'calendar', member?.calendar ?? ''),
                   avatar: this._draft(key, 'avatar', member?.avatar ?? ''),
+                  // Always sent, even when the household has one school and the field
+                  // is not drawn: the service clears what it is not told, so leaving it
+                  // out is how an assignment quietly disappears on the next save.
+                  schedule: read('schedule'),
                 }).then(() => {
                   this._drafts = {};
                 });
@@ -803,7 +891,10 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
    */
   private _renderExceptions(config: AdminConfig): TemplateResult {
     const member = this._selected(config);
-    const grid = this._board?.timetable;
+    // This child's own periods: cancelling "third period" on a date has to mean the
+    // third period of the school they actually go to.
+    const household = this._board?.timetable;
+    const grid = household ? gridFor(household, member?.schedule ?? null) : undefined;
     if (!member) {
       return html`<div class="notice">${t(this.hass, 'admin.no_members')}</div>`;
     }

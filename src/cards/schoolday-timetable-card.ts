@@ -21,6 +21,7 @@ import {
   buildRows,
   currentPeriod,
   formatTime,
+  gridFor,
   hasLessons,
   lessonsOn,
   SLOTS_PER_WEEK,
@@ -139,7 +140,12 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
   /** The members this card may show: they have a timetable, and are not filtered out. */
   private _candidates(
     members: SchooldayMember[],
-  ): { member: SchooldayMember; week: TimetableWeek; outlook: Outlook }[] {
+  ): {
+    member: SchooldayMember;
+    week: TimetableWeek;
+    outlook: Outlook;
+    schedule: string | null;
+  }[] {
     const wanted = (this._config.members ?? (this._config.member ? [this._config.member] : []))
       .map((value) => value.toLowerCase());
 
@@ -152,7 +158,15 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
       )
       .map((member) => {
         const sensor = memberSensor(this.hass!, member.id);
-        return { member, week: weekOf(sensor), outlook: outlookOf(sensor) };
+        const schedule = sensor?.attributes?.schedule;
+        return {
+          member,
+          week: weekOf(sensor),
+          outlook: outlookOf(sensor),
+          // Which school this child rings to. The times themselves live on the board,
+          // once each, however many children follow them.
+          schedule: typeof schedule === 'string' && schedule ? schedule : null,
+        };
       })
       .filter((entry) => hasLessons(entry.week));
   }
@@ -423,8 +437,8 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
       return html`<ha-card><div class="notice">${t(this.hass, 'board.missing')}</div></ha-card>`;
     }
 
-    const grid = board.timetable;
-    if (!grid) {
+    const household = board.timetable;
+    if (!household) {
       return html`<ha-card
         ><div class="notice">${t(this.hass, 'timetable.no_periods')}</div></ha-card
       >`;
@@ -440,6 +454,11 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
     const selected =
       candidates.find((entry) => entry.member.id === this._memberId) ?? candidates[0];
     const { member, week, outlook } = selected;
+
+    // Every row, every break and the running-lesson line come from the grid of the
+    // child on screen, not from the household's. Two schools that ring at different
+    // minutes are two different tables, and this card only ever draws one child.
+    const grid = gridFor(household, selected.schedule);
 
     const weekdays = this._weekdays(week);
     const today = weekdayIndex();

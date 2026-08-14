@@ -51,6 +51,7 @@ from .const import (
     ATTR_ROUTINE_EVENING,
     ATTR_ROUTINE_MORNING,
     ATTR_ROUTINE_STATS,
+    ATTR_SCHEDULE,
     ATTR_SCHOOL_TODAY,
     ATTR_SICK_UNTIL,
     ATTR_SUBJECT,
@@ -539,11 +540,16 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         """
         return self._config.lessons_on(self._member.id, dt_util.now().date())
 
+    @property
+    def _periods(self) -> list[Period]:
+        """The times this member's school rings to, which need not be the household's."""
+        return self._config.periods_for(self._member.id)
+
     def _lesson_now(self) -> dict[str, Any] | None:
         if not self._school_today:
             return None
         _weekday, minutes = self._now()
-        period = self._config.timetable.period_at(minutes)
+        period = self._config.timetable.period_at(minutes, self._periods)
         if period is None:
             return None
         lesson = next(
@@ -556,7 +562,7 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
             return None
         _weekday, minutes = self._now()
         day = {lesson.period: lesson for lesson in self._lessons_today()}
-        for period in self._config.timetable.periods:
+        for period in self._periods:
             if period.start_minutes <= minutes:
                 continue
             if lesson := day.get(period.index):
@@ -568,7 +574,7 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         # announcement fall silent by itself, with no second condition to maintain.
         if not self._school_today:
             return []
-        periods = {period.index: period for period in self._config.timetable.periods}
+        periods = {period.index: period for period in self._periods}
         return [
             _lesson_dict(lesson, periods[lesson.period])
             for lesson in self._lessons_today()
@@ -588,7 +594,9 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         now = dt_util.now()
         minutes = now.hour * 60 + now.minute
         upcoming = [
-            mark for mark in self._config.timetable.boundaries() if mark > minutes
+            mark
+            for mark in self._config.timetable.boundaries_in(self._periods)
+            if mark > minutes
         ]
         if upcoming:
             when = now.replace(
@@ -782,6 +790,9 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
             # automation that wants to say something about a fortnight without a miss.
             ATTR_ROUTINE_STATS: self._history.stats(self._member.id),
             ATTR_TIMETABLE: self._config.timetable.member_card_dict(self._member.id),
+            # Which school's times this member rings to. The board carries the times
+            # themselves, once each, so a card reads the name here and the grid there.
+            ATTR_SCHEDULE: self._member.schedule,
             ATTR_TODAY: today,
             ATTR_TODAY_SUBJECTS: subjects,
             ATTR_TODAY_SUMMARY: ", ".join(subjects),

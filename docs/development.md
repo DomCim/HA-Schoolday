@@ -130,12 +130,28 @@ Three of those checks need something more than working code:
 |---|---|
 | `brands` | `custom_components/schoolday/brand/`, which ships with the integration. The validator looks there first and only falls back to the [`home-assistant/brands`](https://github.com/home-assistant/brands) repository when it finds nothing — so the store does not wait on a third party merging a pull request. |
 | `description` | The repository's own description. A setting on GitHub, not a file in the tree. Set. |
-| `topics` | The repository's topics, likewise a setting. **Not set**, and therefore the one thing still standing between this repository and a submission. |
+| `topics` | The repository's topics, likewise a setting. Set. |
+
+All three are satisfied, so the HACS job runs with **no `ignore` list at all** and whatever it
+says is the real verdict. What is left is the pull request to `hacs/default` itself — one line —
+and the wait, which HACS itself puts at months.
 
 The images under `brands/` are a different job and still worth submitting one day: they are what puts
 the mark on the integration's page **inside Home Assistant**, which the shipped `brand/` directory
 does not do. Both sets come out of `node assets/brands.mjs`, which renders once and writes both, so
 they cannot drift apart.
+
+## Changing something
+
+The manual is part of the change. A feature the documentation does not mention does not
+exist as far as most people are concerned — it is what the README, the HACS panel and the
+integration page all link to — so the page that covers what you touched is updated in the
+same commit, and the pictures are regenerated with `npm run shots` if a card now draws
+something different.
+
+[`CLAUDE.md`](https://github.com/DomCim/HA-Schoolday/blob/main/CLAUDE.md) in the repository
+root writes that down in full, along with the version rule and the habits this codebase is
+written with. It is aimed at coding agents and reads perfectly well as a contributor guide.
 
 ## Language
 

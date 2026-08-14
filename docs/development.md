@@ -119,9 +119,23 @@ release workflow creates them itself.
 Installing as a HACS custom repository needs the repository to be **public** — HACS cannot read
 private repositories. Beyond that, for a custom repository nothing else is required.
 
-Submitting to the HACS default store additionally needs a repository description, GitHub topics, and
-a licence detectable on the default branch. Those two checks are in `ignore` in the workflow; drop
-them from the list if you ever go that route.
+Getting into the HACS **default store** — where it is found without anybody adding a custom
+repository — is a pull request to [`hacs/default`](https://github.com/hacs/default) adding one line
+to its `integration` file. HACS will not look at that pull request until `hacs/action` passes **with
+an empty `ignore` list**: there, ignoring a check counts as failing it.
+
+Three of those checks need something more than working code:
+
+| Check | How it is satisfied here |
+|---|---|
+| `brands` | `custom_components/schoolday/brand/`, which ships with the integration. The validator looks there first and only falls back to the [`home-assistant/brands`](https://github.com/home-assistant/brands) repository when it finds nothing — so the store does not wait on a third party merging a pull request. |
+| `description` | The repository's own description. A setting on GitHub, not a file in the tree. Set. |
+| `topics` | The repository's topics, likewise a setting. **Not set**, and therefore the one thing still standing between this repository and a submission. |
+
+The images under `brands/` are a different job and still worth submitting one day: they are what puts
+the mark on the integration's page **inside Home Assistant**, which the shipped `brand/` directory
+does not do. Both sets come out of `node assets/brands.mjs`, which renders once and writes both, so
+they cannot drift apart.
 
 ## Language
 

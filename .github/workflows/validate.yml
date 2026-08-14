@@ -28,16 +28,15 @@ jobs:
       - uses: hacs/action@main
         with:
           category: integration
-          # topics: the last thing standing between this repository and a submission to
-          #         the HACS default store, and the only one that cannot be fixed from
-          #         inside the repository — it is a setting on GitHub. Drop this from the
-          #         ignore list the day the topics are set, and the job becomes the real
-          #         gate rather than a rehearsal of it.
+          # No ignore list, and that is the point of this job now rather than an
+          # accident of it. hacs/default will not look at a submission until this action
+          # passes with nothing ignored — there, an ignored check counts as a failed one
+          # — so a list that quietly grew to three entries was a job that agreed with
+          # itself about a repository nobody would have accepted.
           #
-          # brands and description were here too, and are not any more: the four images
-          # now ship in custom_components/schoolday/brand/, which is where HACS looks,
-          # and the repository has a description.
-          ignore: topics
+          # The three that were on it: brands, answered by the images that ship in
+          # custom_components/schoolday/brand/; description and topics, both settings on
+          # GitHub that no commit can reach, and both now set.
 
   # Ruff and the configuration tests. They existed before this job did and were only
   # ever run by hand, which meant nothing stopped a broken config_writes from being

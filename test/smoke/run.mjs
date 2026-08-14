@@ -1569,6 +1569,51 @@ const adminErrorText = await page.evaluate(async () => {
   await new Promise((r) => setTimeout(r, 300));
   return card.shadowRoot.querySelector('.notice.error')?.textContent ?? null;
 });
+// A named school has to be removable by a button somebody can see. Emptying its box and
+// saving does remove it, and nobody would ever guess that — a delete you have to deduce
+// is a delete that does not exist.
+await page.evaluate(() => {
+  // The check above left the card holding a hass whose callService always rejects.
+  // Hand back the real one, or this test measures that stub instead of the button.
+  document.querySelector('schoolday-admin-card').hass = window.__hass;
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  [...root.querySelectorAll('.tab')].find((tab) => tab.textContent.trim() === 'Stundenplan')?.click();
+});
+await page.waitForTimeout(300);
+const scheduleRemoval = await page.evaluate(() => {
+  // Answered in the page rather than through Playwright's dialog handler: the click
+  // happens inside this evaluate, and a browser dialog opening mid-evaluate is a race
+  // this test has no reason to run. What is under test is what the button does once
+  // the question is answered, so the question answers itself.
+  const asked = [];
+  window.confirm = (question) => {
+    asked.push(question);
+    return true;
+  };
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  const box = [...root.querySelectorAll('.field')].find(
+    (field) => field.querySelector('.label')?.textContent.trim() === 'Gymnasium',
+  );
+  const remove = box?.nextElementSibling?.querySelector('button.danger');
+  remove?.click();
+  return { found: Boolean(remove), label: remove?.textContent.trim() ?? null, asked };
+});
+await page.waitForTimeout(300);
+const removeCall = await page.evaluate(() =>
+  window.__calls.services.filter((call) => call.service === 'set_periods').at(-1),
+);
+check(
+  'a named school can be removed by a button, and names who that moves',
+  scheduleRemoval.found &&
+    removeCall?.data?.schedule === 'Gymnasium' &&
+    Array.isArray(removeCall?.data?.periods) &&
+    removeCall.data.periods.length === 0 &&
+    // Nik is the one on it, so the question has to say so rather than leaving it to be
+    // discovered after the fact.
+    /Nik/.test(scheduleRemoval.asked[0] ?? ''),
+  `${scheduleRemoval.asked[0] ?? 'nicht gefragt'} → ${JSON.stringify(removeCall?.data ?? null)}`,
+);
+
 check(
   'a refused value shows the reason, not [object Object]',
   adminErrorText?.includes('keine Stundenzeit') && !adminErrorText.includes('object Object'),

@@ -635,14 +635,44 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
   private _renderSchedules(config: AdminConfig): TemplateResult {
     const names = Object.keys(config.schedules);
     return html`
-      ${names.map((name) =>
-        this._lines(
-          name,
-          config.schedules[name],
-          '08:15-09:00',
-          (lines) => this._call('set_periods', { schedule: name, periods: lines }),
-        ),
-      )}
+      ${names.map((name) => {
+        // Who would be handed back to the household's times by removing this. Named in
+        // the question rather than discovered afterwards: "remove Gymnasium?" and
+        // "remove Gymnasium, and move Nik?" are different questions.
+        const affected = config.members.filter((member) => member.schedule === name);
+        return html`
+          ${this._lines(
+            name,
+            config.schedules[name],
+            '08:15-09:00',
+            (lines) => this._call('set_periods', { schedule: name, periods: lines }),
+          )}
+          <div class="row">
+            <button
+              class="danger"
+              ?disabled=${this._busy}
+              @click=${() => {
+                // One child and several children are different sentences in both
+                // languages this ships, and "Nik kommen" is the kind of wrong that makes
+                // a dialog look machine-made.
+                const question = affected.length
+                  ? t(this.hass, affected.length === 1
+                      ? 'admin.schedule_remove_one'
+                      : 'admin.schedule_remove_members', {
+                      name,
+                      members: affected.map((member) => member.name).join(', '),
+                    })
+                  : t(this.hass, 'admin.schedule_remove', { name });
+                if (confirm(question)) {
+                  this._call('set_periods', { schedule: name, periods: [] });
+                }
+              }}
+            >
+              ${t(this.hass, 'admin.remove')}
+            </button>
+          </div>
+        `;
+      })}
       ${this._adding
         ? html`
             <div class="row">

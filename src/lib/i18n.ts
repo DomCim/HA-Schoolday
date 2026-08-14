@@ -126,6 +126,11 @@ const EN: Dict = {
   'admin.schedule_name': 'Name of the school',
   'admin.schedule_hint': 'Grammar school, primary school…',
   'admin.schedule_add': 'Another school with different times',
+  'admin.schedule_remove': 'Remove {name}? Its lesson times go with it.',
+  'admin.schedule_remove_one':
+    'Remove {name}? {members} goes back to the usual lesson times.',
+  'admin.schedule_remove_members':
+    'Remove {name}? {members} go back to the usual lesson times.',
   'admin.periods_first': 'Set the lesson times first — the week hangs on them.',
   'admin.no_members': 'Nobody is set up yet. Add a family member first.',
   'admin.no_subjects': 'No subjects yet. They appear once a timetable has lessons in it.',
@@ -265,6 +270,11 @@ const DE: Dict = {
   'admin.schedule_name': 'Name der Schule',
   'admin.schedule_hint': 'Gymnasium, Grundschule …',
   'admin.schedule_add': 'Weitere Schule mit anderen Zeiten',
+  'admin.schedule_remove': '{name} entfernen? Die Stundenzeiten gehen mit.',
+  'admin.schedule_remove_one':
+    '{name} entfernen? {members} kommt dann auf die üblichen Stundenzeiten.',
+  'admin.schedule_remove_members':
+    '{name} entfernen? {members} kommen dann auf die üblichen Stundenzeiten.',
   'admin.periods_first': 'Trage zuerst die Stundenzeiten ein — die Woche hängt daran.',
   'admin.no_members': 'Noch ist niemand angelegt. Lege zuerst ein Familienmitglied an.',
   'admin.no_subjects': 'Noch keine Fächer. Sie erscheinen, sobald ein Stundenplan Stunden hat.',

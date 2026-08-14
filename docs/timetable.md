@@ -62,9 +62,13 @@ From there everything follows the child. Their card draws their rows, their brea
 out of *their* gaps, their sensor wakes at their boundaries, and their events fire when
 their lessons actually start.
 
-Clearing a school's times removes it. The children who were on it fall back to the
-household's times rather than to none — a school deleted out from under a child leaves
-them with a working timetable, which is the better of the two wrong answers.
+**Remove** takes a school away again, and asks first — naming the children it moves, because
+"remove Gymnasium?" and "remove Gymnasium, and move Nik?" are different questions. They fall
+back to the household's times rather than to none: a school deleted out from under a child
+leaves them with a working timetable, which is the better of the two wrong answers.
+
+In the options dialog, where there is no button to press, clearing that school's times
+does the same thing.
 
 ## One week per child
 

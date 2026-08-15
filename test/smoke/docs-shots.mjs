@@ -5,9 +5,15 @@
  * the pictures in the manual show the same Wednesday, the same running lesson and the
  * same three children as the tests, and cannot drift into showing something the cards
  * no longer do. Regenerate with `npm run shots` after `npm run build`.
+ *
+ * Every picture is rendered twice, light and dark, and the two are cut together along a
+ * diagonal: the left of the image is the light theme, the right is the dark one. A wall
+ * panel is on one or the other all day, and a manual that only ever showed the light one
+ * was answering "what does it look like" for half its readers. One image rather than two
+ * side by side, because the interesting thing is that the two are the same card.
  */
 import { createServer } from 'node:http';
-import { mkdir, readFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { extname, join } from 'node:path';
 import { chromium } from 'playwright';
 
@@ -52,6 +58,124 @@ const browser = await chromium.launch({
 const made = [];
 
 /**
+ * Home Assistant's own dark theme, to the values it ships.
+ *
+ * Only the variables the cards actually read, plus the two rules the harness page sets
+ * for itself. The cards never look at `themes.darkMode` — they are built out of these
+ * variables and inherit whatever the dashboard around them is — so setting them is the
+ * whole of what a dark Home Assistant does to a Schoolday card.
+ */
+const DARK_THEME = `
+  :root, body {
+    --primary-text-color: #e1e1e1;
+    --secondary-text-color: #9b9b9b;
+    --card-background-color: #1c1c1c;
+    --primary-background-color: #111111;
+    --divider-color: rgba(225, 225, 225, 0.12);
+    --primary-color: #03a9f4;
+    --text-primary-color: #212121;
+    --error-color: #db4437;
+  }
+  body { background: #111111; color: #e1e1e1; }
+  ha-card { background: #1c1c1c; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); }
+`;
+
+/** Render one card at one width, in one theme, and hand back the PNG. */
+async function render(width, setup, maxHeight, dark) {
+  const page = await browser.newPage({
+    viewport: { width, height: 900 },
+    timezoneId: 'Europe/Berlin',
+    locale: 'de-DE',
+    deviceScaleFactor: 2,
+    colorScheme: dark ? 'dark' : 'light',
+  });
+  await page.clock.setFixedTime(new Date('2026-08-05T09:15:00+02:00'));
+  await page.goto(`http://localhost:${PORT}/`);
+  await page.waitForFunction(() => window.__ready === true);
+  // Before the card is mounted, so nothing is drawn against the wrong palette first.
+  if (dark) {
+    await page.addStyleTag({ content: DARK_THEME });
+  }
+  const tag = await setup(page);
+  await page.waitForTimeout(500);
+  const target = page.locator(tag);
+  let buffer;
+  if (maxHeight) {
+    const box = await target.boundingBox();
+    buffer = await page.screenshot({
+      clip: { ...box, height: Math.min(box.height, maxHeight) },
+    });
+  } else {
+    buffer = await target.screenshot();
+  }
+  await page.close();
+  return buffer;
+}
+
+/**
+ * Cut the two renders together along a diagonal, light on the left.
+ *
+ * Done on a canvas rather than with an image library so the script keeps depending on
+ * nothing but the browser that is already open. The seam leans by a fraction of the
+ * width rather than by a fixed angle: on a tall editor a constant angle would run off
+ * the side long before the bottom, and the line would stop being a diagonal at all.
+ */
+async function diagonal(lightPng, darkPng) {
+  const page = await browser.newPage();
+  const merged = await page.evaluate(
+    async ([light, dark]) => {
+      const load = (data) =>
+        new Promise((resolve, reject) => {
+          const image = new Image();
+          image.onload = () => resolve(image);
+          image.onerror = reject;
+          image.src = data;
+        });
+      const [a, b] = await Promise.all([load(light), load(dark)]);
+      if (a.width !== b.width || a.height !== b.height) {
+        return { error: `${a.width}x${a.height} vs ${b.width}x${b.height}` };
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = a.width;
+      canvas.height = a.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(a, 0, 0);
+
+      const lean = Math.min(a.width * 0.09, a.height * 0.5);
+      const top = a.width / 2 + lean;
+      const bottom = a.width / 2 - lean;
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(top, 0);
+      ctx.lineTo(a.width, 0);
+      ctx.lineTo(a.width, a.height);
+      ctx.lineTo(bottom, a.height);
+      ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(b, 0, 0);
+      ctx.restore();
+
+      // A hairline on the join, so it reads as a deliberate cut rather than as a card
+      // that failed to paint half of itself.
+      ctx.strokeStyle = 'rgba(127, 127, 127, 0.55)';
+      ctx.lineWidth = Math.max(2, a.width / 700);
+      ctx.beginPath();
+      ctx.moveTo(top, 0);
+      ctx.lineTo(bottom, a.height);
+      ctx.stroke();
+      return { data: canvas.toDataURL('image/png') };
+    },
+    [`data:image/png;base64,${lightPng.toString('base64')}`,
+     `data:image/png;base64,${darkPng.toString('base64')}`],
+  );
+  await page.close();
+  if (merged.error) {
+    throw new Error(`light and dark came out different sizes: ${merged.error}`);
+  }
+  return Buffer.from(merged.data.split(',')[1], 'base64');
+}
+
+/**
  * Render one card at one width and save it, trimmed to the card itself.
  *
  * `maxHeight` caps a section that is simply a long list — the materials editor has one
@@ -59,28 +183,9 @@ const made = [];
  * the first three boxes do not.
  */
 async function shot(name, width, setup, maxHeight) {
-  const page = await browser.newPage({
-    viewport: { width, height: 900 },
-    timezoneId: 'Europe/Berlin',
-    locale: 'de-DE',
-    deviceScaleFactor: 2,
-  });
-  await page.clock.setFixedTime(new Date('2026-08-05T09:15:00+02:00'));
-  await page.goto(`http://localhost:${PORT}/`);
-  await page.waitForFunction(() => window.__ready === true);
-  const tag = await setup(page);
-  await page.waitForTimeout(500);
-  const target = page.locator(tag);
-  if (maxHeight) {
-    const box = await target.boundingBox();
-    await page.screenshot({
-      path: join(OUT, `${name}.png`),
-      clip: { ...box, height: Math.min(box.height, maxHeight) },
-    });
-  } else {
-    await target.screenshot({ path: join(OUT, `${name}.png`) });
-  }
-  await page.close();
+  const light = await render(width, setup, maxHeight, false);
+  const dark = await render(width, setup, maxHeight, true);
+  await writeFile(join(OUT, `${name}.png`), await diagonal(light, dark));
   made.push(name);
   console.log('  ', name);
 }

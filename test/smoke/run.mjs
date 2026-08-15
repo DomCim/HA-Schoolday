@@ -1040,6 +1040,45 @@ check(
   unknownLang.replace(/\s+/g, ' ').trim().slice(0, 60),
 );
 
+// ------------------------------------------------------------ restyling
+
+// card-mod appends a <style> into a card's shadow root, so whether a household can
+// restyle these cards is a fact about how they are built, not a feature to be added.
+// Locked down here because it is invisible until somebody tries: a variable moved from
+// the token block onto a rule, or a rule turned into an inline style, breaks it silently.
+await page.evaluate(() =>
+  window.__mount({ type: 'custom:schoolday-routines-card', block: 'both' }, 'schoolday-routines-card'),
+);
+await page.waitForTimeout(300);
+const restyled = await page.evaluate(() => {
+  const root = document.querySelector('schoolday-routines-card').shadowRoot;
+  const read = () => ({
+    radius: getComputedStyle(root.querySelector('.person')).borderRadius,
+    muted: getComputedStyle(root.querySelector('.progress')).color,
+    step: getComputedStyle(root.querySelector('.step')).backgroundColor,
+  });
+  const before = read();
+  const style = document.createElement('style');
+  style.textContent = `
+    ha-card { --schoolday-radius: 2px; --schoolday-muted: rgb(255, 0, 0); }
+    .step { background: rgb(0, 128, 0) !important; }
+  `;
+  root.appendChild(style);
+  return { before, after: read() };
+});
+check(
+  'the tokens can be overridden from outside, the way card-mod does it',
+  restyled.before.radius === '12px' &&
+    restyled.after.radius === '2px' &&
+    restyled.after.muted === 'rgb(255, 0, 0)',
+  `${restyled.before.radius} → ${restyled.after.radius}, ${restyled.after.muted}`,
+);
+check(
+  'a rule on a class needs !important, because Lit adopts its styles last',
+  restyled.after.step === 'rgb(0, 128, 0)',
+  restyled.after.step,
+);
+
 // ------------------------------------------------------------- card editors
 
 const CARD_TYPES = [

@@ -5,6 +5,11 @@ import { css } from 'lit';
  *
  * Sized for a wall tablet: touch targets are at least 44px, and nothing depends on
  * hover, which does not exist on the device this is built for.
+ *
+ * These names are a public surface, not private plumbing: a household restyles Schoolday
+ * with card-mod by overriding them, and `docs/cards.md#restyling-with-card-mod` lists
+ * every one with its default. Renaming or dropping one breaks somebody's dashboard
+ * silently, and the table has to be corrected in the same commit.
  */
 export const schooldayTokens = css`
   :host {

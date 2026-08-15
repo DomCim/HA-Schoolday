@@ -24,6 +24,11 @@ shows Monday to Friday unless somebody has weekend lessons, hides periods nobody
 marks today and the lesson running right now, and falls back to a single day when it is
 too narrow for a week.
 
+
+![One child's week. Today is the highlighted column, the running lesson is outlined, and the times and breaks come from that child's own school.](images/timetable-week.png)
+*One child's week. Today is the highlighted column, the running lesson is outlined, and the
+times and breaks come from that child's own school.*
+
 | Option | Default | What it does |
 |---|---|---|
 | `member` | all | One child only, by name or id. Otherwise the card offers a switcher. |
@@ -36,15 +41,23 @@ too narrow for a week.
 | `highlight` | `true` | Today, the running lesson and the "now / next" line. |
 | `roll_days` | `true` | Point a weekday that has been at next week's. Off shows the week as it stands. |
 
-
-![The header card: clock, date and weather along the top of a wall panel](images/header.png)
-*The header card: clock, date and weather along the top of a wall panel*
+Children at [two schools that ring differently](timetable.md#two-schools-that-do-not-ring-together)
+each get their own rows: the card draws the grid of whichever child is on screen.
 
 ## Routines card
 
 ```yaml
 type: custom:schoolday-routines-card
 ```
+
+What has to happen before the door in the morning and before bed in the evening, ticked
+off by the children themselves. With no member set it shows the whole family side by side,
+which is what a wall panel is for.
+
+
+![The whole family at once. "Sportbeutel" carries the subject that put it on the list — the timetable generated that step rather than anybody typing it.](images/routines.png)
+*The whole family at once. "Sportbeutel" carries the subject that put it on the list — the
+timetable generated that step rather than anybody typing it.*
 
 | Option | Default | What it does |
 |---|---|---|
@@ -100,6 +113,14 @@ never asked for anything, and failing to do nothing is not a thing that happened
 type: custom:schoolday-homework-card
 ```
 
+Each child's [homework](homework.md) grouped by when it is due, soonest group first, ticked
+off on the card. It draws a Home Assistant todo list, so the same items are reachable by
+voice and from the todo panel.
+
+
+![Grouped by when it is due. The number beside each name is what is still open.](images/homework.png)
+*Grouped by when it is due. The number beside each name is what is still open.*
+
 | Option | Default | What it does |
 |---|---|---|
 | `member` | all | One child only. |
@@ -114,6 +135,10 @@ weather_entity: weather.home
 ```
 
 Clock, date and weather — the strip along the top of a wall panel.
+
+
+![Clock, date and weather along the top of a wall panel](images/header.png)
+*Clock, date and weather along the top of a wall panel*
 
 | Option | Default | What it does |
 |---|---|---|
@@ -141,8 +166,10 @@ refused value comes back as a readable reason.
 
 ### Timetable
 
-![Tap a cell to set a lesson. With a two-week timetable, the cycle and an A/B switch sit above the grid.](images/admin-timetable.png)
-*Tap a cell to set a lesson. With a two-week timetable, the cycle and an A/B switch sit above the grid.*
+![The household's lesson times at the top, another school's under them, and the week below. Tap a cell to set a lesson; with a two-week timetable the cycle and an A/B switch sit above the grid.](images/admin-timetable.png)
+*The household's lesson times at the top, another school's under them, and the week below.
+Tap a cell to set a lesson; with a two-week timetable the cycle and an A/B switch sit above
+the grid.*
 
 The lesson times live at the top of this section, and under them any
 [other school's](timetable.md#two-schools-that-do-not-ring-together) — for a household
@@ -156,8 +183,10 @@ the **Family** section.
 
 ### Family
 
-![Name, colour, the calendar searched for the holiday-care keyword, and a picture taken from a person entity](images/admin-family.png)
-*Name, colour, the calendar searched for the holiday-care keyword, and a picture taken from a person entity*
+![Name, colour, the calendar searched for the holiday-care keyword, a picture taken from a person entity, and which school's lesson times they ring to.](images/admin-family.png)
+*Name, colour, the calendar searched for the holiday-care keyword, a picture taken from a
+person entity, and which school's lesson times they ring to. The last of those only appears
+once there is more than one school to choose between.*
 
 ### Material
 

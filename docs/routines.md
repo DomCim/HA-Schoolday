@@ -109,6 +109,7 @@ a child who has not been asked to do anything has not failed to do it.
 
 | Service | Purpose |
 |---|---|
+| `schoolday.set_routine` | Replace one member's steps for one block on one day. |
 | `schoolday.set_routine_step` | Tick a step off, or put it back. Takes a member name or id. |
 | `schoolday.reset_routine` | Clear today's ticks, for one member or everyone. |
 | `schoolday.set_materials` | Say what a subject needs brought along. |

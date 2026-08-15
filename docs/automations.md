@@ -16,6 +16,8 @@ sensor.schoolday_ben        →  Sport
 
 | Attribute | Contents |
 |---|---|
+| `member_id` | The id Schoolday knows this child by. It is how the cards find this sensor, so it is also how a template can |
+| `color` / `avatar` | What this child is drawn in and with, for anything rendering them alongside the cards |
 | `today` | Today's lessons: `subject`, `room`, `period`, `start`, `end` |
 | `today_subjects` | Today's subjects, de-duplicated: `["Deutsch", "Mathe", "Sport"]` |
 | `today_summary` | The same, ready to speak: `"Deutsch, Mathe, Sport"` |
@@ -172,15 +174,16 @@ validates: a card must not be able to write a timetable the sensors can no longe
 | `schoolday.set_routine_step` | Tick a routine step off, or put it back |
 | `schoolday.reset_routine` | Clear today's ticks |
 | `schoolday.set_absent` | Mark a child ill, optionally through a date |
-| `schoolday.set_periods` | Replace the lesson times |
+| `schoolday.set_periods` | Replace the lesson times — the household's, or one named school's |
 | `schoolday.set_lesson` | One cell of one week |
 | `schoolday.set_day` | A whole weekday at once |
+| `schoolday.set_routine` | Replace one member's steps for one block on one day |
 | `schoolday.set_cycle` | One-week or two-week timetable, and where week A starts |
 | `schoolday.set_subject_color` | Recolour a subject, or hand it back its derived colour |
 | `schoolday.set_exception` | What one date does differently |
 | `schoolday.clear_exception` | Put a date back |
 | `schoolday.set_materials` | What a subject needs brought along |
-| `schoolday.set_member` | Add or change a family member |
+| `schoolday.set_member` | Add or change a family member, including which school they ring to |
 | `schoolday.remove_member` | Remove one, and everything that only existed for them |
 | `schoolday.set_calendars` | The holiday calendars and the holiday-care keywords |
 

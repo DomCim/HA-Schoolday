@@ -47,6 +47,11 @@ It is built for one thing: a tablet on the kitchen wall that a family walks past
     <p>A Home Assistant todo list per child, sorted by what is due first, with finished work
     kept for a fortnight so Thursday's question has an answer on Friday.</p>
   </a>
+  <a class="tile" href="routines.html#the-record">
+    <span class="tile-title">The record</span>
+    <p>How reliably each child gets through their routines over the last month, and which steps
+    keep being skipped — for the grown-ups, not for the wall.</p>
+  </a>
   <a class="tile yellow" href="exceptions.html">
     <span class="tile-title">Days that differ</span>
     <p>Holidays, holiday care, school trips, a cancelled lesson, a substitution — and a child

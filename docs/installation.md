@@ -41,7 +41,9 @@ integration page to move one lesson.
    `person.` entity and Home Assistant's own picture is used, so it follows whatever
    they change it to.
 2. **Lesson times**, one `HH:MM-HH:MM` per line. Breaks are derived from the gaps, so
-   there is nothing else to configure.
+   there is nothing else to configure. Children at
+   [a second school that rings differently](timetable.md#two-schools-that-do-not-ring-together)
+   get their own set; everybody else shares these.
 3. **One week per child.** See [Timetable](timetable.md).
 4. **Days off**, if you have a holiday calendar. See [Days that differ](exceptions.md).
 5. **Routines**, when you want them. See [Routines](routines.md).

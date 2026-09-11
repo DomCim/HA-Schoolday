@@ -1,0 +1,12 @@
+{
+  "_hinweis": "Welche Module aus dem DiD0m-Katalog dieses Repo baut. Quelle der Wahrheit - der Modulkatalog in did0m-verwaltung liest diese Datei ueber die GitHub-API und beantwortet damit 'wer hat dieses Modul auch?'. Wer ein Modul einbaut oder entfernt, aendert sie im selben Pull Request. Schluessel aus did0m-verwaltung/src/lib/modulKatalog.ts.",
+  "module": [
+    "termine", "aufgaben", "benachrichtigungen"
+  ],
+  "anmerkungen": {
+    "termine": "Stundenplan und freie Tage, als Home-Assistant-Kalender statt eigener Verwaltung.",
+    "aufgaben": "Hausaufgaben und Routinen - kein Aufgabenmodul im Sinne der Geschaeftsrepos.",
+    "benachrichtigungen": "Ueber Home Assistant, nicht ueber eigene Kanaele.",
+    "_teilt_wenig": "Bewusst kurz. Dieses Repo ist eine HA-Integration und teilt mit den Geschaeftsrepos fast nichts - ein Befund am Rechnungs- oder Kassenmodul betrifft es nie. Genau das soll der Katalog sagen koennen."
+  }
+}

@@ -957,6 +957,7 @@ class SchooldayConfig:
         timetable and routine cards are on the wall all day and should not carry the
         weight of settings nobody is looking at.
         """
+        since = today().isoformat()
         return {
             "members": [member.as_admin_dict() for member in self.members],
             "routines": {
@@ -977,6 +978,17 @@ class SchooldayConfig:
             "school_calendars": list(self.school_calendars),
             "care_keywords": list(self.care_keywords),
             "materials": {name: list(items) for name, items in self.materials.items()},
+            # From today on only: the editor's date field starts at today, and a trip
+            # from last spring is not something anybody will come back to change.
+            # ISO dates compare correctly as strings.
+            "exceptions": {
+                member_id: {
+                    day: change.as_options()
+                    for day, change in sorted(dates.items())
+                    if day >= since
+                }
+                for member_id, dates in self.exceptions.items()
+            },
             "cycle_weeks": self.cycle_weeks,
             "cycle_anchor": self.cycle_anchor.isoformat() if self.cycle_anchor else None,
             # Which week the household is in right now, so the editor can open on it

@@ -122,19 +122,15 @@ class SchooldayOptionsFlow(OptionsFlow):
         ]
 
     def _persist(self, **changes: Any) -> None:
-        """Write the options back, carrying every section that is not being changed.
+        """Write the changed sections back on top of the options as they stand.
 
-        Every section has to be listed: `async_update_entry` replaces the options
-        wholesale, so anything left out here would be silently dropped.
+        `async_update_entry` replaces the options wholesale, so this starts from the
+        current options rather than listing the sections it knows about: a list is the
+        copy nobody updates, and it once dropped the packing lists, every date exception
+        and the A/B week whenever somebody edited a routine here. `_write` in
+        services.py merges the same way.
         """
-        options: dict[str, Any] = {
-            CONF_MEMBERS: self._members,
-            CONF_ROUTINES: self._routines,
-            CONF_TIMETABLE: self._timetable.as_options(),
-            CONF_SCHOOL_CALENDARS: self._school_calendars,
-            CONF_CARE_KEYWORDS: self._care_keywords,
-        }
-        options.update(changes)
+        options = {**self.config_entry.options, **changes}
         self.hass.config_entries.async_update_entry(self.config_entry, options=options)
 
     async def _apply(self, **changes: Any) -> ConfigFlowResult:

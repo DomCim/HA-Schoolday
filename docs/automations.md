@@ -189,3 +189,8 @@ validates: a card must not be able to write a timetable the sensors can no longe
 
 Every one that takes a `member` accepts a **name** as well as an id, so a script stays
 readable.
+
+The first three are open to every user, because ticking a step off is what a child's
+wall tablet is for. Everything below them rewrites the configuration and needs an
+**administrator**, exactly like the options dialog: a call from any other user is
+refused. An automation runs without a user and is not affected.

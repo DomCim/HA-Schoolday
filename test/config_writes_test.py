@@ -648,6 +648,46 @@ check(
     f"{len(made)} Quellen, unbekannt: {sorted(n for n in made if n not in sensor_src)}",
 )
 
+# --- the admin card sees the exceptions it edits ---------------------------
+# The card reads them off as_admin_dict. Without them every saved date looked
+# untouched: no chips, an empty label, and a cancellation nobody could undo.
+heute = datetime.date.today()
+morgen = (heute + datetime.timedelta(days=1)).isoformat()
+gestern = (heute - datetime.timedelta(days=1)).isoformat()
+admin = Models.SchooldayConfig.from_options(merged({"exceptions": {MEMBER: {
+    gestern: {"label": "vorbei"},
+    morgen: {"label": None, "periods": {"1": {}, "2": {"subject": "Vertretung", "room": "R2"}}},
+}}})).as_admin_dict()
+check("as_admin_dict zeigt Ausnahmen ab heute",
+      list(admin.get("exceptions", {}).get(MEMBER, {})) == [morgen], str(admin.get("exceptions")))
+check("ausgefallene Stunde bleibt als Eintrag erkennbar",
+      admin["exceptions"][MEMBER][morgen]["periods"] == {
+          "1": {}, "2": {"subject": "Vertretung", "room": "R2"}},
+      str(admin["exceptions"][MEMBER][morgen]))
+
+# --- the options flow merges, it does not rebuild ----------------------------
+# Rebuilding from a list of known sections dropped materials, exceptions and the
+# A/B cycle every time a routine or a member was edited in the dialog.
+flow = ast.parse((COMPONENT / "config_flow.py").read_text())
+persist = next(n for n in ast.walk(flow)
+               if isinstance(n, ast.FunctionDef) and n.name == "_persist")
+check("_persist geht von den gespeicherten Optionen aus",
+      "**self.config_entry.options" in ast.unparse(persist))
+
+# --- only an admin may rewrite the configuration -----------------------------
+# A wall tablet is usually signed in as a child. Ticking steps, clearing the ticks
+# and marking somebody ill stay open to everybody; everything else is admin only.
+services_src = (COMPONENT / "services.py").read_text()
+offen = sorted(
+    ast.unparse(node.args[1]) for node in ast.walk(ast.parse(services_src))
+    if isinstance(node, ast.Call) and ast.unparse(node.func) == "hass.services.async_register"
+)
+check("nur die drei Alltags-Dienste sind fuer alle offen",
+      offen == ["SERVICE_RESET_ROUTINE", "SERVICE_SET_ABSENT", "SERVICE_SET_ROUTINE_STEP"],
+      str(offen))
+check("die Konfigurations-Dienste laufen ueber async_register_admin_service",
+      "async_register_admin_service(hass, DOMAIN, service, handler" in services_src)
+
 # --- the brand images must stay within the sizes home-assistant/brands allows ---
 # Dimensions only, from the PNG header, so this needs nothing but the standard library.
 # Trimming is the render script's job; getting the size wrong is the likely mistake,

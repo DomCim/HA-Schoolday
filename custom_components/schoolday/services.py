@@ -23,6 +23,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.service import async_register_admin_service
 
 from . import config_writes
 from .config_writes import SchooldayValueError
@@ -486,4 +487,7 @@ def async_register_services(hass: HomeAssistant) -> None:
         (SERVICE_SET_EXCEPTION, _set_exception, SET_EXCEPTION_SCHEMA),
         (SERVICE_CLEAR_EXCEPTION, _clear_exception, CLEAR_EXCEPTION_SCHEMA),
     ):
-        hass.services.async_register(DOMAIN, service, handler, schema=schema)
+        # Admin only: these rewrite what the options flow keeps behind the admin's
+        # Configure button, and a wall tablet is usually signed in as a child's account.
+        # Ticking a step, clearing the ticks and marking somebody ill stay open above.
+        async_register_admin_service(hass, DOMAIN, service, handler, schema=schema)

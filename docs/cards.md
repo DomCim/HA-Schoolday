@@ -160,6 +160,10 @@ The card **never writes the configuration itself.** It calls a service, and the 
 decides whether the value is allowed — so there is one set of rules and not two, and a
 refused value comes back as a readable reason.
 
+Those services are **admin only**, so the card is for an administrator's dashboard.
+Signed in as anybody else — a child's account on the wall tablet, say — it still shows
+everything, but every change is refused.
+
 | Option | Default | What it does |
 |---|---|---|
 | `section` | `timetable` | Which section to open on. |

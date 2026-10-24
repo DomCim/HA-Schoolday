@@ -59,6 +59,8 @@ from .const import (
     ATTR_TODAY,
     ATTR_TODAY_SUBJECTS,
     ATTR_TODAY_SUMMARY,
+    ATTR_TOMORROW_SUBJECTS,
+    ATTR_TOMORROW_SUMMARY,
     ATTR_VERSION,
     ATTR_WEEK,
     ATTR_WEEKDAY,
@@ -581,6 +583,27 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
             if lesson.period in periods
         ]
 
+    def _subjects_tomorrow(self) -> list[str]:
+        """Tomorrow's subjects, de-duplicated, or none when tomorrow is not a school day.
+
+        One answer for the packing list and the evening announcement, so the bag and
+        the sentence about the bag cannot disagree. Asked again on every publish rather
+        than kept: the midnight boundary publishes, which is what moves it along a day.
+        """
+        tomorrow = dt_util.now().date() + timedelta(days=1)
+        if self._mode_on(tomorrow) != MODE_SCHOOL:
+            return []
+        # Only periods this member's school actually rings, like today: a lesson in a
+        # slot with no time is not on any card, so it should not be packed for either.
+        rung = {period.index for period in self._periods}
+        return list(
+            dict.fromkeys(
+                lesson.subject
+                for lesson in self._config.lessons_on(self._member.id, tomorrow)
+                if lesson.period in rung
+            )
+        )
+
     @callback
     def _cancel_boundary(self) -> None:
         if self._unsub_boundary is not None:
@@ -665,12 +688,7 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         """
         if not self._config.materials:
             return []
-        tomorrow = dt_util.now().date() + timedelta(days=1)
-        if self._mode_on(tomorrow) != MODE_SCHOOL:
-            return []
-        lessons = self._config.lessons_on(self._member.id, tomorrow)
-        subjects = list(dict.fromkeys(lesson.subject for lesson in lessons))
-        return self._config.packing_list(subjects)
+        return self._config.packing_list(self._subjects_tomorrow())
 
     def _routine(self, block: str) -> list[dict[str, Any]]:
         """Today's steps for a block, each marked done or not.
@@ -776,8 +794,13 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         # even when German is on twice.
         subjects = list(dict.fromkeys(entry[ATTR_SUBJECT] for entry in today))
 
+        tomorrow = self._subjects_tomorrow()
+
         until = self._absence.until(self._member.id)
         return {
+            # The name as typed, so an announcement about several children can say who
+            # without taking the friendly name apart.
+            ATTR_MEMBER: self._member.name,
             ATTR_MEMBER_ID: self._member.id,
             ATTR_COLOR: self._member.color,
             ATTR_DAY_MODE: self._day_mode,
@@ -796,6 +819,8 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
             ATTR_TODAY: today,
             ATTR_TODAY_SUBJECTS: subjects,
             ATTR_TODAY_SUMMARY: ", ".join(subjects),
+            ATTR_TOMORROW_SUBJECTS: tomorrow,
+            ATTR_TOMORROW_SUMMARY: ", ".join(tomorrow),
             ATTR_LESSON_NOW: self._lesson_now(),
             ATTR_LESSON_NEXT: self._lesson_next(),
         }

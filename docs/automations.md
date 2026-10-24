@@ -16,11 +16,13 @@ sensor.schoolday_ben        →  Sport
 
 | Attribute | Contents |
 |---|---|
+| `member` | The child's name as typed, for an announcement about several children at once |
 | `member_id` | The id Schoolday knows this child by. It is how the cards find this sensor, so it is also how a template can |
 | `color` / `avatar` | What this child is drawn in and with, for anything rendering them alongside the cards |
 | `today` | Today's lessons: `subject`, `room`, `period`, `start`, `end` |
 | `today_subjects` | Today's subjects, de-duplicated: `["Deutsch", "Mathe", "Sport"]` |
 | `today_summary` | The same, ready to speak: `"Deutsch, Mathe, Sport"` |
+| `tomorrow_subjects` / `tomorrow_summary` | The same for tomorrow — empty when tomorrow is a weekend, a holiday, a care day, a trip or a sick day |
 | `lesson_now` / `lesson_next` | The running and the next lesson, or `null` |
 | `schedule` | Which named [set of lesson times](timetable.md#two-schools-that-do-not-ring-together) this child's school rings to, or `null` for the household's |
 | `day_mode` | `school`, `care`, `free`, `event` or `sick` — which routine is showing, and why |
@@ -55,6 +57,62 @@ actions:
         {% endif %}
 ```
 {% endraw %}
+
+### The evening before
+
+The evening is when the PE kit still gets packed, so `tomorrow_subjects` and
+`tomorrow_summary` say the same for the next day. They are the same answer the
+[packing list](routines.md#what-each-subject-needs) is made from, so the sentence and the bag cannot disagree, and
+they are empty whenever tomorrow is not a school day — Friday evening is quiet, Sunday
+evening is not, without a weekday condition anywhere.
+
+One child:
+
+{% raw %}
+```jinja
+Ben hat morgen {{ state_attr('sensor.schoolday_ben', 'tomorrow_summary') }}.
+```
+{% endraw %}
+
+Every child at once, without naming any of them: each member sensor carries `member`, so
+the template finds them all and the automation does not need editing when a child joins.
+
+{% raw %}
+```yaml
+alias: Morgen ist Sport
+triggers:
+  - trigger: time
+    at: "19:00:00"
+variables:
+  sport: >-
+    {{ states.sensor
+       | selectattr('attributes.tomorrow_subjects', 'defined')
+       | selectattr('attributes.tomorrow_subjects', 'contains', 'Sport')
+       | map(attribute='attributes.member') | list }}
+conditions:
+  - condition: template
+    value_template: "{{ sport | count > 0 }}"
+actions:
+  - action: tts.speak
+    target:
+      entity_id: tts.home_assistant_cloud
+    data:
+      media_player_entity_id: media_player.homepod_kuche
+      message: >-
+        {% if sport | count == 1 %}
+          Morgen hat {{ sport[0] }} Sport.
+        {% else %}
+          Morgen haben {{ sport[:-1] | join(', ') }} und {{ sport[-1] }} Sport.
+        {% endif %}
+        Sportsachen einpacken!
+```
+{% endraw %}
+
+That reads "Morgen haben Ben, Mia und Lea Sport." The comparison is exact, like every other
+one on this page — see below for matching loosely.
+
+They move on at midnight, so an announcement at half past midnight is already about the
+day after.
 
 ## Subject names
 

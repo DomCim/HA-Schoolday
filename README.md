@@ -17,9 +17,6 @@ typed in once, in a handful of short steps, and every card and every automation 
 **📖 [Documentation](https://domcim.github.io/HA-Schoolday/)** — setting up the timetable, routines,
 homework, days off, the cards and the automations.
 
-> **Status: early development.** Installable through HACS as a custom repository, but not submitted to
-> the HACS default store — it is not listed or advertised anywhere.
-
 ## What it does
 
 | | |
@@ -37,9 +34,8 @@ normal case**.
 
 ## Install
 
-1. **HACS → three dots → Custom repositories** → `https://github.com/DomCim/HA-Schoolday`, category
-   **Integration**
-2. Install **Schoolday**, then restart Home Assistant
+1. **HACS** → search for **Schoolday** → download it
+2. Restart Home Assistant
 3. **Settings → Devices & Services → Add integration → Schoolday**
 
 Then [set it up](https://domcim.github.io/HA-Schoolday/installation.html#setting-it-up): family

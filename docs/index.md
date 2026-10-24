@@ -80,7 +80,7 @@ simply reads as "nothing done yet".
 
 ## Where to start
 
-1. **[Install it](installation.md)** — through HACS, as a custom repository.
+1. **[Install it](installation.md)** — search for Schoolday in HACS.
 2. **[Set it up](installation.md#setting-it-up)** — family members, lesson times, one week per child.
 3. **[Put the cards on a dashboard](cards.md)** — most of them take no configuration at all.
 

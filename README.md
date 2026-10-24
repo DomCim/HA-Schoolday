@@ -7,6 +7,12 @@
      at its own 888px rather than the 320 it used to be held to. -->
 ![Schoolday](https://raw.githubusercontent.com/DomCim/HA-Schoolday/main/assets/logo.png)
 
+[![HACS Default](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://hacs.xyz)
+[![Release](https://img.shields.io/github/v/release/DomCim/HA-Schoolday)](https://github.com/DomCim/HA-Schoolday/releases)
+[![Home Assistant 2025.1+](https://img.shields.io/badge/Home%20Assistant-2025.1%2B-41BDF5.svg)](https://www.home-assistant.io)
+[![Licence: MIT](https://img.shields.io/github/license/DomCim/HA-Schoolday)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/DomCim/HA-Schoolday?style=social)](https://github.com/DomCim/HA-Schoolday/stargazers)
+
 The school week and the daily routines, on the wall — a Home Assistant integration that owns the
 timetable, hands it to its own Lovelace cards, and exposes it to your automations.
 
@@ -34,6 +40,8 @@ normal case**.
 
 ## Install
 
+[![Open Schoolday in HACS on your Home Assistant](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=DomCim&repository=HA-Schoolday&category=integration)
+
 1. **HACS** → search for **Schoolday** → download it
 2. Restart Home Assistant
 3. **Settings → Devices & Services → Add integration → Schoolday**
@@ -42,6 +50,13 @@ Then [set it up](https://domcim.github.io/HA-Schoolday/installation.html#setting
 members, lesson times, one week per child. Everything after that is optional.
 
 Requires Home Assistant **2025.1** or newer.
+
+## If it works in your house
+
+**Give it a ⭐ on GitHub.** It costs a click, and the star count is what the next family
+looks at before deciding whether to try it. A photo of your wall panel in
+[Show and tell](https://github.com/DomCim/HA-Schoolday/discussions/categories/show-and-tell) does
+even more — it shows what Schoolday looks like in a real kitchen rather than in the manual.
 
 ## Contributing
 

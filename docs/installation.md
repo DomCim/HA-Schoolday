@@ -19,6 +19,11 @@ never drift apart in version.
 
 ## Through HACS
 
+[![Open Schoolday in HACS on your Home Assistant](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=DomCim&repository=HA-Schoolday&category=integration)
+
+The button opens Schoolday's page in HACS on your own Home Assistant, which saves step 1.
+By hand:
+
 1. **HACS** → search for **Schoolday**
 2. Open it and **download** it
 3. **Restart Home Assistant**

@@ -97,6 +97,13 @@ form asks for the version and the log, which is what makes it answerable. Questi
 [Discussions](https://github.com/DomCim/HA-Schoolday/discussions), and an idea becomes an issue once
 there is a plan.
 
+## If it works in your house
+
+Give it a [⭐ on GitHub](https://github.com/DomCim/HA-Schoolday). The star count is what the
+next family looks at before deciding whether to try it. A photo of your wall panel in
+[Show and tell](https://github.com/DomCim/HA-Schoolday/discussions/categories/show-and-tell)
+does even more.
+
 ## What it is not
 
 Not a school-management system, not a homework nag, and not a reward chart. Routines are

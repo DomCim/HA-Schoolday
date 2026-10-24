@@ -58,6 +58,11 @@ looks at before deciding whether to try it. A photo of your wall panel in
 [Show and tell](https://github.com/DomCim/HA-Schoolday/discussions/categories/show-and-tell) does
 even more — it shows what Schoolday looks like in a real kitchen rather than in the manual.
 
+Schoolday is free and stays free. If it saves your mornings and you want to give something
+back, there is a coffee:
+
+[![Buy me a coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/did0m)
+
 ## Contributing
 
 Something broken goes in an [issue](https://github.com/DomCim/HA-Schoolday/issues/new/choose);

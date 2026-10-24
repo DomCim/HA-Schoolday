@@ -104,6 +104,9 @@ next family looks at before deciding whether to try it. A photo of your wall pan
 [Show and tell](https://github.com/DomCim/HA-Schoolday/discussions/categories/show-and-tell)
 does even more.
 
+Schoolday is free and stays free. If it saves your mornings and you want to give something
+back, there is a [coffee](https://buymeacoffee.com/did0m).
+
 ## What it is not
 
 Not a school-management system, not a homework nag, and not a reward chart. Routines are

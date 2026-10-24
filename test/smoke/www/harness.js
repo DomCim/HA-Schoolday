@@ -253,6 +253,7 @@ function memberState(entityId, name, memberId, color) {
     state: 'free',
     attributes: {
       friendly_name: `Schoolday ${name}`,
+      member: name,
       member_id: memberId,
       color,
       avatar: null,
@@ -267,6 +268,8 @@ function memberState(entityId, name, memberId, color) {
       today: [],
       today_subjects: [],
       today_summary: '',
+      tomorrow_subjects: [],
+      tomorrow_summary: '',
       lesson_now: null,
       lesson_next: null,
     },

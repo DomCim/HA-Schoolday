@@ -59,8 +59,9 @@ It is built for one thing: a tablet on the kitchen wall that a family walks past
   </a>
   <a class="tile" href="automations.html">
     <span class="tile-title">Automations</span>
-    <p>A sensor per child whose state is the subject they are in right now, events at every
-    lesson boundary, and a service for everything the options dialog can change.</p>
+    <p>A sensor per child whose state is the subject they are in right now, today's and
+    tomorrow's subjects ready to speak, events at every lesson boundary, and a service for
+    everything the options dialog can change.</p>
   </a>
   <a class="tile orange" href="cards.html">
     <span class="tile-title">The cards</span>

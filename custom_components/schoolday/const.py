@@ -7,7 +7,7 @@ from typing import Final
 DOMAIN: Final = "schoolday"
 
 # Keep in sync with manifest.json, package.json and src/lib/const.ts.
-VERSION: Final = "0.12.2"
+VERSION: Final = "0.13.0"
 
 # Where the bundled Lovelace cards are served from.
 FRONTEND_URL_BASE: Final = "/schoolday-frontend"
@@ -212,6 +212,10 @@ ATTR_SCHEDULE: Final = "schedule"
 ATTR_TODAY: Final = "today"
 ATTR_TODAY_SUBJECTS: Final = "today_subjects"
 ATTR_TODAY_SUMMARY: Final = "today_summary"
+# The same for tomorrow, for the evening announcement: "tomorrow Ben has PE" is when the
+# kit still gets packed.
+ATTR_TOMORROW_SUBJECTS: Final = "tomorrow_subjects"
+ATTR_TOMORROW_SUMMARY: Final = "tomorrow_summary"
 ATTR_LESSON_NOW: Final = "lesson_now"
 ATTR_LESSON_NEXT: Final = "lesson_next"
 ATTR_SUBJECT: Final = "subject"

@@ -19,16 +19,24 @@ never drift apart in version.
 
 ## Through HACS
 
-1. **HACS → three dots → Custom repositories**
-2. Repository `https://github.com/DomCim/HA-Schoolday`, category **Integration**
-3. Find **Schoolday** in the list, install it
-4. **Restart Home Assistant**
-5. **Settings → Devices & Services → Add integration → Schoolday**
+[![Open Schoolday in HACS on your Home Assistant](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=DomCim&repository=HA-Schoolday&category=integration)
+
+The button opens Schoolday's page in HACS on your own Home Assistant, which saves step 1.
+By hand:
+
+1. **HACS** → search for **Schoolday**
+2. Open it and **download** it
+3. **Restart Home Assistant**
+4. **Settings → Devices & Services → Add integration → Schoolday**
 
 {: .note }
-> Step 4 is not optional and not a formality. The cards are registered while Home
+> Step 3 is not optional and not a formality. The cards are registered while Home
 > Assistant starts, so before a restart the integration installs but the dashboard has
 > nothing to show — which reads exactly like a broken install.
+
+Schoolday is in the HACS default store, so there is no repository to add. An install made
+earlier as a **custom repository** keeps working and keeps updating; there is nothing to
+move.
 
 ## Setting it up
 

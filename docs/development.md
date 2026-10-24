@@ -114,15 +114,14 @@ that does not exist.
 Tags are protected against deletion and force-pushing, but **not** against creation: the
 release workflow creates them itself.
 
-## Publishing later
+## The HACS default store
 
-Installing as a HACS custom repository needs the repository to be **public** — HACS cannot read
-private repositories. Beyond that, for a custom repository nothing else is required.
-
-Getting into the HACS **default store** — where it is found without anybody adding a custom
-repository — is a pull request to [`hacs/default`](https://github.com/hacs/default) adding one line
-to its `integration` file. HACS will not look at that pull request until `hacs/action` passes **with
-an empty `ignore` list**: there, ignoring a check counts as failing it.
+Schoolday is in the HACS **default store**, where it is found by searching rather than by adding
+a custom repository. Getting there was a pull request to
+[`hacs/default`](https://github.com/hacs/default) adding one line to its `integration` file. HACS will not look at that pull request until `hacs/action` passes **with
+an empty `ignore` list**: there, ignoring a check counts as failing it. Staying there means
+the same: HACS reads the repository through the GitHub API, so it has to stay **public**, and the
+HACS job has to keep passing.
 
 Three of those checks need something more than working code:
 
@@ -133,8 +132,8 @@ Three of those checks need something more than working code:
 | `topics` | The repository's topics, likewise a setting. Set. |
 
 All three are satisfied, so the HACS job runs with **no `ignore` list at all** and whatever it
-says is the real verdict. What is left is the pull request to `hacs/default` itself — one line —
-and the wait, which HACS itself puts at months.
+says is the real verdict. The pull request, [`hacs/default#9995`](https://github.com/hacs/default/pull/9995),
+was merged on 24 October 2026.
 
 The images under `brands/` are a different job and still worth submitting one day: they are what puts
 the mark on the integration's page **inside Home Assistant**, which the shipped `brand/` directory

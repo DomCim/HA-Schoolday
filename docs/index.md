@@ -80,7 +80,7 @@ simply reads as "nothing done yet".
 
 ## Where to start
 
-1. **[Install it](installation.md)** — through HACS, as a custom repository.
+1. **[Install it](installation.md)** — search for Schoolday in HACS.
 2. **[Set it up](installation.md#setting-it-up)** — family members, lesson times, one week per child.
 3. **[Put the cards on a dashboard](cards.md)** — most of them take no configuration at all.
 
@@ -96,6 +96,16 @@ Something broken goes in an [issue](https://github.com/DomCim/HA-Schoolday/issue
 form asks for the version and the log, which is what makes it answerable. Questions and ideas go in
 [Discussions](https://github.com/DomCim/HA-Schoolday/discussions), and an idea becomes an issue once
 there is a plan.
+
+## If it works in your house
+
+Give it a [⭐ on GitHub](https://github.com/DomCim/HA-Schoolday). The star count is what the
+next family looks at before deciding whether to try it. A photo of your wall panel in
+[Show and tell](https://github.com/DomCim/HA-Schoolday/discussions/categories/show-and-tell)
+does even more.
+
+Schoolday is free and stays free. If it saves your mornings and you want to give something
+back, there is a [coffee](https://buymeacoffee.com/did0m).
 
 ## What it is not
 

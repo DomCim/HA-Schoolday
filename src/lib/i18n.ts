@@ -125,6 +125,11 @@ const EN: Dict = {
   'admin.periods': 'Lesson times, one per line',
   'admin.schedule': 'School',
   'admin.schedule_default': 'The usual times',
+  'admin.travel': 'Way to school (min)',
+  'admin.travel_hint': 'Gives a leaving time that moves when the first lesson is cancelled. Empty for none.',
+  'header.leave_in': 'leave in {minutes} min',
+  'header.leave_now': 'time to go',
+  'header.leave_at': 'leave at {time}',
   'admin.schedule_name': 'Name of the school',
   'admin.schedule_hint': 'Grammar school, primary school…',
   'admin.schedule_add': 'Another school with different times',
@@ -171,6 +176,7 @@ const EN: Dict = {
   'editor.weather_entity': 'Weather entity',
   'editor.greeting': 'Greeting',
   'editor.show_seconds': 'Show seconds',
+  'editor.show_leave': 'Show when to leave for school',
 };
 
 const DE: Dict = {
@@ -283,6 +289,11 @@ const DE: Dict = {
   'admin.periods': 'Stundenzeiten, eine pro Zeile',
   'admin.schedule': 'Schule',
   'admin.schedule_default': 'Die üblichen Zeiten',
+  'admin.travel': 'Weg zur Schule (Min.)',
+  'admin.travel_hint': 'Ergibt eine Losgeh-Zeit, die sich verschiebt, wenn die erste Stunde ausfällt. Leer für keine.',
+  'header.leave_in': 'los in {minutes} Min.',
+  'header.leave_now': 'jetzt los!',
+  'header.leave_at': 'los um {time}',
   'admin.schedule_name': 'Name der Schule',
   'admin.schedule_hint': 'Gymnasium, Grundschule …',
   'admin.schedule_add': 'Weitere Schule mit anderen Zeiten',
@@ -329,6 +340,7 @@ const DE: Dict = {
   'editor.weather_entity': 'Wetter-Entität',
   'editor.greeting': 'Begrüßung',
   'editor.show_seconds': 'Sekunden anzeigen',
+  'editor.show_leave': 'Losgeh-Zeit für die Schule anzeigen',
 };
 
 const DICTS: Record<string, Dict> = { en: EN, de: DE };

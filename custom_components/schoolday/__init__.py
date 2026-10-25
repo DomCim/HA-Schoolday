@@ -30,6 +30,7 @@ from .const import (
     PANEL_FILENAME,
     VERSION,
 )
+from .bundled_blueprints import async_install_blueprints
 from .services import async_register_services
 from .store import AbsenceStore, HistoryStore, HomeworkStore, RoutineStore
 
@@ -64,6 +65,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.data[DATA_HISTORY] = history
 
     async_register_services(hass)
+    await async_install_blueprints(hass)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))
 

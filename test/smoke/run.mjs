@@ -1058,6 +1058,67 @@ check(
 check('header rounds the temperature', temperature.trim() === '23°C', temperature.trim());
 await page.screenshot({ path: join(SHOTS, 'header.png') });
 
+// Nobody has a leaving time in the fixtures, so the strip says nothing about leaving.
+check(
+  'header says nothing about leaving without a leaving time',
+  (await page.locator('schoolday-header-card .leaving').count()) === 0,
+);
+
+// It is 09:15. Ben leaves in five minutes for 09:50, Jan should have left at 09:10 for
+// 09:30, Nik leaves at 10:40 — over an hour off, so a time rather than a countdown —
+// and a leaving time for tomorrow, or one whose bell has rung, is not today's business.
+await page.evaluate(() => {
+  const leaving = {
+    'sensor.schoolday_ben': ['2026-08-05T09:20:00+02:00', '09:50'],
+    'sensor.schoolday_jan': ['2026-08-05T09:10:00+02:00', '09:30'],
+    'sensor.schoolday_nik': ['2026-08-05T10:40:00+02:00', '11:00'],
+  };
+  for (const [id, [leaveAt, start]] of Object.entries(leaving)) {
+    const state = window.__hass.states[id];
+    window.__hass.states[id] = {
+      ...state,
+      attributes: { ...state.attributes, leave_at: leaveAt, school_start: start },
+    };
+  }
+  // The leaving-time sensor carries member_id as well. A card asking for Ben's sensor
+  // must still get the one with his week, not this.
+  window.__hass.states['sensor.schoolday_ben_time_to_leave'] = {
+    entity_id: 'sensor.schoolday_ben_time_to_leave',
+    state: '2026-08-05T07:20:00+00:00',
+    attributes: { device_class: 'timestamp', member: 'Ben', member_id: 'm1', travel_minutes: 30 },
+    last_changed: new Date().toISOString(),
+    last_updated: new Date().toISOString(),
+  };
+  window.__pushHass();
+});
+await page.waitForTimeout(300);
+const leaving = await page.evaluate(() =>
+  [...document.querySelector('schoolday-header-card').shadowRoot.querySelectorAll('.leave')].map(
+    (row) => `${row.className.replace('leave', '').trim() || '-'}|${row.textContent.replace(/\s+/g, ' ').trim()}`,
+  ),
+);
+check(
+  'header counts down to leaving, says go, and gives a time when it is further off',
+  leaving.join(',') === 'soon|Ben los in 5 Min.,go|Jan jetzt los!,-|Nik los um 10:40',
+  JSON.stringify(leaving),
+);
+await page.screenshot({ path: join(SHOTS, 'header-leave.png') });
+
+await page.evaluate(() => {
+  const id = 'sensor.schoolday_nik';
+  const state = window.__hass.states[id];
+  window.__hass.states[id] = {
+    ...state,
+    attributes: { ...state.attributes, leave_at: '2026-08-06T07:30:00+02:00', school_start: '08:00' },
+  };
+  window.__pushHass();
+});
+await page.waitForTimeout(300);
+check(
+  "tomorrow's leaving time is not on today's strip",
+  (await page.locator('schoolday-header-card .leave').count()) === 2,
+);
+
 // -------------------------------------------------------------- translations
 
 // The harness hass is German, so every card must speak German without configuration.
@@ -1500,6 +1561,41 @@ check(
   adminSchoolCall?.data.exams_calendar === 'calendar.ben_exams' &&
     adminSchoolCall?.data.lessons_calendar === '',
   JSON.stringify(adminSchoolCall?.data ?? null),
+);
+
+// The way to school: shown as stored, sent as a number, and an empty field is sent as
+// nothing at all — which the service reads as no leaving time, where 0 would be one.
+const travelFields = await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  return [...root.querySelectorAll('.member input[id^="travel-"]')].map((input) => input.value);
+});
+check(
+  'the way to school shows what is stored, and empty where nothing is',
+  travelFields.join(',') === ',15,,',
+  JSON.stringify(travelFields),
+);
+await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  root.querySelectorAll('.member')[0].querySelector('.apply').click();
+});
+await page.waitForTimeout(300);
+const noTravel = await page.evaluate(
+  () => window.__calls.services.filter((c) => c.service === 'set_member').pop() ?? null,
+);
+await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  const member = root.querySelectorAll('.member')[0];
+  member.querySelector('#travel-m1').value = '0';
+  member.querySelector('.apply').click();
+});
+await page.waitForTimeout(300);
+const zeroTravel = await page.evaluate(
+  () => window.__calls.services.filter((c) => c.service === 'set_member').pop() ?? null,
+);
+check(
+  'an empty way to school is left out, and 0 minutes is sent as 0',
+  noTravel && !('travel_minutes' in noTravel.data) && zeroTravel?.data.travel_minutes === 0,
+  JSON.stringify([noTravel?.data.travel_minutes, zeroTravel?.data.travel_minutes]),
 );
 
 // Materials are listed per subject, because the subject is the key the evening routine

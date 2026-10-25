@@ -774,6 +774,20 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
               true,
             )}
           </div>
+          <div class="row">
+            <label class="field">
+              <span class="label">${t(this.hass, 'admin.travel')}</span>
+              <input
+                type="number"
+                min="0"
+                max="240"
+                inputmode="numeric"
+                id=${`travel-${key}`}
+                .value=${member?.travelMinutes != null ? String(member.travelMinutes) : ''}
+              />
+            </label>
+            <div class="notice quiet grow">${t(this.hass, 'admin.travel_hint')}</div>
+          </div>
           ${Object.keys(config.schedules).length
             ? html`
                 <div class="row">
@@ -821,6 +835,11 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
                   // is not drawn: the service clears what it is not told, so leaving it
                   // out is how an assignment quietly disappears on the next save.
                   schedule: read('schedule'),
+                  // An empty field is sent as nothing, which the service reads as "no
+                  // way to school" — not as 0, which is a child living next door.
+                  ...(read('travel').trim() !== ''
+                    ? { travel_minutes: Number(read('travel')) }
+                    : {}),
                 }).then(() => {
                   this._drafts = {};
                 });

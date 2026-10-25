@@ -201,6 +201,17 @@ set_member:
       required: false
       selector:
         text:
+    # Minutes from the front door to school, which gives this member a leaving time.
+    # Omitted means none, like the fields above; 0 is a leaving time at the bell.
+    travel_minutes:
+      required: false
+      example: 15
+      selector:
+        number:
+          min: 0
+          max: 240
+          unit_of_measurement: min
+          mode: box
     # Which named set of lesson times this member's school rings to. Omit or leave
     # empty for the household's usual ones.
     schedule:

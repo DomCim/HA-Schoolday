@@ -205,6 +205,7 @@ export class SchooldayHeaderCardEditor extends SchooldayCardEditor {
       { name: 'weather_entity', selector: { entity: { domain: 'weather' } } },
       { name: 'greeting', selector: { text: {} } },
       boolean('show_seconds'),
+      boolean('show_leave'),
     ];
   }
 }

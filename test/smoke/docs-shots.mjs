@@ -316,6 +316,35 @@ await shot('header', 1100, mount(
   'schoolday-header-card',
 ));
 
+// A school morning, so the strip has somebody to send off: the clock moves to 07:25 and
+// each child gets the leaving time their sensor would publish.
+await shot('header-leave', 1100, async (page) => {
+  await page.clock.setFixedTime(new Date('2026-08-05T07:25:00+02:00'));
+  await page.evaluate(() => {
+    const leaving = {
+      'sensor.schoolday_ben': ['2026-08-05T07:30:00+02:00', '08:00'],
+      'sensor.schoolday_jan': ['2026-08-05T07:20:00+02:00', '07:45'],
+      'sensor.schoolday_nik': ['2026-08-05T07:50:00+02:00', '08:15'],
+    };
+    for (const [id, [leaveAt, start]] of Object.entries(leaving)) {
+      const state = window.__hass.states[id];
+      window.__hass.states[id] = {
+        ...state,
+        attributes: { ...state.attributes, leave_at: leaveAt, school_start: start },
+      };
+    }
+    window.__mount(
+      {
+        type: 'custom:schoolday-header-card',
+        weather_entity: 'weather.forecast_goldammerweg',
+        greeting: 'Goldammerweg',
+      },
+      'schoolday-header-card',
+    );
+  });
+  return 'schoolday-header-card';
+});
+
 // --- admin card, one picture per section --------------------------------------
 const adminSection = (label) => async (page) => {
   await page.evaluate(() => window.__mount({ type: 'custom:schoolday-admin-card' }, 'schoolday-admin-card'));

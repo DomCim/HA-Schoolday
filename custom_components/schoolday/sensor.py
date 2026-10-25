@@ -8,12 +8,13 @@ wake up exactly at those and sleep in between.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from collections.abc import Iterable, Mapping
 from datetime import date, datetime, time, timedelta
 from typing import Any
 
-from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
@@ -22,8 +23,10 @@ from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.event import (
+    async_call_later,
     async_track_point_in_time,
     async_track_state_change_event,
+    async_track_time_interval,
 )
 from homeassistant.util import dt as dt_util
 
@@ -38,6 +41,7 @@ from .const import (
     ATTR_EXAMS,
     ATTR_FROM_SUBJECT,
     ATTR_LABEL,
+    ATTR_LEAVE_AT,
     ATTR_LESSON_NEXT,
     ATTR_LESSON_NOW,
     ATTR_MEMBER,
@@ -53,6 +57,8 @@ from .const import (
     ATTR_ROUTINE_MORNING,
     ATTR_ROUTINE_STATS,
     ATTR_SCHEDULE,
+    ATTR_SCHOOL_END,
+    ATTR_SCHOOL_START,
     ATTR_SCHOOL_TODAY,
     ATTR_SICK_UNTIL,
     ATTR_SUBJECT,
@@ -60,9 +66,12 @@ from .const import (
     ATTR_TODAY,
     ATTR_TODAY_SUBJECTS,
     ATTR_TODAY_SUMMARY,
+    ATTR_TOMORROW_END,
     ATTR_TOMORROW_EXAMS,
+    ATTR_TOMORROW_START,
     ATTR_TOMORROW_SUBJECTS,
     ATTR_TOMORROW_SUMMARY,
+    ATTR_TRAVEL_MINUTES,
     ATTR_VERSION,
     ATTR_WEEK,
     ATTR_WEEKDAY,
@@ -74,6 +83,8 @@ from .const import (
     DOMAIN,
     EVENT_LESSON_ENDED,
     EVENT_LESSON_STARTED,
+    EVENT_PLAN_CHANGED,
+    FEED_REFRESH_MINUTES,
     MODE_CARE,
     MODE_EVENT,
     MODE_FREE,
@@ -96,6 +107,7 @@ from .models import (
     exams_by_day,
     substituted_periods,
 )
+from .plan import ChangeWatch, day_change, day_span, message
 from .store import AbsenceStore, HistoryStore, RoutineStore
 
 _LOGGER = logging.getLogger(__name__)
@@ -113,15 +125,18 @@ async def async_setup_entry(
     store: RoutineStore = hass.data[DATA_STORE]
     absence: AbsenceStore = hass.data[DATA_ABSENCE]
     history: HistoryStore = hass.data[DATA_HISTORY]
-    async_add_entities(
-        [
-            SchooldayBoardSensor(entry, config),
-            *(
-                SchooldayMemberSensor(entry, member, config, store, absence, history)
-                for member in config.members
-            ),
-        ]
-    )
+    members = [
+        SchooldayMemberSensor(entry, member, config, store, absence, history)
+        for member in config.members
+    ]
+    # Only for a member with a way to school: a household that never says how far it
+    # is should not find a sensor that is unknown forever.
+    leaving = [
+        SchooldayLeaveSensor(entry, sensor)
+        for sensor in members
+        if sensor.member.travel_minutes is not None
+    ]
+    async_add_entities([SchooldayBoardSensor(entry, config), *members, *leaving])
 
 
 @callback
@@ -140,6 +155,11 @@ def _async_remove_orphans(
         *(_member_unique_id(entry, member.id) for member in config.members),
         *(sick_unique_id(entry, member.id) for member in config.members),
         *(homework_unique_id(entry, member.id) for member in config.members),
+        *(
+            _leave_unique_id(entry, member.id)
+            for member in config.members
+            if member.travel_minutes is not None
+        ),
     }
     for registry_entry in er.async_entries_for_config_entry(registry, entry.entry_id):
         if registry_entry.unique_id not in expected:
@@ -152,6 +172,10 @@ def _board_unique_id(entry: ConfigEntry) -> str:
 
 def _member_unique_id(entry: ConfigEntry, member_id: str) -> str:
     return f"{entry.entry_id}_{member_id}"
+
+
+def _leave_unique_id(entry: ConfigEntry, member_id: str) -> str:
+    return f"{entry.entry_id}_{member_id}_leave"
 
 
 def sick_unique_id(entry: ConfigEntry, member_id: str) -> str:
@@ -391,6 +415,22 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         self._feed_cancelled: dict[date, set[int]] = {}
         self._feed_swapped: dict[date, dict[int, Lesson]] = {}
         self._exams: dict[date, list[dict[str, Any]]] = {}
+        #: Two readings at once — a calendar changing while the regular re-read runs —
+        #: would both compare against the same old day and announce one change twice.
+        self._refresh_lock = asyncio.Lock()
+        #: Whether the last reading got an answer from every school-system calendar.
+        #: A reading that did not has no cancellations in it, and comparing against it
+        #: would announce every one the school already had as new.
+        self._feed_read = False
+        self._watch = ChangeWatch()
+        self._unsub_recheck: Any = None
+        #: The leaving-time sensor that publishes from this one, when there is one.
+        self.leave: SchooldayLeaveSensor | None = None
+
+    @property
+    def member(self) -> Member:
+        """The family member this sensor is about."""
+        return self._member
 
     async def async_added_to_hass(self) -> None:
         """Follow the routine ticks and the holidays, and wake at the next boundary."""
@@ -414,6 +454,14 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
                     self.hass, watched, self._handle_calendar_change
                 )
             )
+        if self._member.lessons_calendar or self._member.exams_calendar:
+            self.async_on_remove(
+                async_track_time_interval(
+                    self.hass,
+                    self._handle_calendar_change,
+                    timedelta(minutes=FEED_REFRESH_MINUTES),
+                )
+            )
 
         await self._async_refresh_outlook()
         self._record_today()
@@ -422,6 +470,7 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         self._running = self._lesson_now()
         self._schedule_boundary()
         self.async_on_remove(self._cancel_boundary)
+        self.async_on_remove(self._cancel_recheck)
 
     # --- timetable ----------------------------------------------------------
 
@@ -485,6 +534,39 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         }
 
     async def _async_refresh_outlook(self) -> None:
+        """Read the calendars again, and say what that changed about the days ahead.
+
+        The first reading after a start is only the baseline: whatever the school
+        changed while Home Assistant was down is not news it can date, and announcing
+        the whole week on every restart would teach everybody to ignore the message.
+        Nor is a reading the calendars did not answer, which is the usual first one —
+        the calendar integration often starts after Schoolday — and a change has to be
+        read twice before it is said: see `ChangeWatch`.
+        """
+        async with self._refresh_lock:
+            await self._async_read_outlook()
+            if not self._feed_read:
+                return
+            after = self._school_days()
+            verdict, before = self._watch.observe(after)
+            if verdict == "change" and before is not None:
+                self._announce_changes(before, after)
+            elif verdict == "recheck" and self._unsub_recheck is None:
+                self._unsub_recheck = async_call_later(self.hass, 60, self._handle_recheck)
+
+    @callback
+    def _handle_recheck(self, _now: Any = None) -> None:
+        """The second look a disagreeing reading asked for."""
+        self._unsub_recheck = None
+        self.hass.async_create_task(self._async_recheck())
+
+    @callback
+    def _cancel_recheck(self) -> None:
+        if self._unsub_recheck is not None:
+            self._unsub_recheck()
+            self._unsub_recheck = None
+
+    async def _async_read_outlook(self) -> None:
         """Work out what each day of this week and the next seven days holds.
 
         The window starts at Monday of the current week rather than at today, so a card
@@ -516,6 +598,11 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
             dict.fromkeys([*self._config.school_calendars, *self._member_calendars])
         )
         events = await self._async_read_events(calendars, start, end)
+        self._feed_read = all(
+            entity_id in events
+            for entity_id in (self._member.lessons_calendar, self._member.exams_calendar)
+            if entity_id
+        )
 
         # Holidays first: any event on these calendars closes the school, which is why
         # the option asks for calendars that hold nothing else.
@@ -626,6 +713,85 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
             entry[ATTR_CHANGES] = dict(sorted(merged.items(), key=lambda item: int(item[0])))
 
         self._outlook = [entries[day] for day in days]
+
+    def _school_days(self) -> dict[date, list[Lesson]]:
+        """Each school day of the outlook with the lessons it holds, for comparing.
+
+        By the calendars' answer alone, without this child's illness: falling ill is
+        not something the school changed.
+        """
+        rung = {period.index for period in self._periods}
+        return {
+            date.fromisoformat(str(entry[ATTR_DATE])): [
+                lesson
+                for lesson in self._lessons_on(date.fromisoformat(str(entry[ATTR_DATE])))
+                if lesson.period in rung
+            ]
+            for entry in self._outlook
+            if entry[ATTR_MODE] == MODE_SCHOOL
+        }
+
+    @callback
+    def _announce_changes(
+        self, before: dict[date, list[Lesson]], after: dict[date, list[Lesson]]
+    ) -> None:
+        """Fire an event for every day still to come whose lessons are not what they were.
+
+        Only days that were school days in both readings: a holiday appearing in the
+        holiday calendar is the household's own doing, not the school's news. Today
+        only counts from now on — a cancelled lesson that is already over has nothing
+        left for anybody to do about it.
+        """
+        now = dt_util.now()
+        today = now.date()
+        minutes = now.hour * 60 + now.minute
+        periods = self._periods
+        ends = {period.index: period.end_minutes for period in periods}
+        for day in sorted(before.keys() & after.keys()):
+            if day < today:
+                continue
+            old, new = before[day], after[day]
+            if day == today:
+                old = [lesson for lesson in old if ends.get(lesson.period, 0) > minutes]
+                new = [lesson for lesson in new if ends.get(lesson.period, 0) > minutes]
+            change = day_change(
+                old, new, periods, self._config.lessons_on(self._member.id, day)
+            )
+            if change is None:
+                continue
+            # Spans from the whole day, not the part still to come: "starts 08:45" is
+            # only true of a day that starts at all, and today's start is behind it.
+            spans = (day_span(before[day], periods), day_span(after[day], periods))
+            change.before, change.after = spans
+            by_index = {period.index: period for period in periods}
+            self.hass.bus.async_fire(
+                EVENT_PLAN_CHANGED,
+                {
+                    ATTR_MEMBER: self._member.name,
+                    ATTR_MEMBER_ID: self._member.id,
+                    ATTR_DATE: day.isoformat(),
+                    "days_ahead": (day - today).days,
+                    "cancelled": [
+                        _lesson_dict(lesson, by_index[lesson.period])
+                        for lesson in change.cancelled
+                    ],
+                    "changed": [
+                        {
+                            **_lesson_dict(item.lesson, by_index[item.lesson.period]),
+                            "instead": item.instead.subject if item.instead else None,
+                            "restored": item.restored,
+                        }
+                        for item in change.changed
+                    ],
+                    "start": spans[1][0].start if spans[1] else None,
+                    "end": spans[1][1].end if spans[1] else None,
+                    "previous_start": spans[0][0].start if spans[0] else None,
+                    "previous_end": spans[0][1].end if spans[0] else None,
+                    "message": message(
+                        self.hass.config.language, self._member.name, day, today, change
+                    ),
+                },
+            )
 
     @property
     def _published_outlook(self) -> list[dict[str, Any]]:
@@ -762,6 +928,41 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
                 if lesson.period in rung
             )
         )
+
+    def _span_on(self, day: date) -> tuple[Period, Period] | None:
+        """The first and last period with a lesson on a date, or None without school.
+
+        Through the same two questions as tomorrow's subjects — is it a school day for
+        this child, and what is left of it — so the start an alarm follows and the list
+        the bag is packed from cannot disagree about a cancelled first period.
+        """
+        if self._mode_on(day) != MODE_SCHOOL:
+            return None
+        return day_span(self._lessons_on(day), self._periods)
+
+    def next_leave(self) -> tuple[datetime, datetime] | None:
+        """When this member next has to set off, and the start they are setting off for.
+
+        Today's until the first lesson has begun, then the next school day's: between
+        the two the time is in the past, which is what lets a card say "go now" while
+        the automation that fired at it has nothing left to fire at.
+        """
+        travel = self._member.travel_minutes
+        if travel is None:
+            return None
+        now = dt_util.now()
+        for offset in range(OUTLOOK_DAYS):
+            day = now.date() + timedelta(days=offset)
+            span = self._span_on(day)
+            if span is None:
+                continue
+            starts = dt_util.start_of_local_day(day) + timedelta(
+                minutes=span[0].start_minutes
+            )
+            if starts <= now:
+                continue
+            return starts - timedelta(minutes=travel), starts
+        return None
 
     def _exams_from_today(self) -> list[dict[str, Any]]:
         """Every exam from today to the end of the outlook, in date order."""
@@ -957,6 +1158,18 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
 
     # --- state --------------------------------------------------------------
 
+    @callback
+    def async_write_ha_state(self) -> None:
+        """Publish, and let the leaving time follow.
+
+        The leaving time is worked out from this sensor's day and changes exactly when
+        it does — at the first bell, at midnight, when a calendar is read — so it is
+        published from here rather than given clocks and listeners of its own.
+        """
+        super().async_write_ha_state()
+        if self.leave is not None and self.leave.hass is not None:
+            self.leave.async_write_ha_state()
+
     @property
     def native_value(self) -> str:
         """The subject running right now, or `free` between and after lessons."""
@@ -972,6 +1185,9 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         subjects = list(dict.fromkeys(entry[ATTR_SUBJECT] for entry in today))
 
         tomorrow = self._subjects_tomorrow()
+        today_span = self._span_on(dt_util.now().date())
+        tomorrow_span = self._span_on(dt_util.now().date() + timedelta(days=1))
+        leave = self.next_leave()
 
         until = self._absence.until(self._member.id)
         return {
@@ -1000,6 +1216,51 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
             ATTR_TOMORROW_SUMMARY: ", ".join(tomorrow),
             ATTR_EXAMS: self._exams_from_today(),
             ATTR_TOMORROW_EXAMS: self._exams_tomorrow(),
+            ATTR_SCHOOL_START: today_span[0].start if today_span else None,
+            ATTR_SCHOOL_END: today_span[1].end if today_span else None,
+            ATTR_TOMORROW_START: tomorrow_span[0].start if tomorrow_span else None,
+            ATTR_TOMORROW_END: tomorrow_span[1].end if tomorrow_span else None,
+            ATTR_LEAVE_AT: leave[0].isoformat() if leave else None,
             ATTR_LESSON_NOW: self._lesson_now(),
             ATTR_LESSON_NEXT: self._lesson_next(),
+        }
+
+
+class SchooldayLeaveSensor(SchooldayBaseSensor):
+    """When a member has to set off for school, as a timestamp.
+
+    A timestamp sensor because that is what a time trigger can follow — "ten minutes
+    before this" — with no template, and what makes the alarm move by itself when the
+    first lesson is cancelled. It holds nothing of its own: the member sensor knows the
+    day and publishes this whenever it publishes itself.
+    """
+
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+    _attr_icon = "mdi:walk"
+    _attr_translation_key = "leave"
+
+    def __init__(self, entry: ConfigEntry, member: SchooldayMemberSensor) -> None:
+        """Attach to the member sensor this follows."""
+        super().__init__(entry)
+        self._source = member
+        member.leave = self
+        self._attr_unique_id = _leave_unique_id(entry, member.member.id)
+        self._attr_translation_placeholders = {"name": member.member.name}
+
+    @property
+    def native_value(self) -> datetime | None:
+        """The next time to leave, or nothing in the outlook to leave for."""
+        leave = self._source.next_leave()
+        return leave[0] if leave else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Who, how far, and the bell this leaving time is for."""
+        leave = self._source.next_leave()
+        member = self._source.member
+        return {
+            ATTR_MEMBER: member.name,
+            ATTR_MEMBER_ID: member.id,
+            ATTR_TRAVEL_MINUTES: member.travel_minutes,
+            "starts_at": leave[1].isoformat() if leave else None,
         }

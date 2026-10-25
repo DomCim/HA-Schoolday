@@ -1,0 +1,61 @@
+blueprint:
+  name: "Schoolday: before leaving for school"
+  description: >-
+    Does something a set time before a child has to leave for school: a wake-up light,
+    the radio in the kitchen, the heating in the bathroom. The time follows the first
+    lesson, so on a morning the first lesson is cancelled it happens later by itself,
+    and on a day without school it does not happen at all.
+
+
+    Needs a way to school on the child, which gives them a "time to leave" sensor.
+  domain: automation
+  source_url: https://github.com/DomCim/HA-Schoolday/blob/main/custom_components/schoolday/blueprints/before_leaving.yaml
+  homeassistant:
+    min_version: "2025.1.0"
+  input:
+    leave_sensor:
+      name: Time to leave
+      description: The child's "time to leave" sensor from Schoolday.
+      selector:
+        entity:
+          filter:
+            - integration: schoolday
+              domain: sensor
+              device_class: timestamp
+    minutes_before:
+      name: How long before
+      description: Minutes before the leaving time.
+      default: 60
+      selector:
+        number:
+          min: 0
+          max: 240
+          unit_of_measurement: min
+          mode: box
+    actions:
+      name: Actions
+      description: What to do. The leaving time is in the variable `leave_at`.
+      selector:
+        action: {}
+
+mode: single
+
+trigger_variables:
+  leave_sensor: !input leave_sensor
+  minutes_before: !input minutes_before
+
+# A template rather than a time trigger with an offset, because the offset is a number
+# the user picked. It follows the leaving time when that moves, up to the moment it
+# fires; a template that mentions now() is checked at the start of every minute.
+triggers:
+  - trigger: template
+    value_template: >-
+      {% set at = states(leave_sensor) | as_datetime(none) %}
+      {{ at is not none
+         and at - timedelta(minutes=minutes_before | int) <= now() < at + timedelta(minutes=1) }}
+
+variables:
+  leave_at: "{{ states(leave_sensor) }}"
+
+actions:
+  - sequence: !input actions

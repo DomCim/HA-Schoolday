@@ -1,0 +1,88 @@
+blueprint:
+  name: "Schoolday: the school changed the plan"
+  description: >-
+    A push notification when the school system cancels a lesson, puts a substitute in
+    or moves a room, including when the day now starts later or finishes earlier.
+    Schoolday writes the message in Home Assistant's language, for example
+    "Ben tomorrow: Musik (period 1) is cancelled. Starts 08:45 instead of 08:00."
+
+
+    Needs a lessons calendar from a school system, such as WebUntis, on the child.
+    Changes made while Home Assistant was off are not sent.
+  domain: automation
+  source_url: https://github.com/DomCim/HA-Schoolday/blob/main/custom_components/schoolday/blueprints/plan_changed.yaml
+  homeassistant:
+    min_version: "2025.1.0"
+  input:
+    notify_devices:
+      name: Phones
+      description: The Home Assistant app on each phone that should be told.
+      default: []
+      selector:
+        device:
+          multiple: true
+          filter:
+            - integration: mobile_app
+    children:
+      name: Children
+      description: Leave empty for every child, or pick their Schoolday sensors.
+      default: []
+      selector:
+        entity:
+          multiple: true
+          filter:
+            - integration: schoolday
+              domain: sensor
+    days_ahead:
+      name: How far ahead
+      description: >-
+        0 is only today, 1 is today and tomorrow. A change further off than this is not
+        sent at all, so choose the furthest you would still want to hear about.
+      default: 1
+      selector:
+        number:
+          min: 0
+          max: 6
+          mode: slider
+    actions:
+      name: Anything else
+      description: >-
+        More to do on a change, such as speaking it in the kitchen. The text is in
+        the variable `message`.
+      default: []
+      selector:
+        action: {}
+
+mode: queued
+max: 10
+
+triggers:
+  - trigger: event
+    event_type: schoolday_plan_changed
+
+variables:
+  notify_devices: !input notify_devices
+  children: !input children
+  days_ahead: !input days_ahead
+  wanted: "{{ children | map('state_attr', 'member_id') | list }}"
+  message: "{{ trigger.event.data.message }}"
+
+conditions:
+  - condition: template
+    value_template: "{{ trigger.event.data.days_ahead <= days_ahead | int }}"
+  - condition: template
+    value_template: "{{ not children or trigger.event.data.member_id in wanted }}"
+
+actions:
+  # The app registers its notify action under the name the phone had when it was set
+  # up, which is the device's own name rather than one given to it later.
+  - repeat:
+      for_each: "{{ notify_devices }}"
+      sequence:
+        - action: "notify.mobile_app_{{ device_attr(repeat.item, 'name') | slugify }}"
+          data:
+            title: "{{ trigger.event.data.member }}"
+            message: "{{ message }}"
+            data:
+              group: schoolday
+  - sequence: !input actions

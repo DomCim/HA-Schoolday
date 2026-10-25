@@ -41,6 +41,7 @@ from .const import (
     CONF_EXAMS_CALENDAR,
     CONF_LESSONS_CALENDAR,
     CONF_SCHOOL_CALENDARS,
+    CONF_TRAVEL_MINUTES,
     ATTR_SCHEDULES,
     CONF_SUBJECT_COLORS,
     CONF_TIMETABLE,
@@ -131,6 +132,8 @@ class Member:
     #: Which named lesson-time grid this member's school rings to. None is the
     #: household's usual times, which is what most members are.
     schedule: str | None = None
+    #: Minutes from the front door to the classroom, or None for no leaving time.
+    travel_minutes: int | None = None
 
     @classmethod
     def from_dict(cls, data: dict[str, Any], index: int = 0) -> Member:
@@ -146,6 +149,7 @@ class Member:
             lessons_calendar=data.get(CONF_LESSONS_CALENDAR) or None,
             exams_calendar=data.get(CONF_EXAMS_CALENDAR) or None,
             schedule=str(data.get(CONF_SCHEDULE) or "").strip() or None,
+            travel_minutes=_minutes(data.get(CONF_TRAVEL_MINUTES)),
         )
 
     def as_card_dict(self) -> dict[str, Any]:
@@ -166,7 +170,19 @@ class Member:
             CONF_LESSONS_CALENDAR: self.lessons_calendar,
             CONF_EXAMS_CALENDAR: self.exams_calendar,
             CONF_SCHEDULE: self.schedule,
+            CONF_TRAVEL_MINUTES: self.travel_minutes,
         }
+
+
+def _minutes(value: Any) -> int | None:
+    """A stored number of minutes, or None for anything that is not one."""
+    if value is None or value == "" or isinstance(value, bool):
+        return None
+    try:
+        minutes = int(value)
+    except (TypeError, ValueError):
+        return None
+    return minutes if minutes >= 0 else None
 
 
 @dataclass(slots=True)

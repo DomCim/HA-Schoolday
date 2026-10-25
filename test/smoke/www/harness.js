@@ -337,7 +337,7 @@ const hass = {
         admin: {
           members: [
             { id: 'm1', name: 'Ben', color: '#e0603a', avatar: 'person.ben', order: 0, calendar: 'calendar.ben', schedule: null },
-            { id: 'm2', name: 'Jan', color: '#3a86c8', avatar: null, order: 1, calendar: null, schedule: null },
+            { id: 'm2', name: 'Jan', color: '#3a86c8', avatar: null, order: 1, calendar: null, schedule: null, travel_minutes: 15 },
             { id: 'm3', name: 'Nik', color: '#4f9d69', avatar: null, order: 2, calendar: null, schedule: 'Gymnasium', lessons_calendar: 'calendar.nik_webuntis' },
           ],
           routines: {

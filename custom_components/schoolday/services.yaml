@@ -212,6 +212,19 @@ set_member:
           max: 240
           unit_of_measurement: min
           mode: box
+    # A leaving time by the clock — the school bus, a lift — which beats the way to
+    # school because it does not move with the first lesson. Omitted means none.
+    leave_time:
+      required: false
+      example: "07:05"
+      selector:
+        time:
+    # The same for a day in holiday care.
+    care_leave_time:
+      required: false
+      example: "06:45"
+      selector:
+        time:
     # Which named set of lesson times this member's school rings to. Omit or leave
     # empty for the household's usual ones.
     schedule:

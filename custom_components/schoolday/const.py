@@ -7,7 +7,7 @@ from typing import Final
 DOMAIN: Final = "schoolday"
 
 # Keep in sync with manifest.json, package.json and src/lib/const.ts.
-VERSION: Final = "0.15.0"
+VERSION: Final = "0.16.0"
 
 # Where the bundled Lovelace cards are served from.
 FRONTEND_URL_BASE: Final = "/schoolday-frontend"
@@ -207,6 +207,14 @@ CONF_EXAMS_CALENDAR: Final = "exams_calendar"
 # that says "leave as the bell rings".
 CONF_TRAVEL_MINUTES: Final = "travel_minutes"
 TRAVEL_MAX_MINUTES: Final = 240
+# A leaving time fixed by the clock rather than by the first lesson: the school bus, a
+# lift, the taxi — they come at their time whatever the school cancelled. The second is
+# the same for a day in holiday care, which seldom starts when school does.
+CONF_LEAVE_TIME: Final = "leave_time"
+CONF_CARE_LEAVE_TIME: Final = "care_leave_time"
+# How long "go now" stays up after a leaving time by the clock. A walk to school has the
+# first bell as its end; a bus has nothing after it worth waiting for.
+LEAVE_GRACE_MINUTES: Final = 10
 
 # --- Entity attributes exposed to the cards ---------------------------------
 
@@ -263,6 +271,11 @@ ATTR_TOMORROW_END: Final = "tomorrow_end"
 # The next time this member has to set off, from the same start and their way to
 # school. Also a timestamp sensor of its own, which is what a time trigger can follow.
 ATTR_LEAVE_AT: Final = "leave_at"
+# Until when a leaving time is worth showing: the first bell for a child who walks, a
+# few minutes past the time for a bus that will not wait.
+ATTR_LEAVE_UNTIL: Final = "leave_until"
+ATTR_LEAVE_TIME: Final = "leave_time"
+ATTR_CARE_LEAVE_TIME: Final = "care_leave_time"
 ATTR_TRAVEL_MINUTES: Final = "travel_minutes"
 ATTR_LESSON_NOW: Final = "lesson_now"
 ATTR_LESSON_NEXT: Final = "lesson_next"

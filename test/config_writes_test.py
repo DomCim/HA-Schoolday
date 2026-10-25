@@ -823,6 +823,49 @@ check("das Modell liest den Schulweg, und nichts Ungültiges",
       and Models.Member.from_dict({"id": "a", "name": "A"}).travel_minutes is None
       and Models.Member.from_dict({"id": "a", "name": "A", "travel_minutes": "x"}).travel_minutes is None)
 
+# --- a time to leave by the clock: the bus, and holiday care ---------------------
+check("eine Uhrzeit wird gelesen, wie Menschen und HA sie schreiben",
+      [Models.clock(v) for v in ("7:05", "07.05", "06:45:00", "24:00", "7", "", None)]
+      == ["07:05", "07:05", "06:45", None, None, None, None])
+outb, _ = W.set_member(BASE, MEMBER, "Ben", leave_time="7:05:00", care_leave_time="06:45")
+check("Bus- und Betreuungszeit werden als HH:MM gespeichert",
+      outb["members"][0].get("leave_time") == "07:05"
+      and outb["members"][0].get("care_leave_time") == "06:45", str(outb["members"][0]))
+outc, _ = W.set_member(merged(outb), MEMBER, "Ben", leave_time="")
+check("ein leeres Feld nimmt die Zeit wieder weg",
+      "leave_time" not in outc["members"][0] and "care_leave_time" not in outc["members"][0],
+      str(outc["members"][0]))
+for bad in ("25:00", "morgens"):
+    try:
+        W.set_member(BASE, MEMBER, "Ben", leave_time=bad)
+        check(f"Losgeh-Zeit {bad!r} abgewiesen", False, "keine Ausnahme")
+    except SchooldayValueError as e:
+        check(f"Losgeh-Zeit {bad!r} abgewiesen", "time to leave" in str(e), str(e)[:60])
+
+M = Models.Member
+walker = M.from_dict({"id": "a", "name": "A", "travel_minutes": 20})
+bus = M.from_dict({"id": "b", "name": "B", "travel_minutes": 20, "leave_time": "07:05"})
+care = M.from_dict({"id": "c", "name": "C", "leave_time": "07:00", "care_leave_time": "06:45"})
+nobody = M.from_dict({"id": "d", "name": "D"})
+check("wer überhaupt eine Losgeh-Zeit hat",
+      walker.leaves and bus.leaves and care.leaves and not nobody.leaves
+      and M.from_dict({"id": "e", "name": "E", "care_leave_time": "06:45"}).leaves)
+check("zu Fuß: erste Stunde minus Schulweg, angezeigt bis zum Gong",
+      Models.leave_minutes(walker, "school", 8 * 60) == (460, 480, 480))
+check("zu Fuß: fällt die erste Stunde aus, geht es später los",
+      Models.leave_minutes(walker, "school", 8 * 60 + 45) == (505, 525, 525))
+check("Bus: die Uhrzeit gilt, auch wenn die erste Stunde ausfällt",
+      Models.leave_minutes(bus, "school", 8 * 60 + 45) == (425, 435, 525))
+check("Ferienbetreuung: die eigene Zeit, ohne Gong",
+      Models.leave_minutes(care, "care", None) == (405, 415, None))
+check("Ferienbetreuung: ein Termin mit Uhrzeit schlägt die eingestellte Zeit",
+      Models.leave_minutes(care, "care", None, 7 * 60 + 30) == (450, 460, None))
+check("Ferienbetreuung ohne Zeit, Ferien und Schule ohne Stunden: kein Losgehen",
+      Models.leave_minutes(walker, "care", None) is None
+      and Models.leave_minutes(care, "free", None) is None
+      and Models.leave_minutes(bus, "school", None) is None
+      and Models.leave_minutes(nobody, "school", 480) is None)
+
 # --- what changed about a day, and the sentence that says it -------------------
 P = importlib.import_module("schoolday.plan")
 L = Models.Lesson

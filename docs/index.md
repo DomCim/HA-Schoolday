@@ -62,7 +62,7 @@ It is built for one thing: a tablet on the kitchen wall that a family walks past
     <span class="tile-title">Automations</span>
     <p>A sensor per child whose state is the subject they are in right now, today's and
     tomorrow's subjects ready to speak, a leaving time that moves when the first lesson is
-    cancelled, a message when the school changes the plan, three blueprints, and a service
+    cancelled — or stays at the bus — a message when the school changes the plan, three blueprints, and a service
     for everything the options dialog can change.</p>
   </a>
   <a class="tile orange" href="cards.html">

@@ -2,12 +2,15 @@ blueprint:
   name: "Schoolday: time-to-leave light"
   description: >-
     A light that turns amber a few minutes before a child has to leave for school and
-    red when it is time, then switches off again. The leaving time comes from the
-    child's way to school and their first lesson, so it moves by itself when the
-    first lesson is cancelled, and it stays dark on days without school.
+    red when it is time, then switches off again. For a child who walks, the leaving
+    time comes from the way to school and the first lesson, so it moves by itself when
+    the first lesson is cancelled; for a child with a bus time it stays at the bus.
+    Days in holiday care count when the child has a time for them, and it stays dark
+    on days with neither.
 
 
-    Needs a way to school on the child, which gives them a "time to leave" sensor.
+    Needs a way to school or a time to leave on the child, which gives them a "time to
+    leave" sensor.
   domain: automation
   source_url: https://github.com/DomCim/HA-Schoolday/blob/main/custom_components/schoolday/blueprints/leave_light.yaml
   homeassistant:
@@ -93,8 +96,8 @@ triggers:
     value_template: >-
       {% set at = states(leave_sensor) | as_datetime(none) %}
       {{ at is not none and now() >= at + timedelta(minutes=off_minutes | int) }}
-  # The leaving time moves on to the next school day once the first lesson has begun,
-  # which can be before the light was due off. Only a leaving time that has just passed
+  # The leaving time moves on to the next day once the first lesson has begun, or ten
+  # minutes after a bus time, which can be before the light was due off. Only a leaving time that has just passed
   # counts: the evening's calendar read moving tomorrow's must not touch the light.
   - trigger: state
     id: moved

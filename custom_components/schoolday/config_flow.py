@@ -31,6 +31,8 @@ from .const import (
     CONF_COLOR,
     CONF_EXAMS_CALENDAR,
     CONF_TRAVEL_MINUTES,
+    CONF_LEAVE_TIME,
+    CONF_CARE_LEAVE_TIME,
     TRAVEL_MAX_MINUTES,
     CONF_LESSONS_CALENDAR,
     CONF_MATERIALS,
@@ -55,6 +57,7 @@ from .models import (
     Lesson,
     SchooldayConfig,
     Timetable,
+    clock,
     color_to_hex,
     hex_to_rgb,
     lessons_from_text,
@@ -185,6 +188,8 @@ class SchooldayOptionsFlow(OptionsFlow):
                 mode=selector.NumberSelectorMode.BOX,
             )
         )
+        fields[vol.Optional(CONF_LEAVE_TIME)] = selector.TimeSelector()
+        fields[vol.Optional(CONF_CARE_LEAVE_TIME)] = selector.TimeSelector()
         fields[vol.Required(SECTION_SCHOOL_SYSTEM)] = section(
             vol.Schema(
                 {
@@ -219,6 +224,10 @@ class SchooldayOptionsFlow(OptionsFlow):
         # admin card's field and in every attribute that repeats it.
         if (travel := member.get(CONF_TRAVEL_MINUTES)) is not None:
             member[CONF_TRAVEL_MINUTES] = int(travel)
+        # A time selector answers with seconds nobody asked for.
+        for key in (CONF_LEAVE_TIME, CONF_CARE_LEAVE_TIME):
+            if key in member:
+                member[key] = clock(member[key])
         return member
 
     # --- menu ---------------------------------------------------------------

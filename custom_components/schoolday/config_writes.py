@@ -39,6 +39,8 @@ from .const import (
     CONF_SCHEDULE,
     CONF_EXAMS_CALENDAR,
     CONF_TRAVEL_MINUTES,
+    CONF_LEAVE_TIME,
+    CONF_CARE_LEAVE_TIME,
     TRAVEL_MAX_MINUTES,
     CONF_LESSONS_CALENDAR,
     CONF_SCHOOL_CALENDARS,
@@ -55,6 +57,7 @@ from .models import (
     InvalidPeriod,
     Lesson,
     Timetable,
+    clock,
     color_to_hex,
     periods_from_text,
     unify_subjects,
@@ -307,6 +310,8 @@ def set_member(
     lessons_calendar: str | None = None,
     exams_calendar: str | None = None,
     travel_minutes: Any = None,
+    leave_time: Any = None,
+    care_leave_time: Any = None,
 ) -> tuple[dict[str, Any], str]:
     """Add a family member, or change one that exists.
 
@@ -348,6 +353,14 @@ def set_member(
                 f"{TRAVEL_MAX_MINUTES}."
             )
 
+    times: dict[str, str | None] = {}
+    for key, raw in ((CONF_LEAVE_TIME, leave_time), (CONF_CARE_LEAVE_TIME, care_leave_time)):
+        times[key] = clock(raw) if raw not in (None, "") else None
+        if raw not in (None, "") and times[key] is None:
+            raise SchooldayValueError(
+                f"'{raw}' is not a time to leave. Write it as HH:MM, for example 07:05."
+            )
+
     existing = next((item for item in members if item.get(CONF_MEMBER_ID) == member_id), None)
     if member_id is not None and existing is None:
         raise SchooldayValueError(f"No family member has the id '{member_id}'.")
@@ -372,6 +385,8 @@ def set_member(
         # times behind it are, and a name that stands for nothing already reads as the
         # household's own times rather than as an error.
         (CONF_SCHEDULE, (schedule or "").strip() or None),
+        (CONF_LEAVE_TIME, times[CONF_LEAVE_TIME]),
+        (CONF_CARE_LEAVE_TIME, times[CONF_CARE_LEAVE_TIME]),
     ):
         if value:
             entry[key] = value

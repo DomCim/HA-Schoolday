@@ -27,7 +27,8 @@ sensor.schoolday_ben        →  Sport
 | `tomorrow_exams` | Tomorrow's exam titles: `["Mathe"]` — empty when tomorrow is not a school day, like `tomorrow_subjects` |
 | `school_start` / `school_end` | When today's first lesson begins and the last one ends, `"08:00"` / `"13:10"`, after what the [school system](exceptions.md#from-the-schools-own-system) cancelled — `null` on a day without school |
 | `tomorrow_start` / `tomorrow_end` | The same for tomorrow |
-| `leave_at` | The next time this child has to [set off](#time-to-leave), as a timestamp — `null` without a way to school |
+| `leave_at` | The next time this child has to [set off](#time-to-leave), as a timestamp — `null` without a way to school or a time to leave |
+| `leave_until` | Until when that leaving time is worth showing: the first lesson for a child who walks, ten minutes past a bus time or a day in holiday care |
 | `lesson_now` / `lesson_next` | The running and the next lesson, or `null` |
 | `schedule` | Which named [set of lesson times](timetable.md#two-schools-that-do-not-ring-together) this child's school rings to, or `null` for the household's |
 | `day_mode` | `school`, `care`, `free`, `event` or `sick` — which routine is showing, and why |
@@ -222,6 +223,31 @@ school day. The child without a way to school has no such sensor at all; 0 minut
 way to school, for a child living next door. The [header card](cards.md#header-card)
 counts down to it on the wall.
 
+### A bus, a lift, holiday care
+
+A school bus does not come later because the first lesson is cancelled, and a child who
+catches it cannot sleep in. For them, set **Leaves on school days at** instead — the time
+they go out of the door, whatever the school cancelled. It wins over the way to school, so
+a child can keep both and the bus time is what counts.
+
+Holiday care rarely starts when school does, and has no first lesson to count back from.
+**Leaves in holiday care at** is the time on a day the child's own calendar marks as
+[holiday care](exceptions.md#holiday-care). When one holiday's care starts earlier than
+another's, put the time in the calendar instead: a care event that starts at 06:45, rather
+than lasting all day, makes 06:45 the leaving time for that day.
+
+| Day | Leaving time |
+|---|---|
+| School, with a time on school days | That time, every school day |
+| School, with only a way to school | The first lesson that is on, minus the way |
+| Holiday care, with a timed care event | The event's start — the earliest, if there are two |
+| Holiday care, with a time for care | That time |
+| Anything else | None |
+
+A time by the clock shows as "go now" for ten minutes and then moves on to the next day,
+where a walk to school does so at the first bell. `leave_time` and `care_leave_time` are
+on the leave sensor too, next to `travel_minutes`; its `starts_at` is `null` on a care day.
+
 ## Blueprints
 
 Three come with Schoolday. They are copied into `blueprints/automation/schoolday/` every
@@ -233,12 +259,14 @@ deleted.
 | Blueprint | What it does | Needs |
 |---|---|---|
 | **The school changed the plan** | A push notification on the phones you pick, with the message above. Choose which children and how far ahead — today and tomorrow unless you say otherwise. | A lessons calendar |
-| **Time-to-leave light** | A lamp in the hall turns amber a few minutes before leaving, red when it is time, and goes off again. Colours, brightness and minutes are yours to pick. | A way to school |
-| **Before leaving for school** | Anything you like, a set time before leaving: the wake-up light an hour before, the radio, the bathroom heating. It moves with the first lesson. | A way to school |
+| **Time-to-leave light** | A lamp in the hall turns amber a few minutes before leaving, red when it is time, and goes off again. Colours, brightness and minutes are yours to pick. | A way to school or a time to leave |
+| **Before leaving for school** | Anything you like, a set time before leaving: the wake-up light an hour before, the radio, the bathroom heating. It moves with the first lesson — unless the child has a bus time. | A way to school or a time to leave |
 
 The last two follow the leaving time to the minute, so "an hour before" on a morning
 whose first lesson is cancelled is an hour before the second one — the extra 45 minutes
-of sleep arrive without anybody touching the alarm.
+of sleep arrive without anybody touching the alarm. A child with a
+[bus time](#a-bus-a-lift-holiday-care) gets up for the bus regardless, and on a day in
+holiday care for the care time.
 
 The phones are the Home Assistant app on each one. The notification goes to the
 `notify.mobile_app_…` action the app registered, which carries the phone's own name, so
@@ -373,7 +401,7 @@ validates: a card must not be able to write a timetable the sensors can no longe
 | `schoolday.set_exception` | What one date does differently |
 | `schoolday.clear_exception` | Put a date back |
 | `schoolday.set_materials` | What a subject needs brought along |
-| `schoolday.set_member` | Add or change a family member, including which school they ring to, their way to school and their school system's calendars |
+| `schoolday.set_member` | Add or change a family member, including which school they ring to, their way to school, their times to leave on school days and in holiday care (`leave_time`, `care_leave_time`, `HH:MM`) and their school system's calendars |
 | `schoolday.remove_member` | Remove one, and everything that only existed for them |
 | `schoolday.set_calendars` | The holiday calendars, the holiday-care keywords, and the cancellation and substitution words |
 

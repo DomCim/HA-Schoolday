@@ -27,6 +27,10 @@ export interface AdminMember {
   schedule: string | null;
   /** Minutes to school, which gives a leaving time; null for none, which is not 0. */
   travelMinutes: number | null;
+  /** A leaving time by the clock, `HH:MM`, on school days — a bus, a lift. */
+  leaveTime: string | null;
+  /** The same for a day in holiday care. */
+  careLeaveTime: string | null;
 }
 
 /** Routine day keys: "0".."6", plus "free" for a day off and "care" for holiday care. */
@@ -118,6 +122,11 @@ export function parseAdmin(raw: unknown): AdminConfig {
           : null,
       schedule: typeof entry.schedule === 'string' && entry.schedule ? entry.schedule : null,
       travelMinutes: typeof entry.travel_minutes === 'number' ? entry.travel_minutes : null,
+      leaveTime: typeof entry.leave_time === 'string' && entry.leave_time ? entry.leave_time : null,
+      careLeaveTime:
+        typeof entry.care_leave_time === 'string' && entry.care_leave_time
+          ? entry.care_leave_time
+          : null,
     }))
     .sort((a, b) => a.order - b.order);
 

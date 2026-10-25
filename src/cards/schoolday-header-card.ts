@@ -106,7 +106,7 @@ export class SchooldayHeaderCard extends LitElement implements LovelaceCard {
   }
 
   /**
-   * One line per child with a leaving time today, until their first lesson begins.
+   * One line per child with a leaving time today, until it is over.
    *
    * Read from the member sensor's `leave_at` rather than worked out here: the sensor
    * already knows the first lesson that is actually on, and a card doing the sums again
@@ -125,8 +125,9 @@ export class SchooldayHeaderCard extends LitElement implements LovelaceCard {
     const rows = board.members.flatMap((member) => {
       const attributes = memberSensor(this.hass!, member.id)?.attributes ?? {};
       const raw = attributes.leave_at;
+      const rawUntil = attributes.leave_until;
       const start = attributes.school_start;
-      if (typeof raw !== 'string' || typeof start !== 'string') {
+      if (typeof raw !== 'string') {
         return [];
       }
       const leave = new Date(raw);
@@ -135,10 +136,16 @@ export class SchooldayHeaderCard extends LitElement implements LovelaceCard {
       if (Number.isNaN(leave.getTime()) || leave.toDateString() !== today) {
         return [];
       }
-      const [hour, minute] = start.split(':').map(Number);
-      const bell = new Date(leave);
-      bell.setHours(hour, minute, 0, 0);
-      if (now >= bell) {
+      // Until the sensor says the time is over: the first bell for a child who walks,
+      // a few minutes past it for a bus. A sensor from before `leave_until` existed
+      // only had the bell.
+      let until: Date | null = typeof rawUntil === 'string' ? new Date(rawUntil) : null;
+      if (!until && typeof start === 'string') {
+        const [hour, minute] = start.split(':').map(Number);
+        until = new Date(leave);
+        until.setHours(hour, minute, 0, 0);
+      }
+      if (!until || Number.isNaN(until.getTime()) || now >= until) {
         return [];
       }
       const left = Math.ceil((leave.getTime() - now.getTime()) / 60_000);

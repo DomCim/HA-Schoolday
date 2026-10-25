@@ -42,6 +42,8 @@ from .const import (
     CONF_LESSONS_CALENDAR,
     CONF_SCHOOL_CALENDARS,
     CONF_TRAVEL_MINUTES,
+    CONF_LEAVE_TIME,
+    CONF_CARE_LEAVE_TIME,
     ATTR_SCHEDULES,
     CONF_SUBJECT_COLORS,
     CONF_TIMETABLE,
@@ -52,6 +54,7 @@ from .const import (
     CONF_MATERIALS,
     MODE_CARE,
     MODE_FREE,
+    MODE_SCHOOL,
     MODE_SICK,
     ROUTINE_BLOCKS,
     ROUTINE_CARE,
@@ -123,7 +126,8 @@ class Member:
     avatar: str | None = None
     order: int = 0
     #: This member's own calendar, if they have one. Only ever read for the
-    #: holiday-care keyword — Schoolday shows none of its events.
+    #: holiday-care keyword and when such an event starts — Schoolday shows none of
+    #: its events.
     calendar: str | None = None
     #: What a school system publishes for this member: the lessons, read only for the
     #: cancelled ones, and the exams, every event of which is one.
@@ -134,6 +138,20 @@ class Member:
     schedule: str | None = None
     #: Minutes from the front door to the classroom, or None for no leaving time.
     travel_minutes: int | None = None
+    #: A leaving time by the clock, ``HH:MM``, on school days and on holiday-care days.
+    #: The first wins over the way to school: a bus does not come later because the
+    #: first lesson is cancelled.
+    leave_time: str | None = None
+    care_leave_time: str | None = None
+
+    @property
+    def leaves(self) -> bool:
+        """Whether anything gives this member a leaving time at all."""
+        return (
+            self.travel_minutes is not None
+            or self.leave_time is not None
+            or self.care_leave_time is not None
+        )
 
     @classmethod
     def from_dict(cls, data: dict[str, Any], index: int = 0) -> Member:
@@ -150,6 +168,8 @@ class Member:
             exams_calendar=data.get(CONF_EXAMS_CALENDAR) or None,
             schedule=str(data.get(CONF_SCHEDULE) or "").strip() or None,
             travel_minutes=_minutes(data.get(CONF_TRAVEL_MINUTES)),
+            leave_time=clock(data.get(CONF_LEAVE_TIME)),
+            care_leave_time=clock(data.get(CONF_CARE_LEAVE_TIME)),
         )
 
     def as_card_dict(self) -> dict[str, Any]:
@@ -171,6 +191,8 @@ class Member:
             CONF_EXAMS_CALENDAR: self.exams_calendar,
             CONF_SCHEDULE: self.schedule,
             CONF_TRAVEL_MINUTES: self.travel_minutes,
+            CONF_LEAVE_TIME: self.leave_time,
+            CONF_CARE_LEAVE_TIME: self.care_leave_time,
         }
 
 
@@ -183,6 +205,59 @@ def _minutes(value: Any) -> int | None:
     except (TypeError, ValueError):
         return None
     return minutes if minutes >= 0 else None
+
+
+_CLOCK_RE = re.compile(r"^(\d{1,2})[:.h](\d{2})(?::\d{2})?$")
+
+
+def clock(value: Any) -> str | None:
+    """A time of day as ``HH:MM``, or None for anything that is not one.
+
+    Takes what people and Home Assistant write: ``6:45``, ``06.45``, and the
+    ``06:45:00`` a time selector hands back.
+    """
+    match = _CLOCK_RE.match(str(value or "").strip())
+    if match is None:
+        return None
+    hour, minute = int(match.group(1)), int(match.group(2))
+    if hour > 23 or minute > 59:
+        return None
+    return f"{hour:02d}:{minute:02d}"
+
+
+def clock_minutes(value: str) -> int:
+    """Minutes since midnight of an ``HH:MM`` that :func:`clock` produced."""
+    hour, minute = value.split(":")
+    return int(hour) * 60 + int(minute)
+
+
+def leave_minutes(
+    member: Member,
+    mode: str,
+    first_lesson: int | None,
+    care_start: int | None = None,
+    grace: int = 10,
+) -> tuple[int, int, int | None] | None:
+    """A day's leaving time, in minutes since midnight, or None for no leaving that day.
+
+    Returns when to leave, until when that is worth saying, and the first bell it is for.
+    A time by the clock beats the way to school on a school day: a bus comes when it
+    comes, so a cancelled first lesson must not let a bus child sleep in. On a day in
+    holiday care only a time says anything — the care event's own, else the member's —
+    because care has no first lesson to count back from.
+    """
+    if mode == MODE_CARE:
+        if care_start is None and member.care_leave_time:
+            care_start = clock_minutes(member.care_leave_time)
+        return None if care_start is None else (care_start, care_start + grace, None)
+    if mode != MODE_SCHOOL or first_lesson is None:
+        return None
+    if member.leave_time:
+        at = clock_minutes(member.leave_time)
+        return at, at + grace, first_lesson
+    if member.travel_minutes is None:
+        return None
+    return first_lesson - member.travel_minutes, first_lesson, first_lesson
 
 
 @dataclass(slots=True)

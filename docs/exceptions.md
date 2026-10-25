@@ -78,6 +78,11 @@ case-insensitively anywhere in the title.
 Their own calendar also holds the dentist and football, which is why only your keywords
 count.
 
+A day in care can have its own [leaving time](automations.md#a-bus-a-lift-holiday-care):
+a time set with the child, or the start of the care event when it has one — "Ben
+Ferienbetreuung" from 06:45 sends Ben off at 06:45 that day, and an all-day event leaves
+the choice to the time set with him.
+
 ### Where a child's own calendar comes from
 
 Most households keep **one** family calendar rather than one per child, which leaves
@@ -92,8 +97,8 @@ Schoolday nothing to look at. Two ways round it:
   "Ben Ferienbetreuung" lands in Ben's, "Nik Zahnarzt" in Nik's. You keep writing into
   the one calendar you already use, and Schoolday gets per-child ones for free.
 
-Either way Schoolday reads them for **one thing only**: the holiday-care keyword. It
-shows none of their events and never writes to a calendar.
+Either way Schoolday reads them for **one thing only**: the holiday-care keyword, and when
+an event with it starts. It shows none of their events and never writes to a calendar.
 
 ## A day the school took over
 

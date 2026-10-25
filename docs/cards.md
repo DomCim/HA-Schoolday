@@ -145,8 +145,9 @@ weather_entity: weather.home
 
 Clock, date and weather — the strip along the top of a wall panel. On a school morning
 it also says when each child has to leave, for every child with a
-[way to school](automations.md#time-to-leave): the time, an hour before that a countdown,
-amber for the last ten minutes, then "jetzt los!" in red until their first lesson begins.
+[way to school or a time to leave](automations.md#time-to-leave): the time, an hour before
+that a countdown, amber for the last ten minutes, then "jetzt los!" in red until their
+first lesson begins — or for ten minutes, after a bus time or on a day in holiday care.
 It reads the leaving time off the child's sensor, so a cancelled first period moves it
 here too. From the evening on the sensor points at tomorrow, and the strip stays quiet
 until tomorrow comes.
@@ -207,11 +208,11 @@ the **Family** section.
 
 ### Family
 
-![Name, colour, the calendar searched for the holiday-care keyword, the school system's calendars folded away, a picture taken from a person entity, the way to school, and which school's lesson times they ring to.](images/admin-family.png)
+![Name, colour, the calendar searched for the holiday-care keyword, the school system's calendars folded away, a picture taken from a person entity, the way to school, the times to leave for a bus and for holiday care, and which school's lesson times they ring to.](images/admin-family.png)
 *Name, colour, the calendar searched for the holiday-care keyword, the school system's
 lessons and exams calendars — folded away until a child has one — a picture taken from a
-person entity, the way to school in minutes, and which school's lesson times they ring
-to. The last of those only appears once there is more than one school to choose between.
+person entity, the way to school in minutes, the times to leave for a bus and for holiday
+care, and which school's lesson times they ring to. The last of those only appears once there is more than one school to choose between.
 An empty way to school means no [leaving time](automations.md#time-to-leave); 0 is one.*
 
 ### Material

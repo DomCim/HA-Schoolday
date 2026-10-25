@@ -37,14 +37,18 @@
           "avatar": "Avatarbild",
           "calendar": "Kalender",
           "schedule": "Schule",
-          "travel_minutes": "Weg zur Schule"
+          "travel_minutes": "Weg zur Schule",
+          "leave_time": "Losgehen an Schultagen um",
+          "care_leave_time": "Losgehen in der Ferienbetreuung um"
         },
         "data_description": {
           "color": "Kennzeichnet diese Person auf allen Schoolday-Karten.",
           "avatar": "Pfad zu einem Bild, zum Beispiel /local/schoolday/ben.png. Optional.",
           "calendar": "Der eigene Kalender dieses Kindes, falls es einen hat. Er wird ausschließlich nach den Betreuungs-Stichwörtern durchsucht – Schoolday zeigt keinen seiner Termine an.",
           "schedule": "Leer lassen für die üblichen Stundenzeiten des Haushalts.",
-          "travel_minutes": "Minuten von der Haustür bis ins Klassenzimmer. Daraus wird eine Losgeh-Zeit, die sich von selbst verschiebt, wenn die erste Stunde ausfällt. Leer lassen für keine."
+          "travel_minutes": "Minuten von der Haustür bis ins Klassenzimmer. Daraus wird eine Losgeh-Zeit, die sich von selbst verschiebt, wenn die erste Stunde ausfällt. Leer lassen für keine.",
+          "leave_time": "Für Bus, Fahrgemeinschaft oder Taxi: wann dieses Kind an Schultagen aus der Tür muss, egal was ausfällt. Gilt vor dem Weg zur Schule. Leer lassen für keine.",
+          "care_leave_time": "Wann dieses Kind an Tagen in der Ferienbetreuung aus der Tür muss. Hat der Betreuungstermin im Kalender des Kindes eine Uhrzeit, gilt an dem Tag diese. Leer lassen für keine."
         },
         "sections": {
           "school_system": {
@@ -75,14 +79,18 @@
           "avatar": "Avatarbild",
           "calendar": "Kalender",
           "schedule": "Schule",
-          "travel_minutes": "Weg zur Schule"
+          "travel_minutes": "Weg zur Schule",
+          "leave_time": "Losgehen an Schultagen um",
+          "care_leave_time": "Losgehen in der Ferienbetreuung um"
         },
         "data_description": {
           "color": "Kennzeichnet diese Person auf allen Schoolday-Karten.",
           "avatar": "Pfad zu einem Bild, zum Beispiel /local/schoolday/ben.png. Optional.",
           "calendar": "Der eigene Kalender dieses Kindes, falls es einen hat. Er wird ausschließlich nach den Betreuungs-Stichwörtern durchsucht – Schoolday zeigt keinen seiner Termine an.",
           "schedule": "Leer lassen für die üblichen Stundenzeiten des Haushalts.",
-          "travel_minutes": "Minuten von der Haustür bis ins Klassenzimmer. Daraus wird eine Losgeh-Zeit, die sich von selbst verschiebt, wenn die erste Stunde ausfällt. Leer lassen für keine."
+          "travel_minutes": "Minuten von der Haustür bis ins Klassenzimmer. Daraus wird eine Losgeh-Zeit, die sich von selbst verschiebt, wenn die erste Stunde ausfällt. Leer lassen für keine.",
+          "leave_time": "Für Bus, Fahrgemeinschaft oder Taxi: wann dieses Kind an Schultagen aus der Tür muss, egal was ausfällt. Gilt vor dem Weg zur Schule. Leer lassen für keine.",
+          "care_leave_time": "Wann dieses Kind an Tagen in der Ferienbetreuung aus der Tür muss. Hat der Betreuungstermin im Kalender des Kindes eine Uhrzeit, gilt an dem Tag diese. Leer lassen für keine."
         },
         "sections": {
           "school_system": {
@@ -475,6 +483,14 @@
         "travel_minutes": {
           "name": "Weg zur Schule",
           "description": "Minuten von der Haustür bis zur Schule. Daraus wird eine Losgeh-Zeit; weggelassen heißt keine."
+        },
+        "leave_time": {
+          "name": "Losgehen an Schultagen um",
+          "description": "Eine feste Losgeh-Zeit, für Bus oder Fahrgemeinschaft. Gilt vor dem Weg zur Schule; weggelassen heißt keine."
+        },
+        "care_leave_time": {
+          "name": "Losgehen in der Ferienbetreuung um",
+          "description": "Eine Losgeh-Zeit für Tage in der Ferienbetreuung; weggelassen heißt keine."
         }
       }
     },

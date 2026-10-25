@@ -5,6 +5,28 @@ version you are updating to; the [manual](https://domcim.github.io/HA-Schoolday/
 details. Releases before 0.14.0 are listed on
 [GitHub](https://github.com/DomCim/HA-Schoolday/releases).
 
+## 0.16.0
+
+### A bus does not wait for the first lesson
+
+The leaving time used to follow the first lesson, which is right for a child who walks
+and wrong for one who catches the school bus: the bus comes at its time even when the
+first lesson is cancelled. Each child can now have a **time to leave on school days**, a
+fixed time for the bus, a lift or a taxi. It wins over the way to school, so the hall
+light and the wake-up blueprint stay at the bus time and nobody misses it by sleeping in.
+
+### Leaving for holiday care
+
+Holiday care rarely starts when school does. A **time to leave in holiday care** gives a
+child a leaving time on the days their calendar marks as care, with the countdown on the
+wall, the hall light and the wake-up blueprint, just as on a school day. When care starts
+at different times in different holidays, give the care event a start time in the
+calendar instead of making it all-day, and that time counts for that day.
+
+Both are under **Edit a family member** and in the admin card's Family section. Nothing
+changes until you set one. After a bus time or on a care day, "go now" stays up for ten
+minutes and then gives way to the next day.
+
 ## 0.15.0
 
 ### A message when the school changes the plan

@@ -37,14 +37,18 @@
           "avatar": "Avatar image",
           "calendar": "Calendar",
           "schedule": "School",
-          "travel_minutes": "Way to school"
+          "travel_minutes": "Way to school",
+          "leave_time": "Leaves on school days at",
+          "care_leave_time": "Leaves in holiday care at"
         },
         "data_description": {
           "color": "Used for this person's highlights across every Schoolday card.",
           "avatar": "Path to an image, for example /local/schoolday/ben.png. Optional.",
           "calendar": "This child's own calendar, if they have one. Only ever searched for the holiday-care keywords below — Schoolday shows none of its events.",
           "schedule": "Leave empty for the household's usual lesson times.",
-          "travel_minutes": "Minutes from the front door to the classroom. Gives this child a leaving time that moves by itself when the first lesson is cancelled. Leave empty for none."
+          "travel_minutes": "Minutes from the front door to the classroom. Gives this child a leaving time that moves by itself when the first lesson is cancelled. Leave empty for none.",
+          "leave_time": "For a bus, a lift or a taxi: the time this child goes out of the door on a school day, whatever the school cancelled. Wins over the way to school. Leave empty for none.",
+          "care_leave_time": "The time this child goes out of the door on a day in holiday care. A care event with a time of day in the child's calendar wins for that day. Leave empty for none."
         },
         "sections": {
           "school_system": {
@@ -75,14 +79,18 @@
           "avatar": "Avatar image",
           "calendar": "Calendar",
           "schedule": "School",
-          "travel_minutes": "Way to school"
+          "travel_minutes": "Way to school",
+          "leave_time": "Leaves on school days at",
+          "care_leave_time": "Leaves in holiday care at"
         },
         "data_description": {
           "color": "Used for this person's highlights across every Schoolday card.",
           "avatar": "Path to an image, for example /local/schoolday/ben.png. Optional.",
           "calendar": "This child's own calendar, if they have one. Only ever searched for the holiday-care keywords below — Schoolday shows none of its events.",
           "schedule": "Leave empty for the household's usual lesson times.",
-          "travel_minutes": "Minutes from the front door to the classroom. Gives this child a leaving time that moves by itself when the first lesson is cancelled. Leave empty for none."
+          "travel_minutes": "Minutes from the front door to the classroom. Gives this child a leaving time that moves by itself when the first lesson is cancelled. Leave empty for none.",
+          "leave_time": "For a bus, a lift or a taxi: the time this child goes out of the door on a school day, whatever the school cancelled. Wins over the way to school. Leave empty for none.",
+          "care_leave_time": "The time this child goes out of the door on a day in holiday care. A care event with a time of day in the child's calendar wins for that day. Leave empty for none."
         },
         "sections": {
           "school_system": {
@@ -475,6 +483,14 @@
         "travel_minutes": {
           "name": "Way to school",
           "description": "Minutes from the front door to school. Gives the member a leaving time; omitted means none."
+        },
+        "leave_time": {
+          "name": "Leaves on school days at",
+          "description": "A leaving time by the clock, for a bus or a lift. Wins over the way to school; omitted means none."
+        },
+        "care_leave_time": {
+          "name": "Leaves in holiday care at",
+          "description": "A leaving time for days in holiday care; omitted means none."
         }
       }
     },

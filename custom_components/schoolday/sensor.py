@@ -12,7 +12,7 @@ import asyncio
 import logging
 from collections.abc import Iterable, Mapping
 from datetime import date, datetime, time, timedelta
-from typing import Any
+from typing import Any, NamedTuple
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.config_entries import ConfigEntry
@@ -42,6 +42,9 @@ from .const import (
     ATTR_FROM_SUBJECT,
     ATTR_LABEL,
     ATTR_LEAVE_AT,
+    ATTR_LEAVE_UNTIL,
+    ATTR_LEAVE_TIME,
+    ATTR_CARE_LEAVE_TIME,
     ATTR_LESSON_NEXT,
     ATTR_LESSON_NOW,
     ATTR_MEMBER,
@@ -91,6 +94,7 @@ from .const import (
     MODE_SCHOOL,
     MODE_SICK,
     OUTLOOK_DAYS,
+    LEAVE_GRACE_MINUTES,
     ROUTINE_BLOCKS,
     SIGNAL_ABSENCE_UPDATED,
     SIGNAL_ROUTINE_UPDATED,
@@ -104,6 +108,7 @@ from .models import (
     Period,
     SchooldayConfig,
     cancelled_periods,
+    leave_minutes,
     exams_by_day,
     substituted_periods,
 )
@@ -129,12 +134,10 @@ async def async_setup_entry(
         SchooldayMemberSensor(entry, member, config, store, absence, history)
         for member in config.members
     ]
-    # Only for a member with a way to school: a household that never says how far it
-    # is should not find a sensor that is unknown forever.
+    # Only for a member with a way to school or a time to leave: a household that never
+    # says either should not find a sensor that is unknown forever.
     leaving = [
-        SchooldayLeaveSensor(entry, sensor)
-        for sensor in members
-        if sensor.member.travel_minutes is not None
+        SchooldayLeaveSensor(entry, sensor) for sensor in members if sensor.member.leaves
     ]
     async_add_entities([SchooldayBoardSensor(entry, config), *members, *leaving])
 
@@ -158,7 +161,7 @@ def _async_remove_orphans(
         *(
             _leave_unique_id(entry, member.id)
             for member in config.members
-            if member.travel_minutes is not None
+            if member.leaves
         ),
     }
     for registry_entry in er.async_entries_for_config_entry(registry, entry.entry_id):
@@ -259,6 +262,26 @@ def _feed_events(events: Iterable[Mapping[str, Any]]) -> list[FeedEvent]:
             )
         )
     return feed
+
+
+class Leave(NamedTuple):
+    """One leaving time: when, until when it is worth showing, and the bell it is for."""
+
+    at: datetime
+    until: datetime
+    starts: datetime | None
+
+
+def _event_start_time(event: Mapping[str, Any]) -> datetime | None:
+    """When a timed event starts, locally, or None for an all-day one.
+
+    Only a start with a time of day counts: `parse_datetime` reads a bare date as its
+    midnight, and an all-day care event would send the child off at 00:00.
+    """
+    raw = str(event.get("start") or "")
+    if len(raw) <= 10 or (start := dt_util.parse_datetime(raw)) is None:
+        return None
+    return dt_util.as_local(start)
 
 
 def _event_days(event: Mapping[str, Any]) -> Iterable[date]:
@@ -415,6 +438,9 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         self._feed_cancelled: dict[date, set[int]] = {}
         self._feed_swapped: dict[date, dict[int, Lesson]] = {}
         self._exams: dict[date, list[dict[str, Any]]] = {}
+        #: When a day in holiday care begins, where its event says so by having a time:
+        #: "Ferienbetreuung" from 06:45 is a child out of the door at 06:45 that day.
+        self._care_starts: dict[date, int] = {}
         #: Two readings at once — a calendar changing while the regular re-read runs —
         #: would both compare against the same old day and announce one change twice.
         self._refresh_lock = asyncio.Lock()
@@ -619,11 +645,17 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         # home. Matched on the member's own calendar, which also holds the dentist and
         # football, so only the household's own keywords count.
         keywords = [keyword.casefold() for keyword in self._config.care_keywords]
+        care_starts: dict[date, int] = {}
         if keywords and self._member.calendar:
             for event in events.get(self._member.calendar, []):
                 summary = str(event.get("summary") or "").strip()
                 if not any(keyword in summary.casefold() for keyword in keywords):
                     continue
+                if (begins := _event_start_time(event)) is not None:
+                    # The earliest, where a day has two: that is when the child goes.
+                    minutes = begins.hour * 60 + begins.minute
+                    day = begins.date()
+                    care_starts[day] = min(minutes, care_starts.get(day, minutes))
                 for day in _event_days(event):
                     entry = entries.get(day)
                     if entry is not None:
@@ -658,6 +690,7 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
             substituted = substituted_periods(
                 lessons_feed, periods, self._config.substitute_keywords
             )
+        self._care_starts = care_starts
         self._exams = (
             exams_by_day(_feed_events(events.get(self._member.exams_calendar, [])), periods)
             if self._member.exams_calendar
@@ -940,29 +973,43 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
             return None
         return day_span(self._lessons_on(day), self._periods)
 
-    def next_leave(self) -> tuple[datetime, datetime] | None:
-        """When this member next has to set off, and the start they are setting off for.
+    def next_leave(self) -> Leave | None:
+        """When this member next has to set off, and until when that is worth saying.
 
-        Today's until the first lesson has begun, then the next school day's: between
-        the two the time is in the past, which is what lets a card say "go now" while
-        the automation that fired at it has nothing left to fire at.
+        Today's until it is over — the first bell for a child who walks, a few minutes
+        past the time for one who catches a bus — then the next day's: between the two
+        the time is in the past, which is what lets a card say "go now" while the
+        automation that fired at it has nothing left to fire at.
         """
-        travel = self._member.travel_minutes
-        if travel is None:
+        if not self._member.leaves:
             return None
         now = dt_util.now()
         for offset in range(OUTLOOK_DAYS):
             day = now.date() + timedelta(days=offset)
-            span = self._span_on(day)
-            if span is None:
-                continue
-            starts = dt_util.start_of_local_day(day) + timedelta(
-                minutes=span[0].start_minutes
-            )
-            if starts <= now:
-                continue
-            return starts - timedelta(minutes=travel), starts
+            leave = self._leave_on(day)
+            if leave is not None and leave.until > now:
+                return leave
         return None
+
+    def _leave_on(self, day: date) -> Leave | None:
+        """A date's leaving time, or None for a day nobody leaves on."""
+        span = self._span_on(day)
+        minutes = leave_minutes(
+            self._member,
+            self._mode_on(day),
+            span[0].start_minutes if span else None,
+            self._care_starts.get(day),
+            LEAVE_GRACE_MINUTES,
+        )
+        if minutes is None:
+            return None
+        midnight = dt_util.start_of_local_day(day)
+        at, until, starts = minutes
+        return Leave(
+            at=midnight + timedelta(minutes=at),
+            until=midnight + timedelta(minutes=until),
+            starts=None if starts is None else midnight + timedelta(minutes=starts),
+        )
 
     def _exams_from_today(self) -> list[dict[str, Any]]:
         """Every exam from today to the end of the outlook, in date order."""
@@ -994,11 +1041,13 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         self._cancel_boundary()
         now = dt_util.now()
         minutes = now.hour * 60 + now.minute
-        upcoming = [
-            mark
-            for mark in self._config.timetable.boundaries_in(self._periods)
-            if mark > minutes
-        ]
+        marks = set(self._config.timetable.boundaries_in(self._periods))
+        # A leaving time by the clock is over at no lesson boundary, and the leave
+        # sensor would otherwise point at this morning's bus until the first bell.
+        leave = self._leave_on(now.date()) if self._member.leaves else None
+        if leave is not None and leave.until.date() == now.date():
+            marks.add(leave.until.hour * 60 + leave.until.minute)
+        upcoming = sorted(mark for mark in marks if mark > minutes)
         if upcoming:
             when = now.replace(
                 hour=upcoming[0] // 60, minute=upcoming[0] % 60, second=0, microsecond=0
@@ -1155,6 +1204,9 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         """
         await self._async_refresh_outlook()
         self._apply_boundary()
+        # A care event entered for this morning brings a leaving time that ends at no
+        # lesson boundary, so the next wake-up is worked out again.
+        self._schedule_boundary()
 
     # --- state --------------------------------------------------------------
 
@@ -1220,7 +1272,8 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
             ATTR_SCHOOL_END: today_span[1].end if today_span else None,
             ATTR_TOMORROW_START: tomorrow_span[0].start if tomorrow_span else None,
             ATTR_TOMORROW_END: tomorrow_span[1].end if tomorrow_span else None,
-            ATTR_LEAVE_AT: leave[0].isoformat() if leave else None,
+            ATTR_LEAVE_AT: leave.at.isoformat() if leave else None,
+            ATTR_LEAVE_UNTIL: leave.until.isoformat() if leave else None,
             ATTR_LESSON_NOW: self._lesson_now(),
             ATTR_LESSON_NEXT: self._lesson_next(),
         }
@@ -1251,7 +1304,7 @@ class SchooldayLeaveSensor(SchooldayBaseSensor):
     def native_value(self) -> datetime | None:
         """The next time to leave, or nothing in the outlook to leave for."""
         leave = self._source.next_leave()
-        return leave[0] if leave else None
+        return leave.at if leave else None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -1262,5 +1315,9 @@ class SchooldayLeaveSensor(SchooldayBaseSensor):
             ATTR_MEMBER: member.name,
             ATTR_MEMBER_ID: member.id,
             ATTR_TRAVEL_MINUTES: member.travel_minutes,
-            "starts_at": leave[1].isoformat() if leave else None,
+            ATTR_LEAVE_TIME: member.leave_time,
+            ATTR_CARE_LEAVE_TIME: member.care_leave_time,
+            # Null on a day in holiday care, which has no first lesson.
+            "starts_at": leave.starts.isoformat() if leave and leave.starts else None,
+            ATTR_LEAVE_UNTIL: leave.until.isoformat() if leave else None,
         }

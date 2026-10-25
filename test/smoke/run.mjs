@@ -1119,6 +1119,39 @@ check(
   (await page.locator('schoolday-header-card .leave').count()) === 2,
 );
 
+// A bus time, or a day in holiday care, ends where the sensor says rather than at a
+// bell: Nik's 09:10 is still "go now" at 09:15 with no lesson in sight, and gone once
+// its few minutes are up.
+const nikLeaves = async (until) => {
+  await page.evaluate((until) => {
+    const id = 'sensor.schoolday_nik';
+    const state = window.__hass.states[id];
+    window.__hass.states[id] = {
+      ...state,
+      attributes: {
+        ...state.attributes,
+        leave_at: '2026-08-05T09:10:00+02:00',
+        leave_until: until,
+        school_start: null,
+      },
+    };
+    window.__pushHass();
+  }, until);
+  await page.waitForTimeout(300);
+  return page.evaluate(() =>
+    [...document.querySelector('schoolday-header-card').shadowRoot.querySelectorAll('.leave')]
+      .map((row) => row.textContent.replace(/\s+/g, ' ').trim())
+      .filter((text) => text.startsWith('Nik')),
+  );
+};
+const nikUntil = await nikLeaves('2026-08-05T09:20:00+02:00');
+const nikOver = await nikLeaves('2026-08-05T09:14:00+02:00');
+check(
+  'a leaving time without a bell shows until the sensor says it is over',
+  nikUntil.join() === 'Nik jetzt los!' && nikOver.length === 0,
+  JSON.stringify([nikUntil, nikOver]),
+);
+
 // -------------------------------------------------------------- translations
 
 // The harness hass is German, so every card must speak German without configuration.
@@ -1596,6 +1629,32 @@ check(
   'an empty way to school is left out, and 0 minutes is sent as 0',
   noTravel && !('travel_minutes' in noTravel.data) && zeroTravel?.data.travel_minutes === 0,
   JSON.stringify([noTravel?.data.travel_minutes, zeroTravel?.data.travel_minutes]),
+);
+
+// Times to leave by the clock: shown as stored and always sent, because the service
+// clears what it is not told — an empty field is how a bus time is taken away again.
+const leaveFields = await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  return [...root.querySelectorAll('.member input[id^="leave-"], .member input[id^="careleave-"]')]
+    .map((input) => `${input.id.split('-')[0]}=${input.value}`);
+});
+await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  const member = root.querySelectorAll('.member')[1];
+  member.querySelector('[id^="leave-"]').value = '07:05';
+  member.querySelector('.apply').click();
+});
+await page.waitForTimeout(300);
+const busCall = await page.evaluate(
+  () => window.__calls.services.filter((c) => c.service === 'set_member').pop() ?? null,
+);
+check(
+  'bus and care times show what is stored and are sent every time',
+  leaveFields.join(',') === 'leave=,careleave=,leave=,careleave=06:45,leave=,careleave=,leave=,careleave='
+    && busCall?.data.leave_time === '07:05'
+    && busCall?.data.care_leave_time === '06:45'
+    && noTravel?.data.leave_time === '',
+  JSON.stringify([leaveFields, busCall?.data, noTravel?.data.leave_time]),
 );
 
 // Materials are listed per subject, because the subject is the key the evening routine

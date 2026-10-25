@@ -788,6 +788,25 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
             </label>
             <div class="notice quiet grow">${t(this.hass, 'admin.travel_hint')}</div>
           </div>
+          <div class="row">
+            <label class="field">
+              <span class="label">${t(this.hass, 'admin.leave_time')}</span>
+              <input
+                type="time"
+                id=${`leave-${key}`}
+                .value=${member?.leaveTime ?? ''}
+              />
+            </label>
+            <label class="field">
+              <span class="label">${t(this.hass, 'admin.care_leave_time')}</span>
+              <input
+                type="time"
+                id=${`careleave-${key}`}
+                .value=${member?.careLeaveTime ?? ''}
+              />
+            </label>
+            <div class="notice quiet grow">${t(this.hass, 'admin.leave_time_hint')}</div>
+          </div>
           ${Object.keys(config.schedules).length
             ? html`
                 <div class="row">
@@ -840,6 +859,8 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
                   ...(read('travel').trim() !== ''
                     ? { travel_minutes: Number(read('travel')) }
                     : {}),
+                  leave_time: read('leave'),
+                  care_leave_time: read('careleave'),
                 }).then(() => {
                   this._drafts = {};
                 });

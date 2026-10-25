@@ -48,7 +48,8 @@ integration page to move one lesson.
 1. **Add each family member** with a colour. Optionally a picture — point it at a
    `person.` entity and Home Assistant's own picture is used, so it follows whatever
    they change it to. A **way to school** in minutes gives a child a
-   [leaving time](automations.md#time-to-leave).
+   [leaving time](automations.md#time-to-leave); a child who takes the bus gets a fixed
+   time instead, and one for holiday care.
 2. **Lesson times**, one `HH:MM-HH:MM` per line. Breaks are derived from the gaps, so
    there is nothing else to configure. Children at
    [a second school that rings differently](timetable.md#two-schools-that-do-not-ring-together)

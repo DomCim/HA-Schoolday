@@ -185,6 +185,18 @@ set_member:
       selector:
         entity:
           domain: calendar
+    # What a school system publishes for this member, e.g. the WebUntis integration's
+    # timetable and exams calendars. Omitted means none, like the fields above.
+    lessons_calendar:
+      required: false
+      selector:
+        entity:
+          domain: calendar
+    exams_calendar:
+      required: false
+      selector:
+        entity:
+          domain: calendar
     avatar:
       required: false
       selector:
@@ -216,6 +228,16 @@ set_calendars:
     care_keywords:
       required: false
       example: ["Ferienbetreuung", "Hort"]
+      selector:
+        object:
+    cancel_keywords:
+      required: false
+      example: ["Cancelled", "Entfall"]
+      selector:
+        object:
+    substitute_keywords:
+      required: false
+      example: ["Irregular", "Vertretung"]
       selector:
         object:
 

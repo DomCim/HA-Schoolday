@@ -35,6 +35,7 @@ from .const import (
     ATTR_COLOR,
     ATTR_DATE,
     ATTR_DAY_MODE,
+    ATTR_EXAMS,
     ATTR_FROM_SUBJECT,
     ATTR_LABEL,
     ATTR_LESSON_NEXT,
@@ -59,6 +60,7 @@ from .const import (
     ATTR_TODAY,
     ATTR_TODAY_SUBJECTS,
     ATTR_TODAY_SUMMARY,
+    ATTR_TOMORROW_EXAMS,
     ATTR_TOMORROW_SUBJECTS,
     ATTR_TOMORROW_SUMMARY,
     ATTR_VERSION,
@@ -84,7 +86,16 @@ from .const import (
     STATE_FREE,
     VERSION,
 )
-from .models import Lesson, Member, Period, SchooldayConfig
+from .models import (
+    FeedEvent,
+    Lesson,
+    Member,
+    Period,
+    SchooldayConfig,
+    cancelled_periods,
+    exams_by_day,
+    substituted_periods,
+)
 from .store import AbsenceStore, HistoryStore, RoutineStore
 
 _LOGGER = logging.getLogger(__name__)
@@ -183,6 +194,47 @@ def _no_school_reason(hass: HomeAssistant, config: SchooldayConfig) -> str | Non
             or entity_id
         )
     return None
+
+
+def _feed_events(events: Iterable[Mapping[str, Any]]) -> list[FeedEvent]:
+    """A school system's events, in local minutes on the day each one starts.
+
+    A lesson does not run past midnight, so a timed event is taken to belong to the day
+    it starts on. An all-day event keeps every day it covers, without times.
+    """
+    feed: list[FeedEvent] = []
+    for event in events:
+        summary = str(event.get("summary") or "")
+        raw_start = str(event.get("start") or "")
+        # An all-day event is told apart by its shape, a bare `YYYY-MM-DD`, rather than
+        # by parse_datetime failing on it: that parser reads a bare date as midnight,
+        # and an all-day "Unterrichtsausfall" would then cancel every lesson of the day.
+        start_at = (
+            dt_util.parse_datetime(raw_start)
+            if raw_start and dt_util.parse_date(raw_start) is None
+            else None
+        )
+        if start_at is None:
+            feed.extend(FeedEvent(day=day, summary=summary) for day in _event_days(event))
+            continue
+        begins = dt_util.as_local(start_at)
+        raw_end = str(event.get("end") or "")
+        end_at = dt_util.parse_datetime(raw_end) if raw_end else None
+        ends = dt_util.as_local(end_at) if end_at is not None else begins
+        start = begins.hour * 60 + begins.minute
+        end = (
+            ends.hour * 60 + ends.minute if ends.date() == begins.date() else 24 * 60
+        )
+        feed.append(
+            FeedEvent(
+                day=begins.date(),
+                summary=summary,
+                start=start,
+                end=end,
+                location=str(event.get("location") or "") or None,
+            )
+        )
+    return feed
 
 
 def _event_days(event: Mapping[str, Any]) -> Iterable[date]:
@@ -332,6 +384,13 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         #: This week and the next seven days, in date order, and the day built for.
         self._outlook: list[dict[str, Any]] = []
         self._outlook_date: date | None = None
+        #: What the school system's calendars said, per date: the periods it cancelled
+        #: or gave to somebody else on top of what the household said, and the exams.
+        #: All a reading of a calendar, never written into the configuration — the next
+        #: read replaces them.
+        self._feed_cancelled: dict[date, set[int]] = {}
+        self._feed_swapped: dict[date, dict[int, Lesson]] = {}
+        self._exams: dict[date, list[dict[str, Any]]] = {}
 
     async def async_added_to_hass(self) -> None:
         """Follow the routine ticks and the holidays, and wake at the next boundary."""
@@ -348,9 +407,7 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
                 self.hass, SIGNAL_ABSENCE_UPDATED, self._handle_absence_change
             )
         )
-        watched = [*self._config.school_calendars]
-        if self._member.calendar:
-            watched.append(self._member.calendar)
+        watched = [*self._config.school_calendars, *self._member_calendars]
         if watched:
             self.async_on_remove(
                 async_track_state_change_event(
@@ -367,6 +424,22 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         self.async_on_remove(self._cancel_boundary)
 
     # --- timetable ----------------------------------------------------------
+
+    @property
+    def _member_calendars(self) -> list[str]:
+        """This member's own calendars, each once, in no particular order of meaning."""
+        member = self._member
+        return list(
+            dict.fromkeys(
+                entity_id
+                for entity_id in (
+                    member.calendar,
+                    member.lessons_calendar,
+                    member.exams_calendar,
+                )
+                if entity_id
+            )
+        )
 
     @staticmethod
     def _now() -> tuple[int, int]:
@@ -439,9 +512,9 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
 
         start = dt_util.start_of_local_day(first)
         end = dt_util.start_of_local_day(last) + timedelta(days=1)
-        calendars = list(self._config.school_calendars)
-        if self._member.calendar and self._member.calendar not in calendars:
-            calendars.append(self._member.calendar)
+        calendars = list(
+            dict.fromkeys([*self._config.school_calendars, *self._member_calendars])
+        )
         events = await self._async_read_events(calendars, start, end)
 
         # Holidays first: any event on these calendars closes the school, which is why
@@ -483,6 +556,74 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
                 entry[ATTR_LABEL] = change.label
             if change.periods:
                 entry[ATTR_CHANGES] = change.as_changes()
+
+        # What the school system says, laid under what the household said: a period
+        # somebody changed by hand is theirs, whatever the calendar thinks of it, and a
+        # day that is not a school day has no lessons left to cancel.
+        periods = self._periods
+        cancelled: dict[date, set[int]] = {}
+        substituted: dict[date, dict[int, Lesson]] = {}
+        if self._member.lessons_calendar:
+            lessons_feed = _feed_events(events.get(self._member.lessons_calendar, []))
+            cancelled = cancelled_periods(
+                lessons_feed, periods, self._config.cancel_keywords
+            )
+            substituted = substituted_periods(
+                lessons_feed, periods, self._config.substitute_keywords
+            )
+        self._exams = (
+            exams_by_day(_feed_events(events.get(self._member.exams_calendar, [])), periods)
+            if self._member.exams_calendar
+            else {}
+        )
+        self._feed_cancelled = {}
+        self._feed_swapped = {}
+        rung = {period.index for period in periods}
+        for day in days:
+            entry = entries[day]
+            if exams := self._exams.get(day):
+                entry[ATTR_EXAMS] = exams
+            if entry[ATTR_MODE] != MODE_SCHOOL or (
+                day not in cancelled and day not in substituted
+            ):
+                continue
+            change = self._config.exception(self._member.id, day)
+            said = set(change.periods if change else ())
+            held = {
+                lesson.period: lesson
+                for lesson in self._config.lessons_on(self._member.id, day)
+            }
+            swapped: dict[int, Lesson] = {}
+            for period, lesson in substituted.get(day, {}).items():
+                if period in said or period not in rung:
+                    continue
+                planned = held.get(period)
+                if planned is not None and planned.subject.casefold() == lesson.subject.casefold():
+                    # The same subject with another teacher is the lesson the timetable
+                    # promised; only a new room is worth saying, in the household's
+                    # spelling of the subject.
+                    if not lesson.room or lesson.room == planned.room:
+                        continue
+                    lesson = Lesson(period=period, subject=planned.subject, room=lesson.room)
+                swapped[period] = lesson
+            # A substitution beats a cancellation in the same period: WebUntis reports a
+            # replaced lesson as the old one cancelled and the new one irregular, and
+            # believing only the first would send the child home from a lesson that is
+            # on. Only periods with a lesson in them can be cancelled — an empty slot
+            # marked cancelled would draw a struck-through nothing.
+            gone = (cancelled.get(day, set()) & set(held)) - said - set(swapped)
+            if not gone and not swapped:
+                continue
+            if gone:
+                self._feed_cancelled[day] = gone
+            if swapped:
+                self._feed_swapped[day] = swapped
+            merged = {
+                **entry.get(ATTR_CHANGES, {}),
+                **{str(p): None for p in gone},
+                **{str(p): lesson.as_card_dict() for p, lesson in swapped.items()},
+            }
+            entry[ATTR_CHANGES] = dict(sorted(merged.items(), key=lambda item: int(item[0])))
 
         self._outlook = [entries[day] for day in days]
 
@@ -540,7 +681,25 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         Tuesday is usually like; only a date knows what this Tuesday holds, and the two
         must never be worked out in two places.
         """
-        return self._config.lessons_on(self._member.id, dt_util.now().date())
+        return self._lessons_on(dt_util.now().date())
+
+    def _lessons_on(self, day: date) -> list[Lesson]:
+        """A dated day's lessons, with what the school system changed applied too.
+
+        The configuration's answer plus the calendar's, in this one place, so the card,
+        the announcement and the packing list all lose the same cancelled lesson and
+        pack for the same substitute.
+        """
+        lessons = self._config.lessons_on(self._member.id, day)
+        gone = self._feed_cancelled.get(day, set())
+        swapped = self._feed_swapped.get(day, {})
+        if not gone and not swapped:
+            return lessons
+        by_period = {
+            lesson.period: lesson for lesson in lessons if lesson.period not in gone
+        }
+        by_period.update(swapped)
+        return [by_period[period] for period in sorted(by_period)]
 
     @property
     def _periods(self) -> list[Period]:
@@ -599,10 +758,28 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         return list(
             dict.fromkeys(
                 lesson.subject
-                for lesson in self._config.lessons_on(self._member.id, tomorrow)
+                for lesson in self._lessons_on(tomorrow)
                 if lesson.period in rung
             )
         )
+
+    def _exams_from_today(self) -> list[dict[str, Any]]:
+        """Every exam from today to the end of the outlook, in date order."""
+        today = dt_util.now().date()
+        return [
+            exam for day in sorted(self._exams) if day >= today for exam in self._exams[day]
+        ]
+
+    def _exams_tomorrow(self) -> list[str]:
+        """Tomorrow's exam titles, or none when tomorrow is not a school day.
+
+        The same rule as tomorrow's subjects, so the evening announcement cannot warn
+        about a test on a day the child is off sick or the school is shut.
+        """
+        tomorrow = dt_util.now().date() + timedelta(days=1)
+        if self._mode_on(tomorrow) != MODE_SCHOOL:
+            return []
+        return [str(exam["title"]) for exam in self._exams.get(tomorrow, [])]
 
     @callback
     def _cancel_boundary(self) -> None:
@@ -755,7 +932,7 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
 
     @callback
     def _handle_calendar_change(self, _event: Any = None) -> None:
-        """A holiday or a care day was added, moved or removed."""
+        """A holiday, a care day, a cancellation or an exam was added, moved or removed."""
         self.hass.async_create_task(self._async_recheck())
 
     @callback
@@ -821,6 +998,8 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
             ATTR_TODAY_SUMMARY: ", ".join(subjects),
             ATTR_TOMORROW_SUBJECTS: tomorrow,
             ATTR_TOMORROW_SUMMARY: ", ".join(tomorrow),
+            ATTR_EXAMS: self._exams_from_today(),
+            ATTR_TOMORROW_EXAMS: self._exams_tomorrow(),
             ATTR_LESSON_NOW: self._lesson_now(),
             ATTR_LESSON_NEXT: self._lesson_next(),
         }

@@ -338,7 +338,7 @@ const hass = {
           members: [
             { id: 'm1', name: 'Ben', color: '#e0603a', avatar: 'person.ben', order: 0, calendar: 'calendar.ben', schedule: null },
             { id: 'm2', name: 'Jan', color: '#3a86c8', avatar: null, order: 1, calendar: null, schedule: null },
-            { id: 'm3', name: 'Nik', color: '#4f9d69', avatar: null, order: 2, calendar: null, schedule: 'Gymnasium' },
+            { id: 'm3', name: 'Nik', color: '#4f9d69', avatar: null, order: 2, calendar: null, schedule: 'Gymnasium', lessons_calendar: 'calendar.nik_webuntis' },
           ],
           routines: {
             m1: { morning: { 0: ['Zähne putzen', 'Sportsachen einpacken'], care: ['Brotdose'] }, evening: {} },
@@ -354,6 +354,8 @@ const hass = {
           colors: { Deutsch: '#ff4015' },
           school_calendars: ['calendar.ferien'],
           care_keywords: ['Ferienbetreuung'],
+          cancel_keywords: ['Cancelled', 'Entfall'],
+          substitute_keywords: ['Irregular', 'Vertretung'],
           materials: { Sport: ['Sportbeutel', 'Turnschuhe'] },
           subjects: Object.keys(TIMETABLE.subjects),
           // Thursday the 6th: second period covered, third period off.

@@ -44,6 +44,11 @@ times and breaks come from that child's own school.*
 Children at [two schools that ring differently](timetable.md#two-schools-that-do-not-ring-together)
 each get their own rows: the card draws the grid of whichever child is on screen.
 
+A cancelled lesson is gone from its day and a covered one is marked, whether it was
+[typed in](exceptions.md#a-day-the-school-took-over) or
+[read from the school's system](exceptions.md#from-the-schools-own-system). An exam gets
+a label on the lesson it falls in, with the school's own title in the tooltip.
+
 ## Routines card
 
 ```yaml
@@ -68,6 +73,10 @@ timetable generated that step rather than anybody typing it.*
 
 A child [at home ill](exceptions.md#off-ill) stays on the board either way, with the
 reason instead of a list: dropping them would answer the wrong question.
+
+The evening before an [exam](exceptions.md#from-the-schools-own-system) shows it above the
+steps. It is not a step: learning for a test is not a box that is either ticked or not,
+so it adds nothing to the count and nothing to the record.
 
 ## Routine record card
 
@@ -187,10 +196,11 @@ the **Family** section.
 
 ### Family
 
-![Name, colour, the calendar searched for the holiday-care keyword, a picture taken from a person entity, and which school's lesson times they ring to.](images/admin-family.png)
-*Name, colour, the calendar searched for the holiday-care keyword, a picture taken from a
-person entity, and which school's lesson times they ring to. The last of those only appears
-once there is more than one school to choose between.*
+![Name, colour, the calendar searched for the holiday-care keyword, the school system's calendars folded away, a picture taken from a person entity, and which school's lesson times they ring to.](images/admin-family.png)
+*Name, colour, the calendar searched for the holiday-care keyword, the school system's
+lessons and exams calendars — folded away until a child has one — a picture taken from a
+person entity, and which school's lesson times they ring to. The last of those only
+appears once there is more than one school to choose between.*
 
 ### Material
 
@@ -204,8 +214,10 @@ once there is more than one school to choose between.*
 
 ### Days off
 
-![Holiday calendars are picked as entities; the care keywords stay the household’s own words](images/admin-holidays.png)
-*Holiday calendars are picked as entities; the care keywords stay the household’s own words*
+![Holiday calendars are picked as entities; the care keywords stay the household’s own words, and the words from the school system are folded away](images/admin-holidays.png)
+*Holiday calendars are picked as entities; the care keywords stay the household’s own
+words. The words from the school system are folded away, and only there at all once a
+child has a lessons calendar.*
 
 
 ## Restyling with card-mod
@@ -283,8 +295,8 @@ move.
 
 | Card | Classes |
 |---|---|
-| Timetable | `.title` `.chips` `.chip` `.grid` `.col-day` `.col-date` `.cell` `.subject` `.room` `.time` `.t-break` `.status` `.closure` |
-| Routines | `.person` `.person-name` `.avatar` `.block` `.block-head` `.progress` `.bar` `.bar-fill` `.step` `.label` `.from` `.sick-note` |
+| Timetable | `.title` `.chips` `.chip` `.grid` `.col-day` `.col-date` `.cell` `.subject` `.room` `.exam-tag` `.time` `.t-break` `.status` `.closure` |
+| Routines | `.person` `.person-name` `.avatar` `.block` `.block-head` `.progress` `.bar` `.bar-fill` `.step` `.label` `.from` `.exam-note` `.sick-note` |
 | Routine record | `.person` `.person-head` `.name` `.rate` `.window` `.streak` `.strip` `.day` `.axis` `.row` `.meter` `.meter-fill` `.value` |
 | Homework | `.person` `.bucket` `.bucket-head` `.item` `.label` `.due` `.count` |
 | Header | `.clock` `.date` `.greeting` `.weather` `.temperature` `.condition` |

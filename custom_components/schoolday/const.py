@@ -7,7 +7,7 @@ from typing import Final
 DOMAIN: Final = "schoolday"
 
 # Keep in sync with manifest.json, package.json and src/lib/const.ts.
-VERSION: Final = "0.13.0"
+VERSION: Final = "0.14.0"
 
 # Where the bundled Lovelace cards are served from.
 FRONTEND_URL_BASE: Final = "/schoolday-frontend"
@@ -39,6 +39,26 @@ SUGGESTED_CARE_KEYWORDS: Final[dict[str, str]] = {
     "de": "Ferienbetreuung\nHort",
     "en": "Holiday club\nHoliday care",
 }
+
+# What an event on a member's lessons calendar has to say for its lesson to count as
+# cancelled — matched like the care keywords. Unlike those, a household that never set
+# them gets these rather than nothing: a lessons calendar is only ever read for this,
+# and WebUntis writes "Cancelled:" in English whatever the school's language, so an
+# empty default would make the field do nothing until somebody found out why.
+CONF_CANCEL_KEYWORDS: Final = "cancel_keywords"
+DEFAULT_CANCEL_KEYWORDS: Final[tuple[str, ...]] = (
+    "Cancelled",
+    "Entfall",
+    "Ausfall",
+    "entfällt",
+    "fällt aus",
+)
+
+# The same for a lesson somebody else is taking: the event's title, with the word taken
+# off, is the subject now being taught, and its location the room. WebUntis writes
+# "Irregular:" for every substitution, again in English.
+CONF_SUBSTITUTE_KEYWORDS: Final = "substitute_keywords"
+DEFAULT_SUBSTITUTE_KEYWORDS: Final[tuple[str, ...]] = ("Irregular", "Vertretung")
 
 # Routine blocks. Two is deliberate: a wall panel should show what is due now,
 # and "before school" versus "before bed" is the split that actually matters.
@@ -175,6 +195,13 @@ CONF_AVATAR: Final = "avatar"
 CONF_ORDER: Final = "order"
 # This member's own calendar, searched for the holiday-care keyword and nothing else.
 CONF_CALENDAR: Final = "calendar"
+# Calendars a school system keeps for this member, read rather than logged into: the
+# school portal integrations already exist, and a calendar is the shape all of them can
+# produce. The lessons calendar is read for cancellations only — the timetable stays the
+# one Schoolday holds. Every event on the exams calendar is an exam, as bluntly as every
+# event on a holiday calendar is a day off.
+CONF_LESSONS_CALENDAR: Final = "lessons_calendar"
+CONF_EXAMS_CALENDAR: Final = "exams_calendar"
 
 # --- Entity attributes exposed to the cards ---------------------------------
 
@@ -216,6 +243,11 @@ ATTR_TODAY_SUMMARY: Final = "today_summary"
 # kit still gets packed.
 ATTR_TOMORROW_SUBJECTS: Final = "tomorrow_subjects"
 ATTR_TOMORROW_SUMMARY: Final = "tomorrow_summary"
+# The exams on this member's exams calendar from today through the outlook window, and
+# the titles of tomorrow's alone — the evening before is when anybody acts on one. Each
+# day of the outlook carries its own, so a card can mark the lesson.
+ATTR_EXAMS: Final = "exams"
+ATTR_TOMORROW_EXAMS: Final = "tomorrow_exams"
 ATTR_LESSON_NOW: Final = "lesson_now"
 ATTR_LESSON_NEXT: Final = "lesson_next"
 ATTR_SUBJECT: Final = "subject"
@@ -358,6 +390,8 @@ ATTR_PERIODS: Final = "periods"
 ATTR_SCHEDULE_FIELD: Final = "schedule"
 ATTR_NAME: Final = "name"
 ATTR_KEYWORDS: Final = "care_keywords"
+ATTR_CANCEL_KEYWORDS: Final = "cancel_keywords"
+ATTR_SUBSTITUTE_KEYWORDS: Final = "substitute_keywords"
 ATTR_CALENDAR_FIELD: Final = "school_calendars"
 ATTR_ITEMS: Final = "items"
 ATTR_DATE_FIELD: Final = "date"

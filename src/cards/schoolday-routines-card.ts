@@ -124,6 +124,18 @@ export class SchooldayRoutinesCard extends LitElement implements LovelaceCard {
       }));
   }
 
+  /**
+   * Tomorrow's exams, which the evening shows above its steps. Not steps themselves:
+   * learning for a test is not a box that is either ticked or not, and the record is
+   * for the routines, not for how the week at school went.
+   */
+  private _examsTomorrow(member: SchooldayMember): string[] {
+    const raw = memberSensor(this.hass!, member.id)?.attributes?.tomorrow_exams;
+    return Array.isArray(raw)
+      ? raw.filter((item): item is string => typeof item === 'string' && item !== '')
+      : [];
+  }
+
   /** Whether this member is at home ill, which is a different kind of empty. */
   private _isSick(member: SchooldayMember): boolean {
     return memberSensor(this.hass!, member.id)?.attributes?.day_mode === 'sick';
@@ -160,6 +172,7 @@ export class SchooldayRoutinesCard extends LitElement implements LovelaceCard {
     const steps = this._steps(member, block);
     const doneCount = steps.filter((entry) => entry.done).length;
     const complete = steps.length > 0 && doneCount === steps.length;
+    const exams = block === 'evening' ? this._examsTomorrow(member) : [];
 
     return html`
       <section class="block ${complete ? 'complete' : ''}">
@@ -168,7 +181,15 @@ export class SchooldayRoutinesCard extends LitElement implements LovelaceCard {
           <span class="progress">${doneCount}/${steps.length}</span>
         </header>
 
-        ${steps.length === 0
+        ${exams.map(
+          (title) => html`<div class="exam-note">
+            <span class="exam-label">${t(this.hass, 'routines.exam_tomorrow')}</span>
+            <span>${title}</span>
+          </div>`,
+        )}
+        ${steps.length === 0 && exams.length
+          ? nothing
+          : steps.length === 0
           ? html`<div class="empty">${t(this.hass, 'routines.nothing_today')}</div>`
           : html`
               <div class="bar">
@@ -241,7 +262,11 @@ export class SchooldayRoutinesCard extends LitElement implements LovelaceCard {
       if (this._isSick(member)) {
         return true;
       }
-      return blocks.some((block) => this._steps(member, block).length > 0);
+      return blocks.some(
+        (block) =>
+          this._steps(member, block).length > 0 ||
+          (block === 'evening' && this._examsTomorrow(member).length > 0),
+      );
     });
 
     if (members.length === 0) {
@@ -413,6 +438,31 @@ export class SchooldayRoutinesCard extends LitElement implements LovelaceCard {
         font-size: 0.7rem;
         font-weight: 700;
         white-space: nowrap;
+      }
+
+      /* Tomorrow's exam, above the evening's steps. In the member's colour like the
+         rest of their column, and without a tick box: it is something to know tonight,
+         not something to get done. */
+      .exam-note {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        margin-bottom: 8px;
+        padding: 8px 10px;
+        border-radius: 10px;
+        border-left: 3px solid var(--member-color);
+        background: color-mix(in srgb, var(--member-color) 16%, transparent);
+        font-size: 0.9rem;
+        font-weight: 600;
+      }
+
+      .exam-label {
+        flex: none;
+        color: var(--schoolday-muted);
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
       }
 
       /* Ill is drawn as a day that is not happening rather than as an empty list:

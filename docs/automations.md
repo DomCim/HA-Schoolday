@@ -23,11 +23,13 @@ sensor.schoolday_ben        →  Sport
 | `today_subjects` | Today's subjects, de-duplicated: `["Deutsch", "Mathe", "Sport"]` |
 | `today_summary` | The same, ready to speak: `"Deutsch, Mathe, Sport"` |
 | `tomorrow_subjects` / `tomorrow_summary` | The same for tomorrow — empty when tomorrow is a weekend, a holiday, a care day, a trip or a sick day |
+| `exams` | Exams from today to the end of the outlook, from this child's [exams calendar](exceptions.md#from-the-schools-own-system): `date`, `title`, `start` and `period` — `start` and `period` are `null` for an all-day one |
+| `tomorrow_exams` | Tomorrow's exam titles: `["Mathe"]` — empty when tomorrow is not a school day, like `tomorrow_subjects` |
 | `lesson_now` / `lesson_next` | The running and the next lesson, or `null` |
 | `schedule` | Which named [set of lesson times](timetable.md#two-schools-that-do-not-ring-together) this child's school rings to, or `null` for the household's |
 | `day_mode` | `school`, `care`, `free`, `event` or `sick` — which routine is showing, and why |
 | `sick_until` | The last day of an illness, or `null` |
-| `outlook` | This week and the next seven days, each with its date, mode and week of the cycle |
+| `outlook` | This week and the next seven days, each with its date, mode and week of the cycle — plus `changes` where a period is covered or cancelled, and `exams` where there are any |
 | `timetable` | The whole week, for the card |
 | `routine_morning` / `routine_evening` | Today's steps, each with `done` |
 | `routine_stats` | [The record](routines.md#the-record) of the last 30 days: `rate`, `streak`, `best_streak`, `blocks`, `steps` and `days` |
@@ -113,6 +115,18 @@ one on this page — see below for matching loosely.
 
 They move on at midnight, so an announcement at half past midnight is already about the
 day after.
+
+A lesson the school's own system cancelled is already gone from `tomorrow_subjects` — a
+substitute is already in it — and
+`tomorrow_exams` has the tests, so one evening sentence can carry both — see
+[From the school's own system](exceptions.md#from-the-schools-own-system):
+
+{% raw %}
+```jinja
+{% set exams = state_attr('sensor.schoolday_ben', 'tomorrow_exams') %}
+{% if exams %}Ben schreibt morgen {{ exams | join(' und ') }}.{% endif %}
+```
+{% endraw %}
 
 ## Subject names
 
@@ -241,9 +255,9 @@ validates: a card must not be able to write a timetable the sensors can no longe
 | `schoolday.set_exception` | What one date does differently |
 | `schoolday.clear_exception` | Put a date back |
 | `schoolday.set_materials` | What a subject needs brought along |
-| `schoolday.set_member` | Add or change a family member, including which school they ring to |
+| `schoolday.set_member` | Add or change a family member, including which school they ring to and their school system's calendars |
 | `schoolday.remove_member` | Remove one, and everything that only existed for them |
-| `schoolday.set_calendars` | The holiday calendars and the holiday-care keywords |
+| `schoolday.set_calendars` | The holiday calendars, the holiday-care keywords, and the cancellation and substitution words |
 
 Every one that takes a `member` accepts a **name** as well as an id, so a script stays
 readable.

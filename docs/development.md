@@ -33,7 +33,7 @@ Five jobs:
 | Job | What it does |
 |---|---|
 | `hassfest` | Validates the integration the way Home Assistant does |
-| `Python` | `ruff`, and the configuration-writes and model tests |
+| `Python` | `ruff`, the configuration-writes and model tests, and a `CHANGELOG.md` section for the version in `manifest.json` |
 | `Frontend build` | Typecheck, build, the committed bundle must match the sources, then the smoke suite |
 | `Documentation build` | Builds this site and discards it, so a page Jekyll cannot render fails here rather than after the merge |
 | `HACS` | Publication readiness |
@@ -102,6 +102,27 @@ npm run shots      # writes docs/images/
 
 Adding a state worth showing means adding it to `test/smoke/docs-shots.mjs`, not taking
 a photo of your own dashboard.
+
+The cards draw in `system-ui`, so the pictures are only byte-identical on a machine that
+resolves it to the same font. The committed ones use **DejaVu Sans**. A machine that picks
+Noto Sans instead rewrites every picture with different line heights, and the diff stops
+saying what changed. Check with `fc-match system-ui`, and if it answers anything else,
+point fontconfig at DejaVu for the run — a `fonts.conf` that includes `/etc/fonts/fonts.conf`
+and maps `system-ui` and `sans-serif` to `DejaVu Sans`, passed as
+`FONTCONFIG_FILE=… npm run shots`.
+
+## Releasing
+
+A release is the `Release` workflow, started by pushing a `v*` tag or by running it with
+the version as input. It checks that the four version numbers agree and that
+`CHANGELOG.md` has a section for this version. Then it rebuilds, runs the suite again, and
+creates the tag and the GitHub release.
+
+The release text is that changelog section, not a list of pull requests, because it is
+what HACS shows in its update dialog. The person reading it is deciding whether to update
+the kitchen tablet, so the section says what they will notice and anything they have to
+do. The section is written in the same pull request as the change, and CI fails when the
+version in `manifest.json` has none.
 
 ## Branch rules
 

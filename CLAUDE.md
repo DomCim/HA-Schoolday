@@ -81,9 +81,16 @@ A change that ships bumps the version in the same commit. A feature takes the mi
 fix takes the patch. Changes that ship nothing — CI configuration, the manual on its own —
 carry no bump; that is the existing convention, not an oversight.
 
+A change that ships also gets its lines in `CHANGELOG.md`, under the new version, in the
+same commit. That section becomes the GitHub release text, and the release text is what
+HACS shows a household in its update dialog. So write it for them, in English like the
+rest of the repository: what they will notice, and anything they have to do, such as
+switching on a setting elsewhere. Do not list pull requests. CI fails when the version in
+`manifest.json` has no section, and the release workflow refuses to run without one.
+
 Releasing is the `Release` workflow, either by pushing a `v*` tag or by running it with
-the version as input. It verifies the four, rebuilds, re-runs the suite, and creates the
-tag and the release itself.
+the version as input. It verifies the four and the changelog entry, rebuilds, re-runs the
+suite, and creates the tag and the release with that entry as its text.
 
 ## How this codebase is written
 

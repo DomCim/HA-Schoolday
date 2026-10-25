@@ -740,6 +740,30 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
               'schoolday-calendars',
               (next) => this._setDraft(key, 'calendar', next),
             )}
+          </div>
+          <details class="more" ?open=${Boolean(member?.lessonsCalendar || member?.examsCalendar)}>
+            <summary>${t(this.hass, 'admin.school_system')}</summary>
+            <div class="notice quiet">${t(this.hass, 'admin.school_system_hint')}</div>
+            <div class="row">
+            ${this._entityField(
+              `lessons-${key}`,
+              t(this.hass, 'admin.lessons_calendar'),
+              'calendar',
+              this._draft(key, 'lessons_calendar', member?.lessonsCalendar ?? ''),
+              'schoolday-calendars',
+              (next) => this._setDraft(key, 'lessons_calendar', next),
+            )}
+            ${this._entityField(
+              `exams-${key}`,
+              t(this.hass, 'admin.exams_calendar'),
+              'calendar',
+              this._draft(key, 'exams_calendar', member?.examsCalendar ?? ''),
+              'schoolday-calendars',
+              (next) => this._setDraft(key, 'exams_calendar', next),
+            )}
+            </div>
+          </details>
+          <div class="row">
             ${this._entityField(
               `avatar-${key}`,
               t(this.hass, 'admin.avatar'),
@@ -784,6 +808,14 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
                   name: read('name'),
                   color: read('color'),
                   calendar: this._draft(key, 'calendar', member?.calendar ?? ''),
+                  // Sent every time for the same reason as the schedule below: the
+                  // service clears what it is not told.
+                  lessons_calendar: this._draft(
+                    key,
+                    'lessons_calendar',
+                    member?.lessonsCalendar ?? '',
+                  ),
+                  exams_calendar: this._draft(key, 'exams_calendar', member?.examsCalendar ?? ''),
                   avatar: this._draft(key, 'avatar', member?.avatar ?? ''),
                   // Always sent, even when the household has one school and the field
                   // is not drawn: the service clears what it is not told, so leaving it
@@ -1081,6 +1113,26 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
         t(this.hass, 'admin.care_hint'),
         (lines) => this._call('set_calendars', { care_keywords: lines }),
       )}
+      ${config.members.some((member) => member.lessonsCalendar)
+        ? html`
+            <details class="more">
+              <summary>${t(this.hass, 'admin.school_words')}</summary>
+              <div class="notice quiet">${t(this.hass, 'admin.school_words_hint')}</div>
+              ${this._lines(
+                t(this.hass, 'admin.cancel_keywords'),
+                config.cancelKeywords,
+                t(this.hass, 'admin.cancel_hint'),
+                (lines) => this._call('set_calendars', { cancel_keywords: lines }),
+              )}
+              ${this._lines(
+                t(this.hass, 'admin.substitute_keywords'),
+                config.substituteKeywords,
+                t(this.hass, 'admin.substitute_hint'),
+                (lines) => this._call('set_calendars', { substitute_keywords: lines }),
+              )}
+            </details>
+          `
+        : nothing}
     `;
   }
 
@@ -1407,6 +1459,20 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
 
       .notice.quiet {
         font-size: 0.85rem;
+      }
+
+      /* What most households never need stays folded away, so the form reads as
+         short as it is for them. */
+      .more > summary {
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--schoolday-muted);
+        padding: 4px 0;
+      }
+
+      .more > * + * {
+        margin-top: 8px;
       }
 
       .notice.error {

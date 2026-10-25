@@ -688,6 +688,120 @@ check("nur die drei Alltags-Dienste sind fuer alle offen",
 check("die Konfigurations-Dienste laufen ueber async_register_admin_service",
       "async_register_admin_service(hass, DOMAIN, service, handler" in services_src)
 
+# --- a school system's calendars: cancellations and exams -------------------
+out, _ = W.set_member(
+    BASE, MEMBER, "Ben",
+    lessons_calendar="calendar.ben_webuntis", exams_calendar=" calendar.ben_exams ",
+)
+ben = out["members"][0]
+check("Schulkalender werden am Kind gespeichert",
+      ben.get("lessons_calendar") == "calendar.ben_webuntis"
+      and ben.get("exams_calendar") == "calendar.ben_exams", str(ben))
+out2, _ = W.set_member(merged(out), MEMBER, "Ben")
+check("weggelassene Schulkalender werden entfernt wie die anderen Felder",
+      "lessons_calendar" not in out2["members"][0]
+      and "exams_calendar" not in out2["members"][0], str(out2["members"][0]))
+try:
+    W.set_member(BASE, MEMBER, "Ben", exams_calendar="sensor.falsch")
+    check("Klassenarbeiten-Kalender muss ein Kalender sein", False, "keine Ausnahme")
+except SchooldayValueError as e:
+    check("Klassenarbeiten-Kalender muss ein Kalender sein", True, str(e))
+
+never = Models.SchooldayConfig.from_options(BASE)
+check("ohne Einstellung gelten die Ausfall-Wörter von Haus aus",
+      "Cancelled" in never.cancel_keywords and "Entfall" in never.cancel_keywords,
+      str(never.cancel_keywords))
+out = W.set_calendars(BASE, None, None, [])
+off = Models.SchooldayConfig.from_options(merged(out))
+check("leere Ausfall-Wörter bleiben leer, statt auf die Vorgabe zurückzufallen",
+      out == {"cancel_keywords": []} and off.cancel_keywords == [], str(out))
+out = W.set_calendars(BASE, None, None, ["❌", " "])
+check("eigene Ausfall-Wörter werden gesäubert gespeichert",
+      out == {"cancel_keywords": ["❌"]}, str(out))
+
+PERIODS = Models.periods_from_text("08:00-08:45\n08:45-09:30\n09:50-10:35")
+Feed = Models.FeedEvent
+WED = datetime.date(2026, 10, 28)
+feed = [
+    Feed(WED, "Cancelled: Mathe", 8 * 60, 9 * 60 + 30),       # a double lesson, merged
+    Feed(WED, "Deutsch", 9 * 60 + 50, 10 * 60 + 35),          # held as planned
+    Feed(WED, "Irregular: Englisch", 9 * 60 + 50, 10 * 60 + 35),
+    Feed(WED, "Unterrichtsausfall", None, None),              # all day: not ours to read
+    Feed(WED + datetime.timedelta(days=1), "Sport entfällt", 9 * 60 + 55, 10 * 60 + 30),
+]
+gone = Models.cancelled_periods(feed, PERIODS, ["Cancelled", "entfällt"])
+check("ein zusammengelegter Doppelblock fällt in beiden Stunden aus",
+      gone.get(WED) == {1, 2}, str(gone.get(WED)))
+check("Ausfall-Wörter greifen ohne Rücksicht auf Groß- und Kleinschreibung",
+      gone.get(WED + datetime.timedelta(days=1)) == {3}, str(gone))
+check("ganztägige Einträge streichen keine Stunden",
+      Models.cancelled_periods(feed[3:4], PERIODS, ["ausfall"]) == {})
+check("ohne Ausfall-Wörter fällt nichts aus",
+      Models.cancelled_periods(feed, PERIODS, []) == {})
+
+subs = Models.substituted_periods([
+    Feed(WED, "Irregular: D", 8 * 60, 8 * 60 + 45, "R2"),
+    Feed(WED, "Englisch Vertretung", 9 * 60 + 50, 10 * 60 + 35),
+    Feed(WED, "Irregular:", 8 * 60 + 45, 9 * 60 + 30),             # nothing left
+    Feed(WED, "Irregular: Sport", None, None),                    # all day
+], PERIODS, ["Irregular", "Vertretung"])
+check("eine Vertretung trägt das Fach ohne das Wort davor, und den Ort als Raum",
+      subs[WED][1] == Models.Lesson(period=1, subject="D", room="R2"), str(subs.get(WED)))
+check("ein Wort mitten im Titel lässt den Titel stehen",
+      subs[WED][3].subject == "Englisch Vertretung", str(subs[WED].get(3)))
+check("ohne Fach und ganztägig gibt es keine Vertretung", 2 not in subs[WED], str(subs[WED]))
+out = W.set_calendars(BASE, None, None, None, ["Vertr."])
+check("eigene Vertretungs-Wörter werden gespeichert",
+      out == {"substitute_keywords": ["Vertr."]}, str(out))
+check("ohne Einstellung gelten die Vertretungs-Wörter von Haus aus",
+      never.substitute_keywords == ["Irregular", "Vertretung"], str(never.substitute_keywords))
+
+# Exactly what the WebUntis integration put on its calendar for one Monday, read back
+# from a real Home Assistant with the integration running against a stand-in server:
+# the cancelled lesson and its replacement arrive as two events in the same slot, and
+# a double lesson as two separate events.
+UNTIS = Models.periods_from_text(
+    "08:00-08:45\n08:50-09:35\n09:55-10:40\n10:45-11:30\n11:50-12:35\n12:40-13:25"
+)
+MON = datetime.date(2026, 10, 26)
+untis = [
+    Feed(MON, "Deutsch", 8 * 60, 8 * 60 + 45, "104"),
+    Feed(MON, "Mathe", 8 * 60 + 50, 9 * 60 + 35, "104"),
+    Feed(MON, "Cancelled: Musik", 9 * 60 + 55, 10 * 60 + 40, "104"),
+    Feed(MON, "Irregular: Deutsch", 9 * 60 + 55, 10 * 60 + 40, "007"),
+    Feed(MON, "Englisch", 10 * 60 + 45, 11 * 60 + 30, "104"),
+    Feed(MON, "Cancelled: Sport", 11 * 60 + 50, 12 * 60 + 35, "TH"),
+    Feed(MON, "Cancelled: Sport", 12 * 60 + 40, 13 * 60 + 25, "TH"),
+]
+config = Models.SchooldayConfig.from_options(BASE)
+check("WebUntis: Ausfälle werden mit den voreingestellten Wörtern erkannt",
+      Models.cancelled_periods(untis, UNTIS, config.cancel_keywords) == {MON: {3, 5, 6}},
+      str(Models.cancelled_periods(untis, UNTIS, config.cancel_keywords)))
+check("WebUntis: die Vertretung in derselben Stunde kommt mit Fach und Raum",
+      Models.substituted_periods(untis, UNTIS, config.substitute_keywords)
+      == {MON: {3: Models.Lesson(period=3, subject="Deutsch", room="007")}},
+      str(Models.substituted_periods(untis, UNTIS, config.substitute_keywords)))
+
+exams = Models.exams_by_day([
+    Feed(WED, "Mathe (Mül)", 8 * 60 + 45, 9 * 60 + 30),
+    Feed(WED, "Vokabeltest", None, None),
+    Feed(WED, "   ", 8 * 60, 8 * 60 + 45),
+], PERIODS)
+check("eine Arbeit trägt Titel, Uhrzeit und Stunde",
+      exams[WED][1] == {"date": "2026-10-28", "title": "Mathe (Mül)",
+                        "start": "08:45", "period": 2}, str(exams[WED]))
+check("ganztägig kommt zuerst, ohne Stunde, und leere Titel fallen weg",
+      len(exams[WED]) == 2 and exams[WED][0]["period"] is None
+      and exams[WED][0]["start"] is None, str(exams[WED]))
+
+admin = Models.SchooldayConfig.from_options(merged({"members": [
+    {**BASE["members"][0], "lessons_calendar": "calendar.a", "exams_calendar": "calendar.b"},
+]})).as_admin_dict()
+check("die Verwaltungskarte sieht die Schulkalender und die Ausfall-Wörter",
+      admin["members"][0]["lessons_calendar"] == "calendar.a"
+      and admin["members"][0]["exams_calendar"] == "calendar.b"
+      and "Cancelled" in admin["cancel_keywords"], str(admin["members"][0]))
+
 # --- the brand images must stay within the sizes home-assistant/brands allows ---
 # Dimensions only, from the PNG header, so this needs nothing but the standard library.
 # Trimming is the render script's job; getting the size wrong is the likely mistake,

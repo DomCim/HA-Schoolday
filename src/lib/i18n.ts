@@ -26,6 +26,8 @@ const EN: Dict = {
   'timetable.sick': 'Ill',
   'timetable.event': 'No normal lessons',
   'timetable.changed': 'Changed',
+  'timetable.exam': 'Exam',
+  'routines.exam_tomorrow': 'Exam tomorrow',
 
   // the routine record
   'stats.percent': '{value}%',
@@ -139,6 +141,11 @@ const EN: Dict = {
   'admin.name': 'Name',
   'admin.color': 'Colour',
   'admin.calendar': 'Own calendar',
+  'admin.lessons_calendar': 'Lessons calendar from school',
+  'admin.exams_calendar': 'Exams calendar from school',
+  'admin.school_system': 'School system (WebUntis or similar), optional',
+  'admin.school_system_hint':
+    'Calendars a school system such as WebUntis already keeps for this child: cancellations, substitutions and exams come from them. With WebUntis, switch on “Calendar - cancelled lessons” in its options.',
   'admin.avatar': 'Picture',
   'admin.block_morning': 'Morning',
   'admin.block_evening': 'Evening',
@@ -148,6 +155,13 @@ const EN: Dict = {
   'admin.school_calendars': 'Calendars that close the school, one per line',
   'admin.care_keywords': 'Holiday-care keywords, one per line',
   'admin.care_hint': 'Holiday care',
+  'admin.cancel_keywords': 'Words that mean a lesson is cancelled, one per line',
+  'admin.cancel_hint': 'Cancelled',
+  'admin.substitute_keywords': 'Words that mean somebody else is taking a lesson, one per line',
+  'admin.substitute_hint': 'Irregular',
+  'admin.school_words': 'Words from the school system',
+  'admin.school_words_hint':
+    'Already set for WebUntis. Only change them if your school system writes something else.',
   'admin.avatar_hint':
     'For a picture, put in a person entity — the one Home Assistant already has. A URL works too.',
   'admin.colors_hint':
@@ -174,6 +188,8 @@ const DE: Dict = {
   'timetable.sick': 'Krank',
   'timetable.event': 'Kein regulärer Unterricht',
   'timetable.changed': 'Geändert',
+  'timetable.exam': 'Arbeit',
+  'routines.exam_tomorrow': 'Morgen Arbeit',
 
   'stats.percent': '{value} %',
   'stats.window': 'über {days} Tage',
@@ -283,6 +299,11 @@ const DE: Dict = {
   'admin.name': 'Name',
   'admin.color': 'Farbe',
   'admin.calendar': 'Eigener Kalender',
+  'admin.lessons_calendar': 'Stundenplan-Kalender der Schule',
+  'admin.exams_calendar': 'Klassenarbeiten-Kalender der Schule',
+  'admin.school_system': 'Schulsystem (WebUntis o. Ä.), optional',
+  'admin.school_system_hint':
+    'Kalender, die ein Schulsystem wie WebUntis schon für dieses Kind führt: Daraus kommen Ausfälle, Vertretungen und Arbeiten. Bei WebUntis dort in den Optionen „Kalender - Ausfallende Stunden“ einschalten.',
   'admin.avatar': 'Bild',
   'admin.block_morning': 'Morgens',
   'admin.block_evening': 'Abends',
@@ -292,6 +313,13 @@ const DE: Dict = {
   'admin.school_calendars': 'Kalender, die die Schule schließen, einer pro Zeile',
   'admin.care_keywords': 'Betreuungs-Stichwörter, eines pro Zeile',
   'admin.care_hint': 'Ferienbetreuung',
+  'admin.cancel_keywords': 'Wörter für eine ausgefallene Stunde, eines pro Zeile',
+  'admin.cancel_hint': 'Entfall',
+  'admin.substitute_keywords': 'Wörter für eine Vertretungsstunde, eines pro Zeile',
+  'admin.substitute_hint': 'Vertretung',
+  'admin.school_words': 'Wörter aus dem Schulsystem',
+  'admin.school_words_hint':
+    'Für WebUntis schon eingestellt. Nur ändern, wenn euer Schulsystem etwas anderes schreibt.',
   'admin.avatar_hint':
     'Für ein Bild eine Person-Entität eintragen — die, die Home Assistant schon kennt. Eine URL geht auch.',
   'admin.colors_hint':

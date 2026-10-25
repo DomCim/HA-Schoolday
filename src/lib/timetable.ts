@@ -64,6 +64,18 @@ export type DayMode = 'school' | 'care' | 'free' | 'sick' | 'event';
 /** The modes that are not a school day, so a new one cannot be forgotten anywhere. */
 const CLOSED_MODES: readonly DayMode[] = ['care', 'free', 'sick', 'event'];
 
+/**
+ * An exam from a member's exams calendar. The title is the school's own wording,
+ * usually the subject; the period is the one it falls in, or null when it is all day
+ * or outside the lesson times.
+ */
+export interface Exam {
+  date: string;
+  title: string;
+  start: string | null;
+  period: number | null;
+}
+
 /** One dated day: which day it is, and what it actually holds. */
 export interface OutlookDay {
   /** `YYYY-MM-DD`. */
@@ -79,6 +91,8 @@ export interface OutlookDay {
    * day, which is almost every day — so the usual day costs nothing to publish.
    */
   changes?: Record<string, TimetableLesson | null>;
+  /** The exams on this date, from the member's exams calendar. Absent when there are none. */
+  exams?: Exam[];
   /**
    * Which week of the cycle this date falls in: 0 for A, 1 for B. Always 0 unless the
    * household runs a two-week timetable, so nothing has to ask whether it applies.
@@ -274,8 +288,27 @@ export function parseOutlook(raw: unknown): Outlook {
       ...(entry.changes && typeof entry.changes === 'object'
         ? { changes: parseChanges(entry.changes) }
         : {}),
+      ...(Array.isArray(entry.exams) && entry.exams.length
+        ? { exams: parseExams(entry.exams) }
+        : {}),
     }))
     .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/** Parse a list of exams, from an outlook entry or a member sensor's `exams`. */
+export function parseExams(raw: unknown): Exam[] {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+  return raw
+    .map((entry) => entry as Record<string, unknown>)
+    .filter((entry) => Boolean(entry) && typeof entry.title === 'string' && entry.title)
+    .map((entry) => ({
+      date: typeof entry.date === 'string' ? entry.date : '',
+      title: String(entry.title),
+      start: typeof entry.start === 'string' && entry.start ? entry.start : null,
+      period: typeof entry.period === 'number' ? entry.period : null,
+    }));
 }
 
 /** Parse an outlook entry's `changes`: period -> replacement, or null for cancelled. */

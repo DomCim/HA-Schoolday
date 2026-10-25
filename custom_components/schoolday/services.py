@@ -32,6 +32,8 @@ from .const import (
     ATTR_ANCHOR,
     ATTR_BLOCK,
     ATTR_CALENDAR_FIELD,
+    ATTR_CANCEL_KEYWORDS,
+    ATTR_SUBSTITUTE_KEYWORDS,
     ATTR_CANCELLED,
     ATTR_COLOR,
     ATTR_DATE_FIELD,
@@ -55,6 +57,8 @@ from .const import (
     ATTR_WEEKS,
     CONF_AVATAR,
     CONF_CALENDAR,
+    CONF_EXAMS_CALENDAR,
+    CONF_LESSONS_CALENDAR,
     DATA_ABSENCE,
     DATA_STORE,
     CYCLE_MAX_WEEKS,
@@ -162,6 +166,8 @@ SET_MEMBER_SCHEMA = vol.Schema(
         vol.Required(ATTR_NAME): cv.string,
         vol.Optional(ATTR_COLOR): vol.Any(cv.string, [vol.Coerce(int)], None),
         vol.Optional(CONF_CALENDAR): cv.string,
+        vol.Optional(CONF_LESSONS_CALENDAR): cv.string,
+        vol.Optional(CONF_EXAMS_CALENDAR): cv.string,
         vol.Optional(CONF_AVATAR): cv.string,
         vol.Optional(ATTR_SCHEDULE_FIELD): cv.string,
     }
@@ -173,6 +179,8 @@ SET_CALENDARS_SCHEMA = vol.Schema(
     {
         vol.Optional(ATTR_CALENDAR_FIELD): vol.All(cv.ensure_list, [cv.string]),
         vol.Optional(ATTR_KEYWORDS): vol.All(cv.ensure_list, [cv.string]),
+        vol.Optional(ATTR_CANCEL_KEYWORDS): vol.All(cv.ensure_list, [cv.string]),
+        vol.Optional(ATTR_SUBSTITUTE_KEYWORDS): vol.All(cv.ensure_list, [cv.string]),
     }
 )
 
@@ -401,6 +409,8 @@ def async_register_services(hass: HomeAssistant) -> None:
             call.data.get(CONF_CALENDAR),
             call.data.get(CONF_AVATAR),
             call.data.get(ATTR_SCHEDULE_FIELD),
+            call.data.get(CONF_LESSONS_CALENDAR),
+            call.data.get(CONF_EXAMS_CALENDAR),
         )
         _apply(call, changes)
 
@@ -470,6 +480,8 @@ def async_register_services(hass: HomeAssistant) -> None:
                 _options(call),
                 call.data.get(ATTR_CALENDAR_FIELD),
                 call.data.get(ATTR_KEYWORDS),
+                call.data.get(ATTR_CANCEL_KEYWORDS),
+                call.data.get(ATTR_SUBSTITUTE_KEYWORDS),
             ),
         )
 

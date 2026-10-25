@@ -19,6 +19,10 @@ export interface AdminMember {
   order: number;
   /** This member's own calendar, searched for the holiday-care keywords. */
   calendar: string | null;
+  /** A school system's calendar of this member's lessons, read for what changed. */
+  lessonsCalendar: string | null;
+  /** A school system's calendar of this member's exams; every event is one. */
+  examsCalendar: string | null;
   /** Which named set of lesson times their school rings to; null is the household's. */
   schedule: string | null;
 }
@@ -38,6 +42,10 @@ export interface AdminConfig {
   colors: Record<string, string>;
   schoolCalendars: string[];
   careKeywords: string[];
+  /** What a lessons-calendar event has to say to count as cancelled. */
+  cancelKeywords: string[];
+  /** What it has to say for its lesson to be taken by somebody else. */
+  substituteKeywords: string[];
   /** subject -> what it needs brought along. Household-wide, like the colours. */
   materials: Record<string, string[]>;
   /** Every subject in use, so the materials editor has something to list. */
@@ -67,6 +75,8 @@ const EMPTY: AdminConfig = {
   colors: {},
   schoolCalendars: [],
   careKeywords: [],
+  cancelKeywords: [],
+  substituteKeywords: [],
   materials: {},
   subjects: [],
   exceptions: {},
@@ -96,6 +106,14 @@ export function parseAdmin(raw: unknown): AdminConfig {
       avatar: typeof entry.avatar === 'string' && entry.avatar ? entry.avatar : null,
       order: Number(entry.order ?? 0),
       calendar: typeof entry.calendar === 'string' && entry.calendar ? entry.calendar : null,
+      lessonsCalendar:
+        typeof entry.lessons_calendar === 'string' && entry.lessons_calendar
+          ? entry.lessons_calendar
+          : null,
+      examsCalendar:
+        typeof entry.exams_calendar === 'string' && entry.exams_calendar
+          ? entry.exams_calendar
+          : null,
       schedule: typeof entry.schedule === 'string' && entry.schedule ? entry.schedule : null,
     }))
     .sort((a, b) => a.order - b.order);
@@ -178,6 +196,8 @@ export function parseAdmin(raw: unknown): AdminConfig {
     colors,
     schoolCalendars: stringList(data.school_calendars),
     careKeywords: stringList(data.care_keywords),
+    cancelKeywords: stringList(data.cancel_keywords),
+    substituteKeywords: stringList(data.substitute_keywords),
     materials,
     subjects: stringList(data.subjects),
     cycleWeeks: Number(data.cycle_weeks ?? 1) === 2 ? 2 : 1,

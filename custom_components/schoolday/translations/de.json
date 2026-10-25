@@ -41,8 +41,22 @@
         "data_description": {
           "color": "Kennzeichnet diese Person auf allen Schoolday-Karten.",
           "avatar": "Pfad zu einem Bild, zum Beispiel /local/schoolday/ben.png. Optional.",
-          "calendar": "Der eigene Kalender dieses Kindes, falls es einen hat. Er wird ausschließlich nach den Betreuungs-Stichwörtern durchsucht – Schoolday zeigt nirgends Termine an.",
+          "calendar": "Der eigene Kalender dieses Kindes, falls es einen hat. Er wird ausschließlich nach den Betreuungs-Stichwörtern durchsucht – Schoolday zeigt keinen seiner Termine an.",
           "schedule": "Leer lassen für die üblichen Stundenzeiten des Haushalts."
+        },
+        "sections": {
+          "school_system": {
+            "name": "Schulsystem (WebUntis o. Ä.), optional",
+            "description": "Kalender, die ein Schulsystem wie WebUntis schon für dieses Kind führt. Daraus kommen nur Ausfälle, Vertretungen und Arbeiten.",
+            "data": {
+              "lessons_calendar": "Stundenplan-Kalender der Schule",
+              "exams_calendar": "Klassenarbeiten-Kalender der Schule"
+            },
+            "data_description": {
+              "lessons_calendar": "Bei WebUntis dessen Stundenplan-Kalender. Dort „Kalender - Ausfallende Stunden“ einschalten, sonst kommt ein Ausfall nie in diesem Kalender an.",
+              "exams_calendar": "Jeder Termin darin gilt als Arbeit oder Test und erscheint im Stundenplan und am Vorabend. Bei WebUntis dessen Prüfungen-Kalender."
+            }
+          }
         }
       },
       "edit_member": {
@@ -63,8 +77,22 @@
         "data_description": {
           "color": "Kennzeichnet diese Person auf allen Schoolday-Karten.",
           "avatar": "Pfad zu einem Bild, zum Beispiel /local/schoolday/ben.png. Optional.",
-          "calendar": "Der eigene Kalender dieses Kindes, falls es einen hat. Er wird ausschließlich nach den Betreuungs-Stichwörtern durchsucht – Schoolday zeigt nirgends Termine an.",
+          "calendar": "Der eigene Kalender dieses Kindes, falls es einen hat. Er wird ausschließlich nach den Betreuungs-Stichwörtern durchsucht – Schoolday zeigt keinen seiner Termine an.",
           "schedule": "Leer lassen für die üblichen Stundenzeiten des Haushalts."
+        },
+        "sections": {
+          "school_system": {
+            "name": "Schulsystem (WebUntis o. Ä.), optional",
+            "description": "Kalender, die ein Schulsystem wie WebUntis schon für dieses Kind führt. Daraus kommen nur Ausfälle, Vertretungen und Arbeiten.",
+            "data": {
+              "lessons_calendar": "Stundenplan-Kalender der Schule",
+              "exams_calendar": "Klassenarbeiten-Kalender der Schule"
+            },
+            "data_description": {
+              "lessons_calendar": "Bei WebUntis dessen Stundenplan-Kalender. Dort „Kalender - Ausfallende Stunden“ einschalten, sonst kommt ein Ausfall nie in diesem Kalender an.",
+              "exams_calendar": "Jeder Termin darin gilt als Arbeit oder Test und erscheint im Stundenplan und am Vorabend. Bei WebUntis dessen Prüfungen-Kalender."
+            }
+          }
         }
       },
       "remove_member": {
@@ -142,6 +170,20 @@
         },
         "data_description": {
           "care_keywords": "Zum Beispiel „Ferienbetreuung“ oder „Hort“. Leer lassen, wenn ihr keine Betreuung habt – dann gibt es keine Betreuungstage."
+        },
+        "sections": {
+          "school_words": {
+            "name": "Wörter aus dem Schulsystem",
+            "description": "Eine Stunde im Stundenplan-Kalender eines Kindes, deren Titel ein Ausfall-Wort enthält, fällt weg; eine mit einem Vertretungs-Wort wird durch den Rest ihres Titels ersetzt. Für WebUntis schon eingestellt – nur ändern, wenn euer Schulsystem etwas anderes schreibt.",
+            "data": {
+              "cancel_keywords": "Wörter für eine ausgefallene Stunde",
+              "substitute_keywords": "Wörter für eine Vertretungsstunde"
+            },
+            "data_description": {
+              "cancel_keywords": "Werden mit den Terminen im Stundenplan-Kalender jedes Kindes verglichen. WebUntis schreibt unabhängig von der Sprache „Cancelled“. Leer schaltet die Erkennung ab.",
+              "substitute_keywords": "Werden wie die Ausfall-Wörter verglichen. Der Rest des Titels wird zum Fach, der Ort des Termins zum Raum. WebUntis schreibt „Irregular“."
+            }
+          }
         }
       },
       "timetable_materials": {
@@ -248,8 +290,8 @@
       }
     },
     "set_calendars": {
-      "name": "Freie Tage und Ferienbetreuung setzen",
-      "description": "Benennt die Kalender, die die Schule schließen, und die Wörter für die Betreuung.",
+      "name": "Freie Tage und Kalender-Wörter setzen",
+      "description": "Benennt die Kalender, die die Schule schließen, die Wörter für die Betreuung und die Wörter für eine ausgefallene Stunde oder eine Vertretung.",
       "fields": {
         "school_calendars": {
           "name": "Kalender",
@@ -258,6 +300,14 @@
         "care_keywords": {
           "name": "Betreuungs-Stichwörter",
           "description": "Werden mit den Terminen im eigenen Kalender des Kindes verglichen."
+        },
+        "cancel_keywords": {
+          "name": "Ausfall-Wörter",
+          "description": "Werden mit den Terminen im Stundenplan-Kalender jedes Kindes verglichen."
+        },
+        "substitute_keywords": {
+          "name": "Vertretungs-Wörter",
+          "description": "Werden mit den Terminen im Stundenplan-Kalender jedes Kindes verglichen; der Rest des Titels ist das Fach."
         }
       }
     },
@@ -402,6 +452,14 @@
         "calendar": {
           "name": "Kalender",
           "description": "Der eigene Kalender des Kindes, durchsucht nach den Betreuungs-Stichwörtern."
+        },
+        "lessons_calendar": {
+          "name": "Stundenplan-Kalender",
+          "description": "Kalender eines Schulsystems für dieses Kind, durchsucht nach Ausfällen und Vertretungen."
+        },
+        "exams_calendar": {
+          "name": "Klassenarbeiten-Kalender",
+          "description": "Kalender eines Schulsystems für dieses Kind; jeder Termin darin ist eine Arbeit."
         },
         "avatar": {
           "name": "Avatar",

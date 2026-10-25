@@ -16,6 +16,7 @@ from homeassistant.config_entries import (
     OptionsFlow,
 )
 from homeassistant.core import callback
+from homeassistant.data_entry_flow import section
 from homeassistant.helpers import selector
 from homeassistant.util.ulid import ulid_now
 
@@ -24,8 +25,12 @@ from .const import (
     BLOCK_MORNING,
     CONF_AVATAR,
     CONF_CALENDAR,
+    CONF_CANCEL_KEYWORDS,
+    CONF_SUBSTITUTE_KEYWORDS,
     CONF_CARE_KEYWORDS,
     CONF_COLOR,
+    CONF_EXAMS_CALENDAR,
+    CONF_LESSONS_CALENDAR,
     CONF_MATERIALS,
     CONF_MEMBER_ID,
     CONF_MEMBERS,
@@ -46,6 +51,7 @@ from .const import (
 from .models import (
     InvalidPeriod,
     Lesson,
+    SchooldayConfig,
     Timetable,
     color_to_hex,
     hex_to_rgb,
@@ -81,6 +87,13 @@ class SchooldayConfigFlow(ConfigFlow, domain=DOMAIN):
     def async_get_options_flow(config_entry: Any) -> OptionsFlow:
         """Return the options flow."""
         return SchooldayOptionsFlow()
+
+
+# Folded sections of the forms. Most households have no school system in Home
+# Assistant, and a member form that opens with two calendars they will never fill in
+# reads as twice as much work as it is.
+SECTION_SCHOOL_SYSTEM = "school_system"
+SECTION_SCHOOL_WORDS = "school_words"
 
 
 class SchooldayOptionsFlow(OptionsFlow):
@@ -144,7 +157,8 @@ class SchooldayOptionsFlow(OptionsFlow):
         self._persist(**changes)
         return await self.async_step_init()
 
-    def _member_schema(self) -> vol.Schema:
+    def _member_schema(self, school_system: bool = False) -> vol.Schema:
+        """The member form; `school_system` opens that section because it is in use."""
         fields: dict[Any, Any] = {
             vol.Required(CONF_NAME): selector.TextSelector(),
             vol.Required(CONF_COLOR): selector.ColorRGBSelector(),
@@ -160,14 +174,33 @@ class SchooldayOptionsFlow(OptionsFlow):
             fields[vol.Optional(CONF_SCHEDULE)] = selector.SelectSelector(
                 selector.SelectSelectorConfig(options=names, custom_value=False)
             )
+        fields[vol.Required(SECTION_SCHOOL_SYSTEM)] = section(
+            vol.Schema(
+                {
+                    vol.Optional(CONF_LESSONS_CALENDAR): selector.EntitySelector(
+                        selector.EntitySelectorConfig(domain="calendar")
+                    ),
+                    vol.Optional(CONF_EXAMS_CALENDAR): selector.EntitySelector(
+                        selector.EntitySelectorConfig(domain="calendar")
+                    ),
+                }
+            ),
+            {"collapsed": not school_system},
+        )
         return vol.Schema(fields)
 
     @staticmethod
     def _from_form(user_input: dict[str, Any]) -> dict[str, Any]:
         """Normalise a submitted member form into its stored shape."""
-        member = {
+        flat = {
             key: value
             for key, value in user_input.items()
+            if key != SECTION_SCHOOL_SYSTEM
+        }
+        flat.update(user_input.get(SECTION_SCHOOL_SYSTEM) or {})
+        member = {
+            key: value
+            for key, value in flat.items()
             if value not in (None, "", [])
         }
         member[CONF_COLOR] = color_to_hex(user_input.get(CONF_COLOR))
@@ -408,28 +441,47 @@ class SchooldayOptionsFlow(OptionsFlow):
         lessons, the running lesson and the sensor's state all go quiet.
         """
         if user_input is not None:
-            self._persist(
-                **{
-                    CONF_SCHOOL_CALENDARS: list(
-                        user_input.get(CONF_SCHOOL_CALENDARS) or []
-                    ),
-                    CONF_CARE_KEYWORDS: steps_from_text(
-                        user_input.get(CONF_CARE_KEYWORDS)
-                    ),
-                }
-            )
+            changes: dict[str, Any] = {
+                CONF_SCHOOL_CALENDARS: list(user_input.get(CONF_SCHOOL_CALENDARS) or []),
+                CONF_CARE_KEYWORDS: steps_from_text(user_input.get(CONF_CARE_KEYWORDS)),
+            }
+            # Only when the section was on the form: a household without a school
+            # system never saw these words, so its save must not turn them off.
+            if (words := user_input.get(SECTION_SCHOOL_WORDS)) is not None:
+                changes[CONF_CANCEL_KEYWORDS] = steps_from_text(
+                    words.get(CONF_CANCEL_KEYWORDS)
+                )
+                changes[CONF_SUBSTITUTE_KEYWORDS] = steps_from_text(
+                    words.get(CONF_SUBSTITUTE_KEYWORDS)
+                )
+            self._persist(**changes)
             return await self.async_step_init()
 
-        schema = vol.Schema(
-            {
-                vol.Optional(CONF_SCHOOL_CALENDARS): selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain="calendar", multiple=True)
+        fields: dict[Any, Any] = {
+            vol.Optional(CONF_SCHOOL_CALENDARS): selector.EntitySelector(
+                selector.EntitySelectorConfig(domain="calendar", multiple=True)
+            ),
+            vol.Optional(CONF_CARE_KEYWORDS): selector.TextSelector(
+                selector.TextSelectorConfig(multiline=True)
+            ),
+        }
+        # The words only mean something once a child has a lessons calendar to
+        # search, and until then they are two fields nobody can answer.
+        if any(member.get(CONF_LESSONS_CALENDAR) for member in self._members):
+            fields[vol.Required(SECTION_SCHOOL_WORDS)] = section(
+                vol.Schema(
+                    {
+                        vol.Optional(CONF_CANCEL_KEYWORDS): selector.TextSelector(
+                            selector.TextSelectorConfig(multiline=True)
+                        ),
+                        vol.Optional(CONF_SUBSTITUTE_KEYWORDS): selector.TextSelector(
+                            selector.TextSelectorConfig(multiline=True)
+                        ),
+                    }
                 ),
-                vol.Optional(CONF_CARE_KEYWORDS): selector.TextSelector(
-                    selector.TextSelectorConfig(multiline=True)
-                ),
-            }
-        )
+                {"collapsed": True},
+            )
+        schema = vol.Schema(fields)
         # Suggest a word only in a language we ship strings for. Every country calls
         # holiday care something else, and a wrong guess is worse than an empty field.
         stored = self._care_keywords
@@ -440,6 +492,7 @@ class SchooldayOptionsFlow(OptionsFlow):
                 (self.hass.config.language or "en").split("-")[0], ""
             )
         )
+        current = SchooldayConfig.from_options(dict(self.config_entry.options))
         return self.async_show_form(
             step_id="timetable_calendars",
             data_schema=self.add_suggested_values_to_schema(
@@ -447,6 +500,14 @@ class SchooldayOptionsFlow(OptionsFlow):
                 {
                     CONF_SCHOOL_CALENDARS: self._school_calendars,
                     CONF_CARE_KEYWORDS: keywords,
+                    # What the sensors are using right now, defaults included, so
+                    # saving this form without touching the fields changes nothing.
+                    SECTION_SCHOOL_WORDS: {
+                        CONF_CANCEL_KEYWORDS: text_from_steps(current.cancel_keywords),
+                        CONF_SUBSTITUTE_KEYWORDS: text_from_steps(
+                            current.substitute_keywords
+                        ),
+                    },
                 },
             ),
         )
@@ -673,12 +734,22 @@ class SchooldayOptionsFlow(OptionsFlow):
                 }
             )
 
-        suggested = {key: value for key, value in current.items() if key != CONF_COLOR}
+        calendars = {
+            key: current[key]
+            for key in (CONF_LESSONS_CALENDAR, CONF_EXAMS_CALENDAR)
+            if current.get(key)
+        }
+        suggested = {
+            key: value
+            for key, value in current.items()
+            if key != CONF_COLOR and key not in calendars
+        }
         suggested[CONF_COLOR] = hex_to_rgb(current.get(CONF_COLOR))
+        suggested[SECTION_SCHOOL_SYSTEM] = calendars
         return self.async_show_form(
             step_id="edit_member_details",
             data_schema=self.add_suggested_values_to_schema(
-                self._member_schema(), suggested
+                self._member_schema(school_system=bool(calendars)), suggested
             ),
             description_placeholders={"name": current[CONF_NAME]},
         )

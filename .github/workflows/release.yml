@@ -61,6 +61,14 @@ jobs:
           done
           exit $fail
 
+      # The release text is what HACS shows in its update dialog, so it comes from the
+      # changelog rather than from pull-request titles, and a version without an entry
+      # is not released.
+      - name: Changelog must have this version
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: python3 .github/scripts/changelog.py "$VERSION" > "$RUNNER_TEMP/notes.md"
+
       - run: npm ci
       - run: npm run typecheck
       - run: npm run build
@@ -90,4 +98,4 @@ jobs:
           gh release create "$TAG" \
             --target "$GITHUB_SHA" \
             --title "$TAG" \
-            --generate-notes
+            --notes-file "$RUNNER_TEMP/notes.md"

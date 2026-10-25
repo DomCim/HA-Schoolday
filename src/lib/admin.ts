@@ -25,6 +25,8 @@ export interface AdminMember {
   examsCalendar: string | null;
   /** Which named set of lesson times their school rings to; null is the household's. */
   schedule: string | null;
+  /** Minutes to school, which gives a leaving time; null for none, which is not 0. */
+  travelMinutes: number | null;
 }
 
 /** Routine day keys: "0".."6", plus "free" for a day off and "care" for holiday care. */
@@ -115,6 +117,7 @@ export function parseAdmin(raw: unknown): AdminConfig {
           ? entry.exams_calendar
           : null,
       schedule: typeof entry.schedule === 'string' && entry.schedule ? entry.schedule : null,
+      travelMinutes: typeof entry.travel_minutes === 'number' ? entry.travel_minutes : null,
     }))
     .sort((a, b) => a.order - b.order);
 

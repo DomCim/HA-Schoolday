@@ -153,6 +153,14 @@ The timetable stays the one you typed in. A lessons calendar is never used to bu
 correct it — only to say what this Tuesday does differently — so a school system that is down
 for an afternoon costs you the changes, not the week.
 
+The calendars are read again every ten minutes as well as whenever they change. A
+calendar entity only ever describes the event running now or next, so a cancellation for
+Thursday's fourth period, entered on Tuesday evening, changes nothing anybody could listen
+to — and the evening announcement would still be packing for it. When a re-read changes a
+day still to come, Schoolday also says so: see
+[When the school changes the plan](automations.md#when-the-school-changes-the-plan), and
+the blueprint that turns it into a notification on your phone.
+
 What you typed in wins. A period you changed by hand under **Exceptions** is yours,
 whatever the calendar says about it, and a holiday or a sick day has no lessons left to
 cancel. Only timed events count on a lessons calendar: an all-day "Unterrichtsausfall" is

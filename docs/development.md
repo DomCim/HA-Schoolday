@@ -33,7 +33,7 @@ Five jobs:
 | Job | What it does |
 |---|---|
 | `hassfest` | Validates the integration the way Home Assistant does |
-| `Python` | `ruff`, the configuration-writes and model tests, and a `CHANGELOG.md` section for the version in `manifest.json` |
+| `Python` | `ruff`, the configuration-writes and model tests — including the wording of the plan-change message and that every blueprint parses and declares every `!input` it uses — and a `CHANGELOG.md` section for the version in `manifest.json` |
 | `Frontend build` | Typecheck, build, the committed bundle must match the sources, then the smoke suite |
 | `Documentation build` | Builds this site and discards it, so a page Jekyll cannot render fails here rather than after the merge |
 | `HACS` | Publication readiness |
@@ -172,6 +172,19 @@ something different.
 [`CLAUDE.md`](https://github.com/DomCim/HA-Schoolday/blob/main/CLAUDE.md) in the repository
 root writes that down in full, along with the version rule and the habits this codebase is
 written with. It is aimed at coding agents and reads perfectly well as a contributor guide.
+
+## Blueprints
+
+They live in `custom_components/schoolday/blueprints/`, because that folder is all HACS
+installs. `bundled_blueprints.py` copies them to `blueprints/automation/schoolday/` on
+every start and remembers a checksum of what it wrote, which is how it tells a copy it may
+replace from one somebody edited. When it replaces a file it reloads the automations,
+because those read their blueprint once, at load, and on a start after an update that has
+usually already happened with the old copy.
+
+Each blueprint's `source_url` points at its file on `main`, which is what Home Assistant's
+"re-import" uses. Renaming one means the old name lingers in households as the copy
+nobody updates, so do not.
 
 ## Language
 

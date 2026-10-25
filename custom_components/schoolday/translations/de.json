@@ -36,13 +36,15 @@
           "color": "Farbe",
           "avatar": "Avatarbild",
           "calendar": "Kalender",
-          "schedule": "Schule"
+          "schedule": "Schule",
+          "travel_minutes": "Weg zur Schule"
         },
         "data_description": {
           "color": "Kennzeichnet diese Person auf allen Schoolday-Karten.",
           "avatar": "Pfad zu einem Bild, zum Beispiel /local/schoolday/ben.png. Optional.",
           "calendar": "Der eigene Kalender dieses Kindes, falls es einen hat. Er wird ausschließlich nach den Betreuungs-Stichwörtern durchsucht – Schoolday zeigt keinen seiner Termine an.",
-          "schedule": "Leer lassen für die üblichen Stundenzeiten des Haushalts."
+          "schedule": "Leer lassen für die üblichen Stundenzeiten des Haushalts.",
+          "travel_minutes": "Minuten von der Haustür bis ins Klassenzimmer. Daraus wird eine Losgeh-Zeit, die sich von selbst verschiebt, wenn die erste Stunde ausfällt. Leer lassen für keine."
         },
         "sections": {
           "school_system": {
@@ -72,13 +74,15 @@
           "color": "Farbe",
           "avatar": "Avatarbild",
           "calendar": "Kalender",
-          "schedule": "Schule"
+          "schedule": "Schule",
+          "travel_minutes": "Weg zur Schule"
         },
         "data_description": {
           "color": "Kennzeichnet diese Person auf allen Schoolday-Karten.",
           "avatar": "Pfad zu einem Bild, zum Beispiel /local/schoolday/ben.png. Optional.",
           "calendar": "Der eigene Kalender dieses Kindes, falls es einen hat. Er wird ausschließlich nach den Betreuungs-Stichwörtern durchsucht – Schoolday zeigt keinen seiner Termine an.",
-          "schedule": "Leer lassen für die üblichen Stundenzeiten des Haushalts."
+          "schedule": "Leer lassen für die üblichen Stundenzeiten des Haushalts.",
+          "travel_minutes": "Minuten von der Haustür bis ins Klassenzimmer. Daraus wird eine Losgeh-Zeit, die sich von selbst verschiebt, wenn die erste Stunde ausfällt. Leer lassen für keine."
         },
         "sections": {
           "school_system": {
@@ -215,6 +219,9 @@
     "sensor": {
       "board": {
         "name": "Board"
+      },
+      "leave": {
+        "name": "{name}: Losgehen"
       }
     },
     "switch": {
@@ -464,6 +471,10 @@
         "avatar": {
           "name": "Avatar",
           "description": "Optionale Bild-URL."
+        },
+        "travel_minutes": {
+          "name": "Weg zur Schule",
+          "description": "Minuten von der Haustür bis zur Schule. Daraus wird eine Losgeh-Zeit; weggelassen heißt keine."
         }
       }
     },

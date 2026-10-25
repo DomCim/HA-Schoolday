@@ -802,6 +802,172 @@ check("die Verwaltungskarte sieht die Schulkalender und die Ausfall-Wörter",
       and admin["members"][0]["exams_calendar"] == "calendar.b"
       and "Cancelled" in admin["cancel_keywords"], str(admin["members"][0]))
 
+# --- the way to school -------------------------------------------------------
+out, _ = W.set_member(BASE, MEMBER, "Ben", travel_minutes=15)
+check("der Schulweg wird in Minuten gespeichert",
+      out["members"][0].get("travel_minutes") == 15, str(out["members"][0]))
+out0, _ = W.set_member(BASE, MEMBER, "Ben", travel_minutes=0)
+check("null Minuten sind ein Schulweg, kein leeres Feld",
+      out0["members"][0].get("travel_minutes") == 0, str(out0["members"][0]))
+out2, _ = W.set_member(merged(out), MEMBER, "Ben")
+check("ohne Angabe verschwindet der Schulweg wie die anderen Felder",
+      "travel_minutes" not in out2["members"][0], str(out2["members"][0]))
+for bad in (-5, 300, "weit"):
+    try:
+        W.set_member(BASE, MEMBER, "Ben", travel_minutes=bad)
+        check(f"Schulweg {bad!r} abgewiesen", False, "keine Ausnahme")
+    except SchooldayValueError as e:
+        check(f"Schulweg {bad!r} abgewiesen", "way to school" in str(e), str(e)[:60])
+check("das Modell liest den Schulweg, und nichts Ungültiges",
+      Models.Member.from_dict({"id": "a", "name": "A", "travel_minutes": 12.0}).travel_minutes == 12
+      and Models.Member.from_dict({"id": "a", "name": "A"}).travel_minutes is None
+      and Models.Member.from_dict({"id": "a", "name": "A", "travel_minutes": "x"}).travel_minutes is None)
+
+# --- what changed about a day, and the sentence that says it -------------------
+P = importlib.import_module("schoolday.plan")
+L = Models.Lesson
+GRID = Models.periods_from_text(
+    "08:00-08:45\n08:45-09:30\n09:50-10:35\n10:35-11:20\n11:40-12:25\n12:25-13:10"
+)
+MONDAY = [L(1, "Musik"), L(2, "Mathe"), L(3, "Mathe"), L(4, "Englisch"), L(5, "Sport"), L(6, "Sport")]
+TODAY = datetime.date(2026, 10, 25)
+TOMORROW = datetime.date(2026, 10, 26)
+
+check("ein unveränderter Tag ist keine Änderung",
+      P.day_change(MONDAY, list(MONDAY), GRID) is None)
+check("Groß- und Kleinschreibung allein ist keine Änderung",
+      P.day_change([L(2, "Mathe")], [L(2, "mathe")], GRID) is None)
+
+after = [L(2, "Mathe"), L(3, "Deutsch", "007"), L(4, "Englisch")]
+change = P.day_change(MONDAY, after, GRID)
+check("Ausfall und Vertretung werden je Stunde erkannt",
+      [lesson.period for lesson in change.cancelled] == [1, 5, 6]
+      and [(c.lesson.subject, c.instead.subject) for c in change.changed] == [("Deutsch", "Mathe")],
+      str(change))
+de = P.message("de", "Ben", TOMORROW, TODAY, change)
+check("der Satz auf Deutsch fasst die Doppelstunde zusammen und nennt die Zeiten",
+      de == "Ben morgen: Musik (1. Std.) fällt aus. Sport (5.–6. Std.) fällt aus. "
+            "Deutsch statt Mathe (3. Std., Raum 007). Beginn 08:45 statt 08:00. "
+            "Schluss 11:20 statt 13:10.", de)
+en = P.message("en-GB", "Ben", TOMORROW, TODAY, change)
+check("und auf Englisch, auch für en-GB",
+      en == "Ben tomorrow: Musik (period 1) is cancelled. Sport (periods 5–6) is cancelled. "
+            "Deutsch instead of Mathe (period 3, room 007). Starts 08:45 instead of 08:00. "
+            "Finishes 11:20 instead of 13:10.", en)
+check("eine Sprache ohne Übersetzung bekommt Englisch",
+      P.message("fr", "Ben", TOMORROW, TODAY, change).startswith("Ben tomorrow:"))
+
+gone = P.day_change(MONDAY, [], GRID)
+check("ein ganz ausgefallener Tag heißt kein Unterricht, ohne jede Stunde aufzuzählen",
+      P.message("de", "Ben", TODAY, TODAY, gone) == "Ben heute: Kein Unterricht.",
+      P.message("de", "Ben", TODAY, TODAY, gone))
+
+room = P.day_change([L(2, "Mathe", "104")], [L(2, "Mathe", "007")], GRID)
+check("nur ein anderer Raum",
+      P.message("de", "Mia", TOMORROW, TODAY, room) == "Mia morgen: Mathe in Raum 007 (2. Std.).",
+      P.message("de", "Mia", TOMORROW, TODAY, room))
+extra = P.day_change([L(1, "Musik")], [L(1, "Musik"), L(2, "Kunst")], GRID)
+check("eine zusätzliche Stunde verlängert den Tag",
+      P.message("en", "Mia", TOMORROW, TODAY, extra)
+      == "Mia tomorrow: Extra: Kunst (period 2). Finishes 09:30 instead of 08:45.",
+      P.message("en", "Mia", TOMORROW, TODAY, extra))
+back = P.day_change([L(2, "Mathe")], [L(1, "Deutsch", "104"), L(2, "Mathe")], GRID,
+                    planned=[L(1, "Deutsch", "104"), L(2, "Mathe")])
+check("eine zurückgenommene Absage heißt findet doch statt, nicht zusätzlich",
+      P.message("de", "Ben", TOMORROW, TODAY, back)
+      == "Ben morgen: Deutsch (1. Std.) findet doch statt. Beginn 08:00 statt 08:45."
+      and P.message("en", "Ben", TOMORROW, TODAY, back).startswith(
+          "Ben tomorrow: Deutsch (period 1) is on after all."),
+      P.message("de", "Ben", TOMORROW, TODAY, back))
+check("weiter weg steht der Wochentag mit Datum",
+      P.day_word("de", datetime.date(2026, 10, 28), TODAY) == "Mittwoch, 28.10."
+      and P.day_word("en", datetime.date(2026, 10, 28), TODAY) == "Wednesday 28 October")
+
+# A change is believed once it has been read twice. The case that made it so: WebUntis
+# reloading is briefly an empty calendar, and the next full reading looked like the
+# school cancelling everything it had cancelled a week ago.
+WED = datetime.date(2026, 10, 28)
+FULL = {TOMORROW: [L(2, "Mathe"), L(3, "Deutsch")], WED: [L(1, "Deutsch")]}
+EMPTY = {TOMORROW: MONDAY, WED: [L(1, "Deutsch"), L(2, "Englisch")]}
+watch = P.ChangeWatch()
+steps = [watch.observe(FULL)[0], watch.observe(EMPTY)[0], watch.observe(FULL)[0]]
+check("ein kurzer Aussetzer des Kalenders wird keine Meldung",
+      steps == ["quiet", "recheck", "quiet"], str(steps))
+NEW = {**FULL, WED: [L(2, "Englisch")]}
+first = watch.observe(NEW)
+second = watch.observe(NEW)
+check("eine echte Änderung kommt beim zweiten Lesen, mit dem alten Stand als Vergleich",
+      first[0] == "recheck" and second[0] == "change" and second[1][WED] == [L(1, "Deutsch")],
+      str((first, second)))
+check("und wird danach nicht noch einmal gemeldet", watch.observe(NEW)[0] == "quiet")
+THU = datetime.date(2026, 10, 29)
+check("ein neuer Tag im Fenster ist keine Änderung",
+      watch.observe({WED: NEW[WED], THU: [L(1, "Musik")]})[0] == "quiet")
+
+# --- the blueprints -------------------------------------------------------------
+# Read with a loader that knows `!input`, the one tag a blueprint uses; anything else
+# that does not parse would fail in Home Assistant's blueprint list without a word.
+import yaml  # noqa: E402
+
+
+class BlueprintLoader(yaml.SafeLoader):
+    pass
+
+
+BlueprintLoader.add_constructor("!input", lambda loader, node: ("input", loader.construct_scalar(node)))
+BLUEPRINTS = COMPONENT / "blueprints"
+for path in sorted(BLUEPRINTS.glob("*.yaml")):
+    bp = yaml.load(path.read_text(encoding="utf-8"), Loader=BlueprintLoader)
+    meta = bp["blueprint"]
+    used = set()
+
+    def walk(node):
+        if isinstance(node, tuple) and node[:1] == ("input",):
+            used.add(node[1])
+        elif isinstance(node, dict):
+            for value in node.values():
+                walk(value)
+        elif isinstance(node, list):
+            for value in node:
+                walk(value)
+
+    walk({key: value for key, value in bp.items() if key != "blueprint"})
+    check(f"Blueprint {path.name}: Kopf, Quelle und jedes !input ist deklariert",
+          meta["domain"] == "automation"
+          and meta["source_url"].endswith(f"/custom_components/schoolday/blueprints/{path.name}")
+          and used <= set(meta["input"]) and used,
+          str(used - set(meta["input"])))
+check("es gibt die drei Blueprints",
+      sorted(p.name for p in BLUEPRINTS.glob("*.yaml"))
+      == ["before_leaving.yaml", "leave_light.yaml", "plan_changed.yaml"])
+
+# The copying into the household's blueprint folder, against a temporary directory.
+import tempfile  # noqa: E402
+
+for name in ("homeassistant.core", "homeassistant.helpers", "homeassistant.helpers.storage"):
+    sys.modules.setdefault(name, types.ModuleType(name))
+sys.modules["homeassistant.core"].HomeAssistant = object
+sys.modules["homeassistant.helpers.storage"].Store = object
+B = importlib.import_module("schoolday.bundled_blueprints")
+with tempfile.TemporaryDirectory() as tmp:
+    target = pathlib.Path(tmp) / "schoolday"
+    written, replaced = B._install(target, {})
+    check("beim ersten Start landen alle Blueprints im Ordner",
+          sorted(written) == sorted(p.name for p in BLUEPRINTS.glob("*.yaml"))
+          and not replaced and (target / "leave_light.yaml").exists())
+    (target / "leave_light.yaml").write_text("# meins\n")
+    (target / "before_leaving.yaml").unlink()
+    old = {**written, "plan_changed.yaml": "eine ältere Fassung"}
+    (target / "plan_changed.yaml").write_text("# alt\n")
+    old["plan_changed.yaml"] = B._digest(b"# alt\n")
+    again, replaced = B._install(target, old)
+    check("eine geänderte Kopie bleibt, eine gelöschte bleibt weg, eine alte wird ersetzt",
+          (target / "leave_light.yaml").read_text() == "# meins\n"
+          and not (target / "before_leaving.yaml").exists()
+          and (target / "plan_changed.yaml").read_bytes()
+          == (BLUEPRINTS / "plan_changed.yaml").read_bytes()
+          and replaced, str(again))
+
 # --- the brand images must stay within the sizes home-assistant/brands allows ---
 # Dimensions only, from the PNG header, so this needs nothing but the standard library.
 # Trimming is the render script's job; getting the size wrong is the likely mistake,

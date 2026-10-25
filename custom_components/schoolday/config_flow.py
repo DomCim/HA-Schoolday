@@ -30,6 +30,8 @@ from .const import (
     CONF_CARE_KEYWORDS,
     CONF_COLOR,
     CONF_EXAMS_CALENDAR,
+    CONF_TRAVEL_MINUTES,
+    TRAVEL_MAX_MINUTES,
     CONF_LESSONS_CALENDAR,
     CONF_MATERIALS,
     CONF_MEMBER_ID,
@@ -174,6 +176,15 @@ class SchooldayOptionsFlow(OptionsFlow):
             fields[vol.Optional(CONF_SCHEDULE)] = selector.SelectSelector(
                 selector.SelectSelectorConfig(options=names, custom_value=False)
             )
+        fields[vol.Optional(CONF_TRAVEL_MINUTES)] = selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                min=0,
+                max=TRAVEL_MAX_MINUTES,
+                step=1,
+                unit_of_measurement="min",
+                mode=selector.NumberSelectorMode.BOX,
+            )
+        )
         fields[vol.Required(SECTION_SCHOOL_SYSTEM)] = section(
             vol.Schema(
                 {
@@ -204,6 +215,10 @@ class SchooldayOptionsFlow(OptionsFlow):
             if value not in (None, "", [])
         }
         member[CONF_COLOR] = color_to_hex(user_input.get(CONF_COLOR))
+        # A number field hands back a float, and 12.0 minutes reads oddly in the
+        # admin card's field and in every attribute that repeats it.
+        if (travel := member.get(CONF_TRAVEL_MINUTES)) is not None:
+            member[CONF_TRAVEL_MINUTES] = int(travel)
         return member
 
     # --- menu ---------------------------------------------------------------

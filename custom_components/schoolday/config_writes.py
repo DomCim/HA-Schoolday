@@ -38,6 +38,8 @@ from .const import (
     CONF_ROUTINES,
     CONF_SCHEDULE,
     CONF_EXAMS_CALENDAR,
+    CONF_TRAVEL_MINUTES,
+    TRAVEL_MAX_MINUTES,
     CONF_LESSONS_CALENDAR,
     CONF_SCHOOL_CALENDARS,
     SCHEDULE_NAME_MAX,
@@ -304,6 +306,7 @@ def set_member(
     schedule: str | None = None,
     lessons_calendar: str | None = None,
     exams_calendar: str | None = None,
+    travel_minutes: Any = None,
 ) -> tuple[dict[str, Any], str]:
     """Add a family member, or change one that exists.
 
@@ -332,6 +335,18 @@ def set_member(
     for entity in calendars.values():
         if not entity.startswith("calendar."):
             raise SchooldayValueError(f"'{entity}' is not a calendar entity.")
+
+    travel: int | None = None
+    if travel_minutes not in (None, ""):
+        try:
+            travel = int(travel_minutes)
+        except (TypeError, ValueError):
+            travel = -1
+        if not 0 <= travel <= TRAVEL_MAX_MINUTES:
+            raise SchooldayValueError(
+                f"'{travel_minutes}' is not a way to school. Give minutes from 0 to "
+                f"{TRAVEL_MAX_MINUTES}."
+            )
 
     existing = next((item for item in members if item.get(CONF_MEMBER_ID) == member_id), None)
     if member_id is not None and existing is None:
@@ -362,6 +377,12 @@ def set_member(
             entry[key] = value
         else:
             entry.pop(key, None)
+    # Apart from the loop above, which drops anything falsy: zero minutes is a child
+    # who lives next to the school, and still a leaving time.
+    if travel is None:
+        entry.pop(CONF_TRAVEL_MINUTES, None)
+    else:
+        entry[CONF_TRAVEL_MINUTES] = travel
 
     return {CONF_MEMBERS: members}, new_id
 

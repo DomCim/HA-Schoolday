@@ -25,6 +25,9 @@ sensor.schoolday_ben        →  Sport
 | `tomorrow_subjects` / `tomorrow_summary` | The same for tomorrow — empty when tomorrow is a weekend, a holiday, a care day, a trip or a sick day |
 | `exams` | Exams from today to the end of the outlook, from this child's [exams calendar](exceptions.md#from-the-schools-own-system): `date`, `title`, `start` and `period` — `start` and `period` are `null` for an all-day one |
 | `tomorrow_exams` | Tomorrow's exam titles: `["Mathe"]` — empty when tomorrow is not a school day, like `tomorrow_subjects` |
+| `school_start` / `school_end` | When today's first lesson begins and the last one ends, `"08:00"` / `"13:10"`, after what the [school system](exceptions.md#from-the-schools-own-system) cancelled — `null` on a day without school |
+| `tomorrow_start` / `tomorrow_end` | The same for tomorrow |
+| `leave_at` | The next time this child has to [set off](#time-to-leave), as a timestamp — `null` without a way to school |
 | `lesson_now` / `lesson_next` | The running and the next lesson, or `null` |
 | `schedule` | Which named [set of lesson times](timetable.md#two-schools-that-do-not-ring-together) this child's school rings to, or `null` for the household's |
 | `day_mode` | `school`, `care`, `free`, `event` or `sick` — which routine is showing, and why |
@@ -128,6 +131,120 @@ substitute is already in it — and
 ```
 {% endraw %}
 
+## When the school changes the plan
+
+With a [lessons calendar from the school system](exceptions.md#from-the-schools-own-system)
+on a child, Schoolday reads it again every ten minutes. When that changes a day that is
+still to come — a lesson cancelled, a substitute, another room — it fires
+`schoolday_plan_changed`, once per child and day:
+
+| Field | Contents |
+|---|---|
+| `member` / `member_id` | Who |
+| `date` / `days_ahead` | Which day, and how far off: `0` today, `1` tomorrow |
+| `cancelled` | The lessons that are no longer on: `subject`, `room`, `period`, `start`, `end` |
+| `changed` | The periods holding something new, the same way, plus `instead` — the subject that was there, or `null` where there was none — and `restored`, true for a cancellation taken back |
+| `start` / `end` | When the day now begins and ends, `null` when nothing is left |
+| `previous_start` / `previous_end` | When it began and ended before |
+| `message` | All of it as a sentence, in Home Assistant's language |
+
+The message reads, in a German household:
+
+```
+Ben morgen: Musik (1. Std.) fällt aus. Deutsch statt Mathe (3. Std., Raum 007). Beginn 08:45 statt 08:00.
+```
+
+and in an English one "Ben tomorrow: Musik (period 1) is cancelled. Deutsch instead of
+Mathe (period 3, room 007). Starts 08:45 instead of 08:00." A double lesson is one lesson
+— "Sport (5.–6. Std.) fällt aus" — and a day with nothing left says so rather than
+listing it.
+
+A change is believed once it has been read twice: when a reading disagrees, Schoolday
+looks again a minute later. A school system's calendar that is being reloaded is briefly
+there and empty, and without the second look the next full reading would announce every
+cancellation the school already had.
+
+Some things are deliberately not news. The first reading after Home Assistant starts is
+only the baseline: what the school changed while it was off cannot be dated, and a phone
+that buzzes with the whole week after every restart is a phone nobody reads. Changes you
+make yourself — under Exceptions, or to the timetable — are not announced either, and nor
+is a holiday appearing in the holiday calendar. Today counts only from now on: a cancelled
+lesson that is already over has nothing left for anybody to do about it.
+
+The quickest way to a notification is the [blueprint](#blueprints). By hand:
+
+{% raw %}
+```yaml
+alias: Stundenplan geändert
+triggers:
+  - trigger: event
+    event_type: schoolday_plan_changed
+conditions:
+  # Today and tomorrow. Next Thursday can wait until it is tomorrow.
+  - condition: template
+    value_template: "{{ trigger.event.data.days_ahead <= 1 }}"
+actions:
+  - action: notify.mobile_app_dominik
+    data:
+      title: Stundenplan
+      message: "{{ trigger.event.data.message }}"
+```
+{% endraw %}
+
+## Time to leave
+
+Give a child a **way to school** — minutes from the front door to the classroom, set
+with the member under **Edit a family member** or in the admin card's Family section —
+and Schoolday works out when they have to set off: the first lesson that is actually on,
+minus the way. A cancelled first period moves it later by itself, and on a day without
+school there is none.
+
+It is published twice. `leave_at` on the child's sensor, for templates, and a sensor of
+its own, `sensor.schoolday_ben_time_to_leave` (in German `…_losgehen`), whose state is the
+time. Being a timestamp sensor, a time trigger can follow it without a template:
+
+```yaml
+alias: Ben – Schuhe an
+triggers:
+  - trigger: time
+    at: sensor.schoolday_ben_time_to_leave
+actions:
+  - action: tts.speak
+    target:
+      entity_id: tts.home_assistant_cloud
+    data:
+      media_player_entity_id: media_player.flur
+      message: Ben, Schuhe an, es geht los!
+```
+
+It shows today's leaving time until the first lesson has begun, then moves on to the next
+school day. The child without a way to school has no such sensor at all; 0 minutes is a
+way to school, for a child living next door. The [header card](cards.md#header-card)
+counts down to it on the wall.
+
+## Blueprints
+
+Three come with Schoolday. They are copied into `blueprints/automation/schoolday/` every
+time Home Assistant starts, so after installing or updating they are simply under
+**Settings → Automations & scenes → Blueprints**, and an automation made from one keeps up
+with the sensors it reads. A copy you edited is left alone, and one you deleted stays
+deleted.
+
+| Blueprint | What it does | Needs |
+|---|---|---|
+| **The school changed the plan** | A push notification on the phones you pick, with the message above. Choose which children and how far ahead — today and tomorrow unless you say otherwise. | A lessons calendar |
+| **Time-to-leave light** | A lamp in the hall turns amber a few minutes before leaving, red when it is time, and goes off again. Colours, brightness and minutes are yours to pick. | A way to school |
+| **Before leaving for school** | Anything you like, a set time before leaving: the wake-up light an hour before, the radio, the bathroom heating. It moves with the first lesson. | A way to school |
+
+The last two follow the leaving time to the minute, so "an hour before" on a morning
+whose first lesson is cancelled is an hour before the second one — the extra 45 minutes
+of sleep arrive without anybody touching the alarm.
+
+The phones are the Home Assistant app on each one. The notification goes to the
+`notify.mobile_app_…` action the app registered, which carries the phone's own name, so
+renaming the device in Home Assistant does not break it. Anything else — a sentence in
+the kitchen, a notify group — goes under **Anything else**, where the text is `message`.
+
 ## Subject names
 
 Subject names are free text. `Werken`, `AG Robotik`, `Bläserklasse` — nothing here knows what a
@@ -178,6 +295,7 @@ Two events fire at every lesson boundary, carrying `member`, `member_id`, `subje
 |---|---|
 | `schoolday_lesson_started` | A lesson begins |
 | `schoolday_lesson_ended` | A lesson ends |
+| `schoolday_plan_changed` | The school system changed a day still to come — see [below](#when-the-school-changes-the-plan) |
 
 They exist alongside the state because the state cannot show everything: two periods of the same
 subject in a row are one state but two lessons. Nothing fires on a Home Assistant restart — the
@@ -255,7 +373,7 @@ validates: a card must not be able to write a timetable the sensors can no longe
 | `schoolday.set_exception` | What one date does differently |
 | `schoolday.clear_exception` | Put a date back |
 | `schoolday.set_materials` | What a subject needs brought along |
-| `schoolday.set_member` | Add or change a family member, including which school they ring to and their school system's calendars |
+| `schoolday.set_member` | Add or change a family member, including which school they ring to, their way to school and their school system's calendars |
 | `schoolday.remove_member` | Remove one, and everything that only existed for them |
 | `schoolday.set_calendars` | The holiday calendars, the holiday-care keywords, and the cancellation and substitution words |
 

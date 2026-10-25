@@ -7,7 +7,7 @@ from typing import Final
 DOMAIN: Final = "schoolday"
 
 # Keep in sync with manifest.json, package.json and src/lib/const.ts.
-VERSION: Final = "0.14.0"
+VERSION: Final = "0.15.0"
 
 # Where the bundled Lovelace cards are served from.
 FRONTEND_URL_BASE: Final = "/schoolday-frontend"
@@ -202,6 +202,11 @@ CONF_CALENDAR: Final = "calendar"
 # event on a holiday calendar is a day off.
 CONF_LESSONS_CALENDAR: Final = "lessons_calendar"
 CONF_EXAMS_CALENDAR: Final = "exams_calendar"
+# How long this member takes to get to school, in minutes. Unset is not zero: a child
+# who has not been given a way to school gets no leaving time at all, rather than one
+# that says "leave as the bell rings".
+CONF_TRAVEL_MINUTES: Final = "travel_minutes"
+TRAVEL_MAX_MINUTES: Final = 240
 
 # --- Entity attributes exposed to the cards ---------------------------------
 
@@ -248,6 +253,17 @@ ATTR_TOMORROW_SUMMARY: Final = "tomorrow_summary"
 # day of the outlook carries its own, so a card can mark the lesson.
 ATTR_EXAMS: Final = "exams"
 ATTR_TOMORROW_EXAMS: Final = "tomorrow_exams"
+# When today's and tomorrow's lessons begin and end, as `HH:MM`, after what the school
+# system cancelled — so a first period that is not on moves the start, and the alarm
+# clock reading it, by itself. Null on a day without school.
+ATTR_SCHOOL_START: Final = "school_start"
+ATTR_SCHOOL_END: Final = "school_end"
+ATTR_TOMORROW_START: Final = "tomorrow_start"
+ATTR_TOMORROW_END: Final = "tomorrow_end"
+# The next time this member has to set off, from the same start and their way to
+# school. Also a timestamp sensor of its own, which is what a time trigger can follow.
+ATTR_LEAVE_AT: Final = "leave_at"
+ATTR_TRAVEL_MINUTES: Final = "travel_minutes"
 ATTR_LESSON_NOW: Final = "lesson_now"
 ATTR_LESSON_NEXT: Final = "lesson_next"
 ATTR_SUBJECT: Final = "subject"
@@ -285,6 +301,24 @@ STATE_FREE: Final = "free"
 # periods of the same subject in a row are one state but two lessons.
 EVENT_LESSON_STARTED: Final = f"{DOMAIN}_lesson_started"
 EVENT_LESSON_ENDED: Final = f"{DOMAIN}_lesson_ended"
+
+# Fired when a re-read of the school system's calendar changes a day that is still to
+# come: a lesson cancelled, a substitute, a new room. Not on a restart and not when the
+# household edits the timetable — the first is not news, and the second they know.
+EVENT_PLAN_CHANGED: Final = f"{DOMAIN}_plan_changed"
+
+# How often the school system's calendars are read again. A calendar entity's state
+# only describes the event running now or next, so a cancellation for Thursday's fourth
+# period changes nothing anybody could listen to. WebUntis refreshes its own copy every
+# ten minutes, and reading that copy costs no request to the school.
+FEED_REFRESH_MINUTES: Final = 10
+
+# --- Blueprints ---------------------------------------------------------------
+
+# Where Schoolday's blueprints are copied to, under the blueprint folder Home Assistant
+# reads, and what it remembers about the copies it made.
+BLUEPRINT_FOLDER: Final = DOMAIN
+BLUEPRINT_STORAGE_KEY: Final = f"{DOMAIN}.blueprints"
 
 # --- Routine completion state ------------------------------------------------
 

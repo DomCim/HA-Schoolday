@@ -36,13 +36,15 @@
           "color": "Colour",
           "avatar": "Avatar image",
           "calendar": "Calendar",
-          "schedule": "School"
+          "schedule": "School",
+          "travel_minutes": "Way to school"
         },
         "data_description": {
           "color": "Used for this person's highlights across every Schoolday card.",
           "avatar": "Path to an image, for example /local/schoolday/ben.png. Optional.",
           "calendar": "This child's own calendar, if they have one. Only ever searched for the holiday-care keywords below — Schoolday shows none of its events.",
-          "schedule": "Leave empty for the household's usual lesson times."
+          "schedule": "Leave empty for the household's usual lesson times.",
+          "travel_minutes": "Minutes from the front door to the classroom. Gives this child a leaving time that moves by itself when the first lesson is cancelled. Leave empty for none."
         },
         "sections": {
           "school_system": {
@@ -72,13 +74,15 @@
           "color": "Colour",
           "avatar": "Avatar image",
           "calendar": "Calendar",
-          "schedule": "School"
+          "schedule": "School",
+          "travel_minutes": "Way to school"
         },
         "data_description": {
           "color": "Used for this person's highlights across every Schoolday card.",
           "avatar": "Path to an image, for example /local/schoolday/ben.png. Optional.",
           "calendar": "This child's own calendar, if they have one. Only ever searched for the holiday-care keywords below — Schoolday shows none of its events.",
-          "schedule": "Leave empty for the household's usual lesson times."
+          "schedule": "Leave empty for the household's usual lesson times.",
+          "travel_minutes": "Minutes from the front door to the classroom. Gives this child a leaving time that moves by itself when the first lesson is cancelled. Leave empty for none."
         },
         "sections": {
           "school_system": {
@@ -215,6 +219,9 @@
     "sensor": {
       "board": {
         "name": "Board"
+      },
+      "leave": {
+        "name": "{name}: time to leave"
       }
     },
     "switch": {
@@ -464,6 +471,10 @@
         "avatar": {
           "name": "Avatar",
           "description": "Optional picture URL."
+        },
+        "travel_minutes": {
+          "name": "Way to school",
+          "description": "Minutes from the front door to school. Gives the member a leaving time; omitted means none."
         }
       }
     },

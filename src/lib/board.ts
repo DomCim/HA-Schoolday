@@ -121,10 +121,15 @@ export function avatarUrl(hass: HomeAssistant, avatar: string | null): string | 
  * happened to enumerate first, and that order is not the same on every client. One
  * household saw the wall tablet draw the full week while the phone, at the same moment
  * and from the same data, reported that nobody had a timetable at all.
+ *
+ * The leaving-time sensor is a `sensor.` carrying the id too, for the same reason as
+ * the list; it is the only one that is a timestamp, which is how it is told apart.
  */
 export function memberSensor(hass: HomeAssistant, memberId: string): HassEntity | undefined {
   return Object.values(hass.states).find(
     (entity) =>
-      entity.attributes?.member_id === memberId && entity.entity_id.startsWith('sensor.'),
+      entity.attributes?.member_id === memberId &&
+      entity.entity_id.startsWith('sensor.') &&
+      entity.attributes?.device_class !== 'timestamp',
   );
 }

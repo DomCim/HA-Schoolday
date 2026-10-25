@@ -58,6 +58,7 @@ from .const import (
     CONF_AVATAR,
     CONF_CALENDAR,
     CONF_EXAMS_CALENDAR,
+    CONF_TRAVEL_MINUTES,
     CONF_LESSONS_CALENDAR,
     DATA_ABSENCE,
     DATA_STORE,
@@ -170,6 +171,8 @@ SET_MEMBER_SCHEMA = vol.Schema(
         vol.Optional(CONF_EXAMS_CALENDAR): cv.string,
         vol.Optional(CONF_AVATAR): cv.string,
         vol.Optional(ATTR_SCHEDULE_FIELD): cv.string,
+        # The range is config_writes' to enforce, with a message that says what is wrong.
+        vol.Optional(CONF_TRAVEL_MINUTES): vol.Any(None, "", vol.Coerce(int)),
     }
 )
 
@@ -411,6 +414,7 @@ def async_register_services(hass: HomeAssistant) -> None:
             call.data.get(ATTR_SCHEDULE_FIELD),
             call.data.get(CONF_LESSONS_CALENDAR),
             call.data.get(CONF_EXAMS_CALENDAR),
+            call.data.get(CONF_TRAVEL_MINUTES),
         )
         _apply(call, changes)
 

@@ -30,7 +30,7 @@ homework, days off, the cards and the automations.
 | **Timetable** | The week per child, colour-coded by subject, with the running lesson marked. Two-week A/B schools included. |
 | **Routines** | The things that simply have to happen, ticked off by the kids — plus the packing list tomorrow's lessons generate. |
 | **Homework** | A Home Assistant todo list per child, grouped by when it is due. |
-| **Days that differ** | Holidays, holiday care, school trips, cancelled lessons, exams, and a child at home ill. Cancellations and exams can be read from WebUntis or any school calendar. |
+| **Days that differ** | Holidays, holiday care, school trips, cancelled lessons, exams, and a child at home ill. Cancellations, substitutions and exams can be read from WebUntis or any school calendar. |
 | **The record** | How reliably each child gets through their routines over the last month, and which steps keep being skipped. |
 | **Automations** | A sensor per child whose state is the subject they are in right now, today's and tomorrow's subjects ready to speak — "Ben has PE tomorrow" — events at every lesson boundary, and a service for everything the options dialog can change. |
 

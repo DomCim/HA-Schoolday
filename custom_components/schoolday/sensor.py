@@ -94,6 +94,7 @@ from .models import (
     SchooldayConfig,
     cancelled_periods,
     exams_by_day,
+    substituted_periods,
 )
 from .store import AbsenceStore, HistoryStore, RoutineStore
 
@@ -224,7 +225,15 @@ def _feed_events(events: Iterable[Mapping[str, Any]]) -> list[FeedEvent]:
         end = (
             ends.hour * 60 + ends.minute if ends.date() == begins.date() else 24 * 60
         )
-        feed.append(FeedEvent(day=begins.date(), summary=summary, start=start, end=end))
+        feed.append(
+            FeedEvent(
+                day=begins.date(),
+                summary=summary,
+                start=start,
+                end=end,
+                location=str(event.get("location") or "") or None,
+            )
+        )
     return feed
 
 
@@ -376,9 +385,11 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         self._outlook: list[dict[str, Any]] = []
         self._outlook_date: date | None = None
         #: What the school system's calendars said, per date: the periods it cancelled
-        #: on top of what the household said, and the exams. Both are a reading of a
-        #: calendar, never written into the configuration — the next read replaces them.
+        #: or gave to somebody else on top of what the household said, and the exams.
+        #: All a reading of a calendar, never written into the configuration — the next
+        #: read replaces them.
         self._feed_cancelled: dict[date, set[int]] = {}
+        self._feed_swapped: dict[date, dict[int, Lesson]] = {}
         self._exams: dict[date, list[dict[str, Any]]] = {}
 
     async def async_added_to_hass(self) -> None:
@@ -551,11 +562,14 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         # day that is not a school day has no lessons left to cancel.
         periods = self._periods
         cancelled: dict[date, set[int]] = {}
+        substituted: dict[date, dict[int, Lesson]] = {}
         if self._member.lessons_calendar:
+            lessons_feed = _feed_events(events.get(self._member.lessons_calendar, []))
             cancelled = cancelled_periods(
-                _feed_events(events.get(self._member.lessons_calendar, [])),
-                periods,
-                self._config.cancel_keywords,
+                lessons_feed, periods, self._config.cancel_keywords
+            )
+            substituted = substituted_periods(
+                lessons_feed, periods, self._config.substitute_keywords
             )
         self._exams = (
             exams_by_day(_feed_events(events.get(self._member.exams_calendar, [])), periods)
@@ -563,21 +577,52 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
             else {}
         )
         self._feed_cancelled = {}
+        self._feed_swapped = {}
+        rung = {period.index for period in periods}
         for day in days:
             entry = entries[day]
             if exams := self._exams.get(day):
                 entry[ATTR_EXAMS] = exams
-            if entry[ATTR_MODE] != MODE_SCHOOL or day not in cancelled:
+            if entry[ATTR_MODE] != MODE_SCHOOL or (
+                day not in cancelled and day not in substituted
+            ):
                 continue
             change = self._config.exception(self._member.id, day)
-            # Only periods with a lesson in them: an empty slot marked cancelled would
-            # draw a struck-through nothing on the card.
-            held = {lesson.period for lesson in self._config.lessons_on(self._member.id, day)}
-            extra = (cancelled[day] & held) - set(change.periods if change else ())
-            if not extra:
+            said = set(change.periods if change else ())
+            held = {
+                lesson.period: lesson
+                for lesson in self._config.lessons_on(self._member.id, day)
+            }
+            swapped: dict[int, Lesson] = {}
+            for period, lesson in substituted.get(day, {}).items():
+                if period in said or period not in rung:
+                    continue
+                planned = held.get(period)
+                if planned is not None and planned.subject.casefold() == lesson.subject.casefold():
+                    # The same subject with another teacher is the lesson the timetable
+                    # promised; only a new room is worth saying, in the household's
+                    # spelling of the subject.
+                    if not lesson.room or lesson.room == planned.room:
+                        continue
+                    lesson = Lesson(period=period, subject=planned.subject, room=lesson.room)
+                swapped[period] = lesson
+            # A substitution beats a cancellation in the same period: WebUntis reports a
+            # replaced lesson as the old one cancelled and the new one irregular, and
+            # believing only the first would send the child home from a lesson that is
+            # on. Only periods with a lesson in them can be cancelled — an empty slot
+            # marked cancelled would draw a struck-through nothing.
+            gone = (cancelled.get(day, set()) & set(held)) - said - set(swapped)
+            if not gone and not swapped:
                 continue
-            self._feed_cancelled[day] = extra
-            merged = {**entry.get(ATTR_CHANGES, {}), **{str(p): None for p in extra}}
+            if gone:
+                self._feed_cancelled[day] = gone
+            if swapped:
+                self._feed_swapped[day] = swapped
+            merged = {
+                **entry.get(ATTR_CHANGES, {}),
+                **{str(p): None for p in gone},
+                **{str(p): lesson.as_card_dict() for p, lesson in swapped.items()},
+            }
             entry[ATTR_CHANGES] = dict(sorted(merged.items(), key=lambda item: int(item[0])))
 
         self._outlook = [entries[day] for day in days]
@@ -639,15 +684,22 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         return self._lessons_on(dt_util.now().date())
 
     def _lessons_on(self, day: date) -> list[Lesson]:
-        """A dated day's lessons, with what the school system cancelled taken out too.
+        """A dated day's lessons, with what the school system changed applied too.
 
         The configuration's answer plus the calendar's, in this one place, so the card,
-        the announcement and the packing list all lose the same cancelled lesson.
+        the announcement and the packing list all lose the same cancelled lesson and
+        pack for the same substitute.
         """
         lessons = self._config.lessons_on(self._member.id, day)
-        if gone := self._feed_cancelled.get(day):
-            return [lesson for lesson in lessons if lesson.period not in gone]
-        return lessons
+        gone = self._feed_cancelled.get(day, set())
+        swapped = self._feed_swapped.get(day, {})
+        if not gone and not swapped:
+            return lessons
+        by_period = {
+            lesson.period: lesson for lesson in lessons if lesson.period not in gone
+        }
+        by_period.update(swapped)
+        return [by_period[period] for period in sorted(by_period)]
 
     @property
     def _periods(self) -> list[Period]:

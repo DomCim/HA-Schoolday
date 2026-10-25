@@ -355,6 +355,7 @@ const hass = {
           school_calendars: ['calendar.ferien'],
           care_keywords: ['Ferienbetreuung'],
           cancel_keywords: ['Cancelled', 'Entfall'],
+          substitute_keywords: ['Irregular', 'Vertretung'],
           materials: { Sport: ['Sportbeutel', 'Turnschuhe'] },
           subjects: Object.keys(TIMETABLE.subjects),
           // Thursday the 6th: second period covered, third period off.

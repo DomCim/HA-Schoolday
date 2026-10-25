@@ -44,7 +44,7 @@
           "color": "Kennzeichnet diese Person auf allen Schoolday-Karten.",
           "avatar": "Pfad zu einem Bild, zum Beispiel /local/schoolday/ben.png. Optional.",
           "calendar": "Der eigene Kalender dieses Kindes, falls es einen hat. Er wird ausschließlich nach den Betreuungs-Stichwörtern durchsucht – Schoolday zeigt keinen seiner Termine an.",
-          "lessons_calendar": "Ein Kalender, den ein Schulsystem für dieses Kind führt, etwa der Stundenplan der WebUntis-Integration. Er wird nur nach ausgefallenen Stunden durchsucht – der Stundenplan bleibt der, den du eingetragen hast.",
+          "lessons_calendar": "Ein Kalender, den ein Schulsystem für dieses Kind führt, etwa der Stundenplan der WebUntis-Integration. Er wird nur nach Ausfällen und Vertretungen durchsucht – der Stundenplan bleibt der, den du eingetragen hast.",
           "exams_calendar": "Jeder Termin darin gilt als Klassenarbeit oder Test und erscheint im Stundenplan und am Vorabend. Bei WebUntis ist das der Prüfungen-Kalender.",
           "schedule": "Leer lassen für die üblichen Stundenzeiten des Haushalts."
         }
@@ -70,7 +70,7 @@
           "color": "Kennzeichnet diese Person auf allen Schoolday-Karten.",
           "avatar": "Pfad zu einem Bild, zum Beispiel /local/schoolday/ben.png. Optional.",
           "calendar": "Der eigene Kalender dieses Kindes, falls es einen hat. Er wird ausschließlich nach den Betreuungs-Stichwörtern durchsucht – Schoolday zeigt keinen seiner Termine an.",
-          "lessons_calendar": "Ein Kalender, den ein Schulsystem für dieses Kind führt, etwa der Stundenplan der WebUntis-Integration. Er wird nur nach ausgefallenen Stunden durchsucht – der Stundenplan bleibt der, den du eingetragen hast.",
+          "lessons_calendar": "Ein Kalender, den ein Schulsystem für dieses Kind führt, etwa der Stundenplan der WebUntis-Integration. Er wird nur nach Ausfällen und Vertretungen durchsucht – der Stundenplan bleibt der, den du eingetragen hast.",
           "exams_calendar": "Jeder Termin darin gilt als Klassenarbeit oder Test und erscheint im Stundenplan und am Vorabend. Bei WebUntis ist das der Prüfungen-Kalender.",
           "schedule": "Leer lassen für die üblichen Stundenzeiten des Haushalts."
         }
@@ -143,15 +143,17 @@
       },
       "timetable_calendars": {
         "title": "Freie Tage und Ferienbetreuung",
-        "description": "Ein Stundenplan wiederholt sich ewig, Ferien nicht. Trage die Kalender ein, die die Schule schließen – einen abonnierten Schulferienkalender oder einen eigenen für bewegliche Ferientage.\n\nJeder laufende Termin in diesen Kalendern bedeutet: heute keine Schule. Die Woche bleibt als Plan auf der Karte stehen, aber die heutigen Stunden verstummen, der Sensor steht auf `free`, und es werden keine Stunden-Events ausgelöst. Nimm dafür Kalender, in denen nichts anderes steht – ein Schulfest um 15 Uhr würde sonst den Nachmittag schulfrei machen.\n\nFerienbetreuung ist ein freier Tag mit Programm und bekommt deshalb eine eigene Routine. Erkannt wird sie am Stichwort im eigenen Kalender des Kindes, den du unter „Familienmitglied bearbeiten“ hinterlegst. Ein Stichwort pro Zeile, irgendwo im Titel, Groß- und Kleinschreibung egal.\n\nKalender aus einem Schulsystem – etwa von der WebUntis-Integration – hinterlegst du pro Kind unter „Familienmitglied bearbeiten“. Eine Stunde im Stundenplan-Kalender, deren Titel eines der Ausfall-Wörter unten enthält, fällt an diesem Tag weg.",
+        "description": "Ein Stundenplan wiederholt sich ewig, Ferien nicht. Trage die Kalender ein, die die Schule schließen – einen abonnierten Schulferienkalender oder einen eigenen für bewegliche Ferientage.\n\nJeder laufende Termin in diesen Kalendern bedeutet: heute keine Schule. Die Woche bleibt als Plan auf der Karte stehen, aber die heutigen Stunden verstummen, der Sensor steht auf `free`, und es werden keine Stunden-Events ausgelöst. Nimm dafür Kalender, in denen nichts anderes steht – ein Schulfest um 15 Uhr würde sonst den Nachmittag schulfrei machen.\n\nFerienbetreuung ist ein freier Tag mit Programm und bekommt deshalb eine eigene Routine. Erkannt wird sie am Stichwort im eigenen Kalender des Kindes, den du unter „Familienmitglied bearbeiten“ hinterlegst. Ein Stichwort pro Zeile, irgendwo im Titel, Groß- und Kleinschreibung egal.\n\nKalender aus einem Schulsystem – etwa von der WebUntis-Integration – hinterlegst du pro Kind unter „Familienmitglied bearbeiten“. Eine Stunde im Stundenplan-Kalender, deren Titel eines der Ausfall-Wörter unten enthält, fällt an diesem Tag weg. Eine Stunde, deren Titel ein Vertretungs-Wort enthält, wird durch das ersetzt, was der Rest des Titels sagt.",
         "data": {
           "school_calendars": "Kalender mit freien Tagen",
           "care_keywords": "Stichwörter für Ferienbetreuung",
-          "cancel_keywords": "Wörter für eine ausgefallene Stunde"
+          "cancel_keywords": "Wörter für eine ausgefallene Stunde",
+          "substitute_keywords": "Wörter für eine Vertretungsstunde"
         },
         "data_description": {
           "care_keywords": "Zum Beispiel „Ferienbetreuung“ oder „Hort“. Leer lassen, wenn ihr keine Betreuung habt – dann gibt es keine Betreuungstage.",
-          "cancel_keywords": "Werden mit den Terminen im Stundenplan-Kalender jedes Kindes verglichen. WebUntis schreibt unabhängig von der Sprache „Cancelled“. Leer schaltet die Erkennung ab."
+          "cancel_keywords": "Werden mit den Terminen im Stundenplan-Kalender jedes Kindes verglichen. WebUntis schreibt unabhängig von der Sprache „Cancelled“. Leer schaltet die Erkennung ab.",
+          "substitute_keywords": "Werden wie die Ausfall-Wörter verglichen. Der Rest des Titels wird zum Fach, der Ort des Termins zum Raum. WebUntis schreibt „Irregular“."
         }
       },
       "timetable_materials": {
@@ -259,7 +261,7 @@
     },
     "set_calendars": {
       "name": "Freie Tage und Kalender-Wörter setzen",
-      "description": "Benennt die Kalender, die die Schule schließen, die Wörter für die Betreuung und die Wörter für eine ausgefallene Stunde.",
+      "description": "Benennt die Kalender, die die Schule schließen, die Wörter für die Betreuung und die Wörter für eine ausgefallene Stunde oder eine Vertretung.",
       "fields": {
         "school_calendars": {
           "name": "Kalender",
@@ -272,6 +274,10 @@
         "cancel_keywords": {
           "name": "Ausfall-Wörter",
           "description": "Werden mit den Terminen im Stundenplan-Kalender jedes Kindes verglichen."
+        },
+        "substitute_keywords": {
+          "name": "Vertretungs-Wörter",
+          "description": "Werden mit den Terminen im Stundenplan-Kalender jedes Kindes verglichen; der Rest des Titels ist das Fach."
         }
       }
     },
@@ -419,7 +425,7 @@
         },
         "lessons_calendar": {
           "name": "Stundenplan-Kalender",
-          "description": "Kalender eines Schulsystems für dieses Kind, durchsucht nach ausgefallenen Stunden."
+          "description": "Kalender eines Schulsystems für dieses Kind, durchsucht nach Ausfällen und Vertretungen."
         },
         "exams_calendar": {
           "name": "Klassenarbeiten-Kalender",

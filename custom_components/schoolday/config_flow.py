@@ -25,6 +25,7 @@ from .const import (
     CONF_AVATAR,
     CONF_CALENDAR,
     CONF_CANCEL_KEYWORDS,
+    CONF_SUBSTITUTE_KEYWORDS,
     CONF_CARE_KEYWORDS,
     CONF_COLOR,
     CONF_EXAMS_CALENDAR,
@@ -429,6 +430,9 @@ class SchooldayOptionsFlow(OptionsFlow):
                     CONF_CANCEL_KEYWORDS: steps_from_text(
                         user_input.get(CONF_CANCEL_KEYWORDS)
                     ),
+                    CONF_SUBSTITUTE_KEYWORDS: steps_from_text(
+                        user_input.get(CONF_SUBSTITUTE_KEYWORDS)
+                    ),
                 }
             )
             return await self.async_step_init()
@@ -444,6 +448,9 @@ class SchooldayOptionsFlow(OptionsFlow):
                 vol.Optional(CONF_CANCEL_KEYWORDS): selector.TextSelector(
                     selector.TextSelectorConfig(multiline=True)
                 ),
+                vol.Optional(CONF_SUBSTITUTE_KEYWORDS): selector.TextSelector(
+                    selector.TextSelectorConfig(multiline=True)
+                ),
             }
         )
         # Suggest a word only in a language we ship strings for. Every country calls
@@ -456,6 +463,7 @@ class SchooldayOptionsFlow(OptionsFlow):
                 (self.hass.config.language or "en").split("-")[0], ""
             )
         )
+        current = SchooldayConfig.from_options(dict(self.config_entry.options))
         return self.async_show_form(
             step_id="timetable_calendars",
             data_schema=self.add_suggested_values_to_schema(
@@ -465,10 +473,9 @@ class SchooldayOptionsFlow(OptionsFlow):
                     CONF_CARE_KEYWORDS: keywords,
                     # What the sensors are using right now, defaults included, so
                     # saving this form without touching the field changes nothing.
-                    CONF_CANCEL_KEYWORDS: text_from_steps(
-                        SchooldayConfig.from_options(
-                            dict(self.config_entry.options)
-                        ).cancel_keywords
+                    CONF_CANCEL_KEYWORDS: text_from_steps(current.cancel_keywords),
+                    CONF_SUBSTITUTE_KEYWORDS: text_from_steps(
+                        current.substitute_keywords
                     ),
                 },
             ),

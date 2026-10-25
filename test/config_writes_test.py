@@ -739,6 +739,23 @@ check("ganztägige Einträge streichen keine Stunden",
 check("ohne Ausfall-Wörter fällt nichts aus",
       Models.cancelled_periods(feed, PERIODS, []) == {})
 
+subs = Models.substituted_periods([
+    Feed(WED, "Irregular: D", 8 * 60, 8 * 60 + 45, "R2"),
+    Feed(WED, "Englisch Vertretung", 9 * 60 + 50, 10 * 60 + 35),
+    Feed(WED, "Irregular:", 8 * 60 + 45, 9 * 60 + 30),             # nothing left
+    Feed(WED, "Irregular: Sport", None, None),                    # all day
+], PERIODS, ["Irregular", "Vertretung"])
+check("eine Vertretung trägt das Fach ohne das Wort davor, und den Ort als Raum",
+      subs[WED][1] == Models.Lesson(period=1, subject="D", room="R2"), str(subs.get(WED)))
+check("ein Wort mitten im Titel lässt den Titel stehen",
+      subs[WED][3].subject == "Englisch Vertretung", str(subs[WED].get(3)))
+check("ohne Fach und ganztägig gibt es keine Vertretung", 2 not in subs[WED], str(subs[WED]))
+out = W.set_calendars(BASE, None, None, None, ["Vertr."])
+check("eigene Vertretungs-Wörter werden gespeichert",
+      out == {"substitute_keywords": ["Vertr."]}, str(out))
+check("ohne Einstellung gelten die Vertretungs-Wörter von Haus aus",
+      never.substitute_keywords == ["Irregular", "Vertretung"], str(never.substitute_keywords))
+
 exams = Models.exams_by_day([
     Feed(WED, "Mathe (Mül)", 8 * 60 + 45, 9 * 60 + 30),
     Feed(WED, "Vokabeltest", None, None),

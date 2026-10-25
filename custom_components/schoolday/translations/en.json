@@ -44,7 +44,7 @@
           "color": "Used for this person's highlights across every Schoolday card.",
           "avatar": "Path to an image, for example /local/schoolday/ben.png. Optional.",
           "calendar": "This child's own calendar, if they have one. Only ever searched for the holiday-care keywords below — Schoolday shows none of its events.",
-          "lessons_calendar": "A calendar a school system keeps for this child, such as the WebUntis integration's timetable. Read only for cancelled lessons — the timetable stays the one you typed in.",
+          "lessons_calendar": "A calendar a school system keeps for this child, such as the WebUntis integration's timetable. Read only for cancelled lessons and substitutions — the timetable stays the one you typed in.",
           "exams_calendar": "Every event on it counts as a test or exam, shown on the timetable and the evening before. For WebUntis, its exams calendar.",
           "schedule": "Leave empty for the household's usual lesson times."
         }
@@ -70,7 +70,7 @@
           "color": "Used for this person's highlights across every Schoolday card.",
           "avatar": "Path to an image, for example /local/schoolday/ben.png. Optional.",
           "calendar": "This child's own calendar, if they have one. Only ever searched for the holiday-care keywords below — Schoolday shows none of its events.",
-          "lessons_calendar": "A calendar a school system keeps for this child, such as the WebUntis integration's timetable. Read only for cancelled lessons — the timetable stays the one you typed in.",
+          "lessons_calendar": "A calendar a school system keeps for this child, such as the WebUntis integration's timetable. Read only for cancelled lessons and substitutions — the timetable stays the one you typed in.",
           "exams_calendar": "Every event on it counts as a test or exam, shown on the timetable and the evening before. For WebUntis, its exams calendar.",
           "schedule": "Leave empty for the household's usual lesson times."
         }
@@ -143,15 +143,17 @@
       },
       "timetable_calendars": {
         "title": "Days off and holiday care",
-        "description": "A timetable repeats forever; holidays do not. Name the calendars that close the school — a subscribed school-holiday calendar, or a local one for teacher training days.\n\nAny event running on those calendars means today has no school: the week stays on the card as the plan it is, but today's lessons go quiet, the sensor reads `free`, and no lesson events fire. Point this at calendars that hold nothing but days off — anything else on them would shut the school for the afternoon.\n\nHoliday care is a day off with somewhere to be, so it gets its own routine. It is found by keyword on each child's own calendar, set under Edit a family member. One keyword per line, matched anywhere in the event's title, upper or lower case.\n\nA school system's calendars — the WebUntis integration's, for instance — are set per child under Edit a family member. A lesson on the lessons calendar whose title contains one of the cancellation words below is struck from the day.",
+        "description": "A timetable repeats forever; holidays do not. Name the calendars that close the school — a subscribed school-holiday calendar, or a local one for teacher training days.\n\nAny event running on those calendars means today has no school: the week stays on the card as the plan it is, but today's lessons go quiet, the sensor reads `free`, and no lesson events fire. Point this at calendars that hold nothing but days off — anything else on them would shut the school for the afternoon.\n\nHoliday care is a day off with somewhere to be, so it gets its own routine. It is found by keyword on each child's own calendar, set under Edit a family member. One keyword per line, matched anywhere in the event's title, upper or lower case.\n\nA school system's calendars — the WebUntis integration's, for instance — are set per child under Edit a family member. A lesson on the lessons calendar whose title contains one of the cancellation words below is struck from the day. A lesson whose title contains a substitution word is taken over by what the rest of the title says.",
         "data": {
           "school_calendars": "Calendars with days off",
           "care_keywords": "Holiday-care keywords",
-          "cancel_keywords": "Words that mean a lesson is cancelled"
+          "cancel_keywords": "Words that mean a lesson is cancelled",
+          "substitute_keywords": "Words that mean somebody else is taking a lesson"
         },
         "data_description": {
           "care_keywords": "For example \"Holiday club\". Leave empty if you do not use holiday care — then there are no care days.",
-          "cancel_keywords": "Matched against events on each child's lessons calendar. WebUntis writes \"Cancelled\" whatever the school's language. Empty switches matching off."
+          "cancel_keywords": "Matched against events on each child's lessons calendar. WebUntis writes \"Cancelled\" whatever the school's language. Empty switches matching off.",
+          "substitute_keywords": "Matched like the cancellation words. The rest of the title becomes the subject and the event's location the room. WebUntis writes \"Irregular\"."
         }
       },
       "timetable_materials": {
@@ -259,7 +261,7 @@
     },
     "set_calendars": {
       "name": "Set days off and calendar words",
-      "description": "Name the calendars that close the school, the words that mean holiday care, and the words that mean a lesson is cancelled.",
+      "description": "Name the calendars that close the school, the words that mean holiday care, and the words that mean a lesson is cancelled or taken by somebody else.",
       "fields": {
         "school_calendars": {
           "name": "Calendars",
@@ -272,6 +274,10 @@
         "cancel_keywords": {
           "name": "Cancellation words",
           "description": "Matched against events on each member's lessons calendar."
+        },
+        "substitute_keywords": {
+          "name": "Substitution words",
+          "description": "Matched against events on each member's lessons calendar; the rest of the title is the subject."
         }
       }
     },
@@ -419,7 +425,7 @@
         },
         "lessons_calendar": {
           "name": "Lessons calendar",
-          "description": "A school system's calendar for this member, read for cancelled lessons."
+          "description": "A school system's calendar for this member, read for cancelled lessons and substitutions."
         },
         "exams_calendar": {
           "name": "Exams calendar",

@@ -16,8 +16,8 @@ them apart because they mean different things and are drawn differently.
 | **A day the school took over** | One child's | Typed in, per date |
 | **Off ill** | One child's | A switch |
 
-Two more things change a day without closing it — a cancelled lesson and an exam. Both
-can be typed in, and both can come straight
+Three more things change a day without closing it — a cancelled lesson, a substitution
+and an exam. All three can be typed in, or come straight
 [from the school's own system](#from-the-schools-own-system) instead.
 
 ## Holidays
@@ -127,8 +127,8 @@ data:
 
 ## From the school's own system
 
-If the school runs WebUntis, IServ or something like it, the cancellations and the exams
-are already written down somewhere — typing them in again is the copy nobody keeps up.
+If the school runs WebUntis, IServ or something like it, the cancellations, the
+substitutions and the exams are already written down somewhere — typing them in again is the copy nobody keeps up.
 Schoolday does not log into school portals: every one has its own login and its own
 quirks, schools switch parts of them off, and it would mean storing a child's password.
 It **reads a calendar** instead. Integrations that turn a school portal into Home
@@ -140,28 +140,47 @@ Family section):
 
 | | What Schoolday reads from it |
 |---|---|
-| **Lessons calendar** | Only the cancelled lessons. An event whose title contains one of the **cancellation words** strikes every period it overlaps from that day — from the card, from today's and tomorrow's subjects, and from the packing list. |
+| **Lessons calendar** | Only what changed. An event whose title contains one of the **cancellation words** strikes every period it overlaps from that day; one with a **substitution word** puts the rest of its title in those periods instead, drawn marked like a substitution you typed in. Either way it reaches the card, today's and tomorrow's subjects, and the packing list. |
 | **Exams calendar** | Every event on it is an exam, as bluntly as every event on a holiday calendar is a day off. It is labelled on the lesson it falls in and shown the evening before. |
 
-![Monday's Mathe carries an exam label from the exams calendar; Tuesday's double WG is gone, cancelled on the lessons calendar.](images/timetable-school-system.png)
+![Monday's Mathe carries an exam label from the exams calendar; Tuesday's double WG is gone, cancelled on the lessons calendar; Friday's second period is marked as a substitution.](images/timetable-school-system.png)
 *Monday's Mathe carries an exam label from the exams calendar; Tuesday's double WG is
-gone, cancelled on the lessons calendar.*
+gone, cancelled on the lessons calendar; Friday's second period is marked as a
+substitution.*
 
 The timetable stays the one you typed in. A lessons calendar is never used to build or
-correct it — only to say that this Tuesday's third period is not happening — so a school
-system that is down for an afternoon costs you the cancellations, not the week.
+correct it — only to say what this Tuesday does differently — so a school system that is down
+for an afternoon costs you the changes, not the week.
 
 What you typed in wins. A period you changed by hand under **Exceptions** is yours,
 whatever the calendar says about it, and a holiday or a sick day has no lessons left to
 cancel. Only timed events count on a lessons calendar: an all-day "Unterrichtsausfall" is
 a day without school, which is what the [holiday calendars](#holidays) are for.
 
-### The cancellation words
+### The cancellation and substitution words
 
-Set under **Days off and holiday care**, one per line, matched case-insensitively anywhere
-in the title. Until you change them they are `Cancelled`, `Entfall`, `Ausfall`, `entfällt`
-and `fällt aus` — WebUntis writes **Cancelled:** in English whatever the school's
-language. Emptying the list switches cancellations off.
+Both are set under **Days off and holiday care**, one per line, matched
+case-insensitively anywhere in the title. Emptying a list switches that kind of change
+off.
+
+| | Until you change them | |
+|---|---|---|
+| **Cancellation words** | `Cancelled`, `Entfall`, `Ausfall`, `entfällt`, `fällt aus` | WebUntis writes **Cancelled:** in English whatever the school's language |
+| **Substitution words** | `Irregular`, `Vertretung` | WebUntis writes **Irregular:** for every substitution |
+
+For a substitution the word is taken off the front of the title and what is left is the
+subject: "Irregular: Deutsch" puts Deutsch in that period, and the event's location
+becomes the room. A substitution in the same subject — another teacher, same lesson —
+changes nothing on the card unless the room moved.
+
+A substitution beats a cancellation in the same period. WebUntis reports a replaced
+lesson as two events, the old one cancelled and the new one irregular, and believing only
+the first would empty a period that is very much on.
+
+The subject is the school's own wording, not matched to yours. If the school system
+writes `D` where your timetable says `Deutsch`, the card shows `D`, in a colour of its own.
+Guessing that `M` means Mathe would be right until the child also had Musik — tell the
+school system to write the full names instead.
 
 ### With WebUntis
 
@@ -172,6 +191,10 @@ The [WebUntis integration](https://github.com/JonasJoKuJonas/homeassistant-WebUn
    ones are simply missing from the calendar, and there is nothing to read.
 2. Its timetable calendar goes in **Lessons calendar**, its exams calendar in
    **Exams calendar**.
+
+3. Under **Replace Lesson name**, map the short names to the ones in your timetable —
+   `D: Deutsch`, `M: Mathe` — or switch on its long names. A substitution then shows up in
+   your subject's name and colour, not as `D`.
 
 If you had it replace "Cancelled: " with something else — its own example is ❌ — put
 that in the cancellation words. Whether the exams calendar has anything in it depends on

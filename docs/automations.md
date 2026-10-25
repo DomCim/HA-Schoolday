@@ -116,7 +116,8 @@ one on this page — see below for matching loosely.
 They move on at midnight, so an announcement at half past midnight is already about the
 day after.
 
-A lesson the school's own system cancelled is already gone from `tomorrow_subjects`, and
+A lesson the school's own system cancelled is already gone from `tomorrow_subjects` — a
+substitute is already in it — and
 `tomorrow_exams` has the tests, so one evening sentence can carry both — see
 [From the school's own system](exceptions.md#from-the-schools-own-system):
 
@@ -256,7 +257,7 @@ validates: a card must not be able to write a timetable the sensors can no longe
 | `schoolday.set_materials` | What a subject needs brought along |
 | `schoolday.set_member` | Add or change a family member, including which school they ring to and their school system's calendars |
 | `schoolday.remove_member` | Remove one, and everything that only existed for them |
-| `schoolday.set_calendars` | The holiday calendars, the holiday-care keywords and the cancellation words |
+| `schoolday.set_calendars` | The holiday calendars, the holiday-care keywords, and the cancellation and substitution words |
 
 Every one that takes a `member` accepts a **name** as well as an id, so a script stays
 readable.

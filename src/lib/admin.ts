@@ -19,7 +19,7 @@ export interface AdminMember {
   order: number;
   /** This member's own calendar, searched for the holiday-care keywords. */
   calendar: string | null;
-  /** A school system's calendar of this member's lessons, read for cancellations. */
+  /** A school system's calendar of this member's lessons, read for what changed. */
   lessonsCalendar: string | null;
   /** A school system's calendar of this member's exams; every event is one. */
   examsCalendar: string | null;
@@ -44,6 +44,8 @@ export interface AdminConfig {
   careKeywords: string[];
   /** What a lessons-calendar event has to say to count as cancelled. */
   cancelKeywords: string[];
+  /** What it has to say for its lesson to be taken by somebody else. */
+  substituteKeywords: string[];
   /** subject -> what it needs brought along. Household-wide, like the colours. */
   materials: Record<string, string[]>;
   /** Every subject in use, so the materials editor has something to list. */
@@ -74,6 +76,7 @@ const EMPTY: AdminConfig = {
   schoolCalendars: [],
   careKeywords: [],
   cancelKeywords: [],
+  substituteKeywords: [],
   materials: {},
   subjects: [],
   exceptions: {},
@@ -194,6 +197,7 @@ export function parseAdmin(raw: unknown): AdminConfig {
     schoolCalendars: stringList(data.school_calendars),
     careKeywords: stringList(data.care_keywords),
     cancelKeywords: stringList(data.cancel_keywords),
+    substituteKeywords: stringList(data.substitute_keywords),
     materials,
     subjects: stringList(data.subjects),
     cycleWeeks: Number(data.cycle_weeks ?? 1) === 2 ? 2 : 1,

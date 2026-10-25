@@ -1698,6 +1698,21 @@ const cancelWordsCall = await page.evaluate(async () => {
   await new Promise((r) => setTimeout(r, 300));
   return window.__calls.services.filter((c) => c.service === 'set_calendars').pop() ?? null;
 });
+const substituteWordsCall = await page.evaluate(async () => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  const area = [...root.querySelectorAll('textarea')].find((node) =>
+    node.value.includes('Irregular'),
+  );
+  area.closest('.field').querySelector('.apply').click();
+  await new Promise((r) => setTimeout(r, 300));
+  return window.__calls.services.filter((c) => c.service === 'set_calendars').pop() ?? null;
+});
+check(
+  'the substitution words have their own box',
+  JSON.stringify(substituteWordsCall?.data) ===
+    JSON.stringify({ substitute_keywords: ['Irregular', 'Vertretung'] }),
+  JSON.stringify(substituteWordsCall?.data ?? null),
+);
 check(
   'the cancellation words save on their own',
   JSON.stringify(cancelWordsCall?.data) ===

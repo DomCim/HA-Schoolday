@@ -235,6 +235,11 @@ set_calendars:
       example: ["Cancelled", "Entfall"]
       selector:
         object:
+    substitute_keywords:
+      required: false
+      example: ["Irregular", "Vertretung"]
+      selector:
+        object:
 
 set_materials:
   fields:

@@ -1115,6 +1115,12 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
         t(this.hass, 'admin.cancel_hint'),
         (lines) => this._call('set_calendars', { cancel_keywords: lines }),
       )}
+      ${this._lines(
+        t(this.hass, 'admin.substitute_keywords'),
+        config.substituteKeywords,
+        t(this.hass, 'admin.substitute_hint'),
+        (lines) => this._call('set_calendars', { substitute_keywords: lines }),
+      )}
     `;
   }
 

@@ -21,6 +21,7 @@ from .const import (
     CONF_AVATAR,
     CONF_CALENDAR,
     CONF_CANCEL_KEYWORDS,
+    CONF_SUBSTITUTE_KEYWORDS,
     CONF_CARE_KEYWORDS,
     CONF_COLOR,
     CONF_CYCLE_ANCHOR,
@@ -44,6 +45,7 @@ from .const import (
     CONF_SUBJECT_COLORS,
     CONF_TIMETABLE,
     DEFAULT_CANCEL_KEYWORDS,
+    DEFAULT_SUBSTITUTE_KEYWORDS,
     DEFAULT_COLORS,
     FREE_MARKERS,
     CONF_MATERIALS,
@@ -805,6 +807,8 @@ class FeedEvent:
     #: None for an all-day event, which says something about a day but not a lesson.
     start: int | None = None
     end: int | None = None
+    #: Where it takes place, which for a lesson is the room.
+    location: str | None = None
 
 
 def periods_between(periods: list[Period], start: int, end: int) -> list[int]:
@@ -845,6 +849,39 @@ def cancelled_periods(
             continue
         if hits := periods_between(periods, event.start, event.end):
             found.setdefault(event.day, set()).update(hits)
+    return found
+
+
+def substituted_periods(
+    events: Iterable[FeedEvent], periods: list[Period], keywords: Iterable[str]
+) -> dict[date, dict[int, Lesson]]:
+    """Which periods a lessons calendar says somebody else is taking, and with what.
+
+    The subject is the event's title with the matched word taken off its front — the
+    school's own wording, so "Irregular: M" stays "M" unless the school system is told
+    to write "Mathe". Guessing that M means Mathe would be right until the child also
+    had Musik. A word found anywhere else in the title leaves the title as it is.
+    """
+    wanted = [keyword for keyword in keywords if keyword.strip()]
+    found: dict[date, dict[int, Lesson]] = {}
+    for event in events:
+        if event.start is None or event.end is None:
+            continue
+        title = event.summary.strip()
+        folded = title.casefold()
+        matched = next((word for word in wanted if word.casefold() in folded), None)
+        if matched is None:
+            continue
+        subject = title
+        if folded.startswith(matched.casefold()):
+            subject = title[len(matched) :].lstrip(" :-–—").strip()
+        if not subject:
+            continue
+        room = (event.location or "").strip() or None
+        for period in periods_between(periods, event.start, event.end):
+            found.setdefault(event.day, {})[period] = Lesson(
+                period=period, subject=subject, room=room
+            )
     return found
 
 
@@ -894,6 +931,10 @@ class SchooldayConfig:
     care_keywords: list[str] = field(default_factory=list)
     #: What an event on a lessons calendar has to say for its lesson to be cancelled.
     cancel_keywords: list[str] = field(default_factory=lambda: list(DEFAULT_CANCEL_KEYWORDS))
+    #: What one has to say for its lesson to be taken by somebody else.
+    substitute_keywords: list[str] = field(
+        default_factory=lambda: list(DEFAULT_SUBSTITUTE_KEYWORDS)
+    )
     #: member id -> block -> Routine
     routines: dict[str, dict[str, Routine]] = field(default_factory=dict)
     timetable: Timetable = field(default_factory=Timetable)
@@ -968,6 +1009,11 @@ class SchooldayConfig:
                 list(DEFAULT_CANCEL_KEYWORDS)
                 if (raw_cancel := options.get(CONF_CANCEL_KEYWORDS)) is None
                 else [keyword for raw in raw_cancel if (keyword := str(raw).strip())]
+            ),
+            substitute_keywords=(
+                list(DEFAULT_SUBSTITUTE_KEYWORDS)
+                if (raw_sub := options.get(CONF_SUBSTITUTE_KEYWORDS)) is None
+                else [keyword for raw in raw_sub if (keyword := str(raw).strip())]
             ),
             routines=routines,
             timetable=Timetable.from_dict(options.get(CONF_TIMETABLE)),
@@ -1090,6 +1136,7 @@ class SchooldayConfig:
             "school_calendars": list(self.school_calendars),
             "care_keywords": list(self.care_keywords),
             "cancel_keywords": list(self.cancel_keywords),
+            "substitute_keywords": list(self.substitute_keywords),
             "materials": {name: list(items) for name, items in self.materials.items()},
             # From today on only: the editor's date field starts at today, and a trip
             # from last spring is not something anybody will come back to change.

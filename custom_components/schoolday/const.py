@@ -54,6 +54,12 @@ DEFAULT_CANCEL_KEYWORDS: Final[tuple[str, ...]] = (
     "fällt aus",
 )
 
+# The same for a lesson somebody else is taking: the event's title, with the word taken
+# off, is the subject now being taught, and its location the room. WebUntis writes
+# "Irregular:" for every substitution, again in English.
+CONF_SUBSTITUTE_KEYWORDS: Final = "substitute_keywords"
+DEFAULT_SUBSTITUTE_KEYWORDS: Final[tuple[str, ...]] = ("Irregular", "Vertretung")
+
 # Routine blocks. Two is deliberate: a wall panel should show what is due now,
 # and "before school" versus "before bed" is the split that actually matters.
 BLOCK_MORNING: Final = "morning"
@@ -385,6 +391,7 @@ ATTR_SCHEDULE_FIELD: Final = "schedule"
 ATTR_NAME: Final = "name"
 ATTR_KEYWORDS: Final = "care_keywords"
 ATTR_CANCEL_KEYWORDS: Final = "cancel_keywords"
+ATTR_SUBSTITUTE_KEYWORDS: Final = "substitute_keywords"
 ATTR_CALENDAR_FIELD: Final = "school_calendars"
 ATTR_ITEMS: Final = "items"
 ATTR_DATE_FIELD: Final = "date"

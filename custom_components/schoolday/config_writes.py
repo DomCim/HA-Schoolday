@@ -24,6 +24,7 @@ from .const import (
     CONF_AVATAR,
     CONF_CALENDAR,
     CONF_CANCEL_KEYWORDS,
+    CONF_SUBSTITUTE_KEYWORDS,
     CONF_CARE_KEYWORDS,
     CONF_COLOR,
     CONF_CYCLE_ANCHOR,
@@ -585,13 +586,14 @@ def set_calendars(
     school_calendars: list[str] | None,
     care_keywords: list[str] | None,
     cancel_keywords: list[str] | None = None,
+    substitute_keywords: list[str] | None = None,
 ) -> dict[str, Any]:
     """Name the calendars that close the school, and the words calendars are read for.
 
     Passing nothing for any of them leaves it alone, so a card can offer one without
-    having to resend the others. An empty list of cancellation words is kept as empty
-    — the household switched matching off — rather than falling back to the defaults,
-    which only apply while the field has never been set.
+    having to resend the others. An empty list of cancellation or substitution words is
+    kept as empty — the household switched matching off — rather than falling back to
+    the defaults, which only apply while the field has never been set.
     """
     changes: dict[str, Any] = {}
     if school_calendars is not None:
@@ -609,5 +611,9 @@ def set_calendars(
     if cancel_keywords is not None:
         changes[CONF_CANCEL_KEYWORDS] = [
             keyword for raw in cancel_keywords if (keyword := str(raw).strip())
+        ]
+    if substitute_keywords is not None:
+        changes[CONF_SUBSTITUTE_KEYWORDS] = [
+            keyword for raw in substitute_keywords if (keyword := str(raw).strip())
         ]
     return changes

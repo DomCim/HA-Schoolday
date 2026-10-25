@@ -154,6 +154,8 @@ const EN: Dict = {
   'admin.care_hint': 'Holiday care',
   'admin.cancel_keywords': 'Words that mean a lesson is cancelled, one per line',
   'admin.cancel_hint': 'Cancelled',
+  'admin.substitute_keywords': 'Words that mean somebody else is taking a lesson, one per line',
+  'admin.substitute_hint': 'Irregular',
   'admin.avatar_hint':
     'For a picture, put in a person entity — the one Home Assistant already has. A URL works too.',
   'admin.colors_hint':
@@ -304,6 +306,8 @@ const DE: Dict = {
   'admin.care_hint': 'Ferienbetreuung',
   'admin.cancel_keywords': 'Wörter für eine ausgefallene Stunde, eines pro Zeile',
   'admin.cancel_hint': 'Entfall',
+  'admin.substitute_keywords': 'Wörter für eine Vertretungsstunde, eines pro Zeile',
+  'admin.substitute_hint': 'Vertretung',
   'admin.avatar_hint':
     'Für ein Bild eine Person-Entität eintragen — die, die Home Assistant schon kennt. Eine URL geht auch.',
   'admin.colors_hint':

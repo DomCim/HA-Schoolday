@@ -214,9 +214,9 @@ school to choose between.*
 
 ### Days off
 
-![Holiday calendars are picked as entities; the care keywords and the cancellation words stay the household’s own words](images/admin-holidays.png)
-*Holiday calendars are picked as entities; the care keywords and the cancellation words
-stay the household’s own words*
+![Holiday calendars are picked as entities; the care keywords, the cancellation words and the substitution words stay the household’s own words](images/admin-holidays.png)
+*Holiday calendars are picked as entities; the care keywords, the cancellation words and
+the substitution words stay the household’s own words*
 
 
 ## Restyling with card-mod

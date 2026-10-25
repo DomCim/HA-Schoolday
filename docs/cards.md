@@ -196,11 +196,11 @@ the **Family** section.
 
 ### Family
 
-![Name, colour, the calendar searched for the holiday-care keyword, the school system's lessons and exams calendars, a picture taken from a person entity, and which school's lesson times they ring to.](images/admin-family.png)
+![Name, colour, the calendar searched for the holiday-care keyword, the school system's calendars folded away, a picture taken from a person entity, and which school's lesson times they ring to.](images/admin-family.png)
 *Name, colour, the calendar searched for the holiday-care keyword, the school system's
-lessons and exams calendars, a picture taken from a person entity, and which school's
-lesson times they ring to. The last of those only appears once there is more than one
-school to choose between.*
+lessons and exams calendars — folded away until a child has one — a picture taken from a
+person entity, and which school's lesson times they ring to. The last of those only
+appears once there is more than one school to choose between.*
 
 ### Material
 
@@ -214,9 +214,10 @@ school to choose between.*
 
 ### Days off
 
-![Holiday calendars are picked as entities; the care keywords, the cancellation words and the substitution words stay the household’s own words](images/admin-holidays.png)
-*Holiday calendars are picked as entities; the care keywords, the cancellation words and
-the substitution words stay the household’s own words*
+![Holiday calendars are picked as entities; the care keywords stay the household’s own words, and the words from the school system are folded away](images/admin-holidays.png)
+*Holiday calendars are picked as entities; the care keywords stay the household’s own
+words. The words from the school system are folded away, and only there at all once a
+child has a lessons calendar.*
 
 
 ## Restyling with card-mod

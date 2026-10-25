@@ -756,6 +756,32 @@ check("eigene Vertretungs-Wörter werden gespeichert",
 check("ohne Einstellung gelten die Vertretungs-Wörter von Haus aus",
       never.substitute_keywords == ["Irregular", "Vertretung"], str(never.substitute_keywords))
 
+# Exactly what the WebUntis integration put on its calendar for one Monday, read back
+# from a real Home Assistant with the integration running against a stand-in server:
+# the cancelled lesson and its replacement arrive as two events in the same slot, and
+# a double lesson as two separate events.
+UNTIS = Models.periods_from_text(
+    "08:00-08:45\n08:50-09:35\n09:55-10:40\n10:45-11:30\n11:50-12:35\n12:40-13:25"
+)
+MON = datetime.date(2026, 10, 26)
+untis = [
+    Feed(MON, "Deutsch", 8 * 60, 8 * 60 + 45, "104"),
+    Feed(MON, "Mathe", 8 * 60 + 50, 9 * 60 + 35, "104"),
+    Feed(MON, "Cancelled: Musik", 9 * 60 + 55, 10 * 60 + 40, "104"),
+    Feed(MON, "Irregular: Deutsch", 9 * 60 + 55, 10 * 60 + 40, "007"),
+    Feed(MON, "Englisch", 10 * 60 + 45, 11 * 60 + 30, "104"),
+    Feed(MON, "Cancelled: Sport", 11 * 60 + 50, 12 * 60 + 35, "TH"),
+    Feed(MON, "Cancelled: Sport", 12 * 60 + 40, 13 * 60 + 25, "TH"),
+]
+config = Models.SchooldayConfig.from_options(BASE)
+check("WebUntis: Ausfälle werden mit den voreingestellten Wörtern erkannt",
+      Models.cancelled_periods(untis, UNTIS, config.cancel_keywords) == {MON: {3, 5, 6}},
+      str(Models.cancelled_periods(untis, UNTIS, config.cancel_keywords)))
+check("WebUntis: die Vertretung in derselben Stunde kommt mit Fach und Raum",
+      Models.substituted_periods(untis, UNTIS, config.substitute_keywords)
+      == {MON: {3: Models.Lesson(period=3, subject="Deutsch", room="007")}},
+      str(Models.substituted_periods(untis, UNTIS, config.substitute_keywords)))
+
 exams = Models.exams_by_day([
     Feed(WED, "Mathe (Mül)", 8 * 60 + 45, 9 * 60 + 30),
     Feed(WED, "Vokabeltest", None, None),

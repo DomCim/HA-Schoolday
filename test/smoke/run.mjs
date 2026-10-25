@@ -1462,6 +1462,21 @@ check(
   JSON.stringify(adminMemberCall?.data ?? null),
 );
 
+// Most households have no school system, so its calendars stay folded away until a
+// child has one — then they are open, because a setting in use should not be hidden.
+const schoolFold = await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  return [...root.querySelectorAll('.member')].map((member) => {
+    const details = member.querySelector('details.more');
+    return details ? `${details.open ? 'open' : 'closed'}:${details.querySelectorAll('ha-entity-picker').length}` : null;
+  });
+});
+check(
+  "a child's school-system calendars are folded away unless one is set",
+  schoolFold.join(',') === 'closed:2,closed:2,open:2,closed:2',
+  JSON.stringify(schoolFold),
+);
+
 // The school system's calendars are saved alongside, and always sent: the service
 // clears a field it is not told about, so leaving one out would quietly drop it.
 await page.evaluate(() => {
@@ -1684,6 +1699,42 @@ check(
     adminHolidayFields.domains?.join(',') === 'calendar' &&
     adminHolidayFields.keywords?.trim() === 'Ferienbetreuung',
   JSON.stringify(adminHolidayFields),
+);
+
+// The words only mean something once a child has a lessons calendar, and even then
+// they are already right for WebUntis — so they exist only then, and folded.
+const wordsFold = await page.evaluate(async () => {
+  const card = document.querySelector('schoolday-admin-card');
+  const folded = () => {
+    const details = card.shadowRoot.querySelector('details.more');
+    return details ? (details.open ? 'open' : 'closed') : 'absent';
+  };
+  const withSystem = folded();
+  const board = window.__hass.states['sensor.schoolday_board'];
+  const admin = board.attributes.admin;
+  card.hass = {
+    ...window.__hass,
+    states: {
+      ...window.__hass.states,
+      'sensor.schoolday_board': {
+        ...board,
+        attributes: {
+          ...board.attributes,
+          admin: { ...admin, members: admin.members.map(({ lessons_calendar, ...rest }) => rest) },
+        },
+      },
+    },
+  };
+  await new Promise((r) => setTimeout(r, 100));
+  const without = folded();
+  card.hass = window.__hass;
+  await new Promise((r) => setTimeout(r, 100));
+  return `${withSystem},${without}`;
+});
+check(
+  'the school-system words are folded away, and gone while no child has a lessons calendar',
+  wordsFold === 'closed,absent',
+  wordsFold,
 );
 
 // The cancellation words sit beside the care words and save on their own, so changing

@@ -136,7 +136,8 @@ Assistant calendars already exist, and a calendar is the one shape all of them c
 produce.
 
 Each child can have two, set under **Edit a family member** (or in the admin card's
-Family section):
+Family section), folded away under **School system (WebUntis or similar)** until one is
+set — most households never open it:
 
 | | What Schoolday reads from it |
 |---|---|
@@ -159,9 +160,10 @@ a day without school, which is what the [holiday calendars](#holidays) are for.
 
 ### The cancellation and substitution words
 
-Both are set under **Days off and holiday care**, one per line, matched
-case-insensitively anywhere in the title. Emptying a list switches that kind of change
-off.
+Both are set under **Days off and holiday care**, folded away under **Words from the
+school system** — which only appears once a child has a lessons calendar, and is already
+right for WebUntis. One per line, matched case-insensitively anywhere in the title.
+Emptying a list switches that kind of change off.
 
 | | Until you change them | |
 |---|---|---|
@@ -192,9 +194,16 @@ The [WebUntis integration](https://github.com/JonasJoKuJonas/homeassistant-WebUn
 2. Its timetable calendar goes in **Lessons calendar**, its exams calendar in
    **Exams calendar**.
 
-3. Under **Replace Lesson name**, map the short names to the ones in your timetable —
-   `D: Deutsch`, `M: Mathe` — or switch on its long names. A substitution then shows up in
-   your subject's name and colour, not as `D`.
+3. Make its subject names match yours. It writes long names by default — `Mathematik`
+   where your timetable may say `Mathe` — and short names with **Long name** off. Under
+   **Replace Lesson name**, map whichever it writes to your spelling: `Mathematik: Mathe`,
+   and `M: Mathe` as well, because the exams calendar takes the subject from the school's
+   exam list, which may give only the short name. A substitution then shows up in your
+   subject's name and colour, not as `Mathematik` or `M`.
+
+Leave **Add Teacher to subject** off for the lessons you care about: it turns
+"Irregular: Deutsch" into "Irregular: Deutsch - Mül", and the card would show that as the
+subject.
 
 If you had it replace "Cancelled: " with something else — its own example is ❌ — put
 that in the cancellation words. Whether the exams calendar has anything in it depends on

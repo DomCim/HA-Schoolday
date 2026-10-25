@@ -32,6 +32,7 @@ import {
   periodProgress,
   weekOf,
   weekdayIndex,
+  type Exam,
   type Outlook,
   type TimetableGrid,
   type TimetableLesson,
@@ -401,25 +402,28 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
     isNow: boolean,
     progress: number | null,
     place: string,
+    exam?: Exam,
   ): TemplateResult {
     if (!entry) {
       return html`<div class="cell free ${isNow ? 'now' : ''}" style=${place}></div>`;
     }
     const { lesson, changed } = entry;
     const showRoom = this._config.show_rooms !== false && lesson.room;
+    const examLabel = t(this.hass, 'timetable.exam');
     return html`
       <div
-        class="cell ${isNow ? 'now' : ''} ${changed ? 'changed' : ''}"
+        class="cell ${isNow ? 'now' : ''} ${changed ? 'changed' : ''} ${exam ? 'exam' : ''}"
         style=${`--subject:${this._color(grid, lesson.subject)};${place}`}
         title=${`${lesson.room ? `${lesson.subject} · ${lesson.room}` : lesson.subject}${
           changed ? ` · ${t(this.hass, 'timetable.changed')}` : ''
-        }`}
+        }${exam ? ` · ${examLabel}: ${exam.title}` : ''}`}
       >
         <span class="subject">${lesson.subject}</span>
         ${showRoom ? html`<span class="room">${lesson.room}</span>` : nothing}
         ${changed
           ? html`<span class="swap" aria-label=${t(this.hass, 'timetable.changed')}></span>`
           : nothing}
+        ${exam ? html`<span class="exam-tag">${examLabel}</span>` : nothing}
         ${isNow && progress !== null
           ? html`<div class="progress"><div style=${`width:${Math.round(progress * 100)}%`}></div></div>`
           : nothing}
@@ -650,6 +654,9 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
                       highlight && weekday === today && running?.index === period.index,
                       progress,
                       `grid-column:${index + 2};grid-row:${line}`,
+                      this._dayFor(outlook, weekday)?.exams?.find(
+                        (exam) => exam.period === period.index,
+                      ),
                     ),
               )}
             `;
@@ -882,6 +889,26 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
 
       .cell {
         position: relative;
+      }
+
+      /* An exam is the one lesson of the week that changes what the evening before
+         looks like, so it is labelled in words rather than with another dot to learn.
+         On the card's own surface rather than in the subject colour: the subject
+         colours are derived from names and some are pale, and a label that is only
+         legible on half the subjects is not a label. */
+      .cell .exam-tag {
+        position: absolute;
+        right: 4px;
+        bottom: 3px;
+        padding: 0 5px;
+        border: 1px solid var(--subject);
+        border-radius: 999px;
+        background: var(--schoolday-surface);
+        color: var(--primary-text-color);
+        font-size: 0.6rem;
+        font-weight: 700;
+        line-height: 1.5;
+        letter-spacing: 0.02em;
       }
 
       .time {

@@ -36,12 +36,16 @@
           "color": "Colour",
           "avatar": "Avatar image",
           "calendar": "Calendar",
+          "lessons_calendar": "Lessons calendar from school",
+          "exams_calendar": "Exams calendar from school",
           "schedule": "School"
         },
         "data_description": {
           "color": "Used for this person's highlights across every Schoolday card.",
           "avatar": "Path to an image, for example /local/schoolday/ben.png. Optional.",
-          "calendar": "This child's own calendar, if they have one. Only ever searched for the holiday-care keywords below — Schoolday shows no events anywhere.",
+          "calendar": "This child's own calendar, if they have one. Only ever searched for the holiday-care keywords below — Schoolday shows none of its events.",
+          "lessons_calendar": "A calendar a school system keeps for this child, such as the WebUntis integration's timetable. Read only for cancelled lessons — the timetable stays the one you typed in.",
+          "exams_calendar": "Every event on it counts as a test or exam, shown on the timetable and the evening before. For WebUntis, its exams calendar.",
           "schedule": "Leave empty for the household's usual lesson times."
         }
       },
@@ -58,12 +62,16 @@
           "color": "Colour",
           "avatar": "Avatar image",
           "calendar": "Calendar",
+          "lessons_calendar": "Lessons calendar from school",
+          "exams_calendar": "Exams calendar from school",
           "schedule": "School"
         },
         "data_description": {
           "color": "Used for this person's highlights across every Schoolday card.",
           "avatar": "Path to an image, for example /local/schoolday/ben.png. Optional.",
-          "calendar": "This child's own calendar, if they have one. Only ever searched for the holiday-care keywords below — Schoolday shows no events anywhere.",
+          "calendar": "This child's own calendar, if they have one. Only ever searched for the holiday-care keywords below — Schoolday shows none of its events.",
+          "lessons_calendar": "A calendar a school system keeps for this child, such as the WebUntis integration's timetable. Read only for cancelled lessons — the timetable stays the one you typed in.",
+          "exams_calendar": "Every event on it counts as a test or exam, shown on the timetable and the evening before. For WebUntis, its exams calendar.",
           "schedule": "Leave empty for the household's usual lesson times."
         }
       },
@@ -135,13 +143,15 @@
       },
       "timetable_calendars": {
         "title": "Days off and holiday care",
-        "description": "A timetable repeats forever; holidays do not. Name the calendars that close the school — a subscribed school-holiday calendar, or a local one for teacher training days.\n\nAny event running on those calendars means today has no school: the week stays on the card as the plan it is, but today's lessons go quiet, the sensor reads `free`, and no lesson events fire. Point this at calendars that hold nothing but days off — anything else on them would shut the school for the afternoon.\n\nHoliday care is a day off with somewhere to be, so it gets its own routine. It is found by keyword on each child's own calendar, set under Edit a family member. One keyword per line, matched anywhere in the event's title, upper or lower case.",
+        "description": "A timetable repeats forever; holidays do not. Name the calendars that close the school — a subscribed school-holiday calendar, or a local one for teacher training days.\n\nAny event running on those calendars means today has no school: the week stays on the card as the plan it is, but today's lessons go quiet, the sensor reads `free`, and no lesson events fire. Point this at calendars that hold nothing but days off — anything else on them would shut the school for the afternoon.\n\nHoliday care is a day off with somewhere to be, so it gets its own routine. It is found by keyword on each child's own calendar, set under Edit a family member. One keyword per line, matched anywhere in the event's title, upper or lower case.\n\nA school system's calendars — the WebUntis integration's, for instance — are set per child under Edit a family member. A lesson on the lessons calendar whose title contains one of the cancellation words below is struck from the day.",
         "data": {
           "school_calendars": "Calendars with days off",
-          "care_keywords": "Holiday-care keywords"
+          "care_keywords": "Holiday-care keywords",
+          "cancel_keywords": "Words that mean a lesson is cancelled"
         },
         "data_description": {
-          "care_keywords": "For example \"Holiday club\". Leave empty if you do not use holiday care — then there are no care days."
+          "care_keywords": "For example \"Holiday club\". Leave empty if you do not use holiday care — then there are no care days.",
+          "cancel_keywords": "Matched against events on each child's lessons calendar. WebUntis writes \"Cancelled\" whatever the school's language. Empty switches matching off."
         }
       },
       "timetable_materials": {
@@ -248,8 +258,8 @@
       }
     },
     "set_calendars": {
-      "name": "Set days off and holiday care",
-      "description": "Name the calendars that close the school and the words that mean holiday care.",
+      "name": "Set days off and calendar words",
+      "description": "Name the calendars that close the school, the words that mean holiday care, and the words that mean a lesson is cancelled.",
       "fields": {
         "school_calendars": {
           "name": "Calendars",
@@ -258,6 +268,10 @@
         "care_keywords": {
           "name": "Holiday-care keywords",
           "description": "Matched against events on each member's own calendar."
+        },
+        "cancel_keywords": {
+          "name": "Cancellation words",
+          "description": "Matched against events on each member's lessons calendar."
         }
       }
     },
@@ -402,6 +416,14 @@
         "calendar": {
           "name": "Calendar",
           "description": "This member's own calendar, searched for the holiday-care keywords."
+        },
+        "lessons_calendar": {
+          "name": "Lessons calendar",
+          "description": "A school system's calendar for this member, read for cancelled lessons."
+        },
+        "exams_calendar": {
+          "name": "Exams calendar",
+          "description": "A school system's calendar for this member; every event on it is an exam."
         },
         "avatar": {
           "name": "Avatar",

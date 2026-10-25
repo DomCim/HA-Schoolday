@@ -518,6 +518,36 @@ check(
   JSON.stringify(changed),
 );
 
+// An exam from the school's calendar is labelled on its lesson, in words. One that is
+// all day has no lesson to sit on and stays off the grid.
+await closeDays({ type: 'custom:schoolday-timetable-card', member: 'Ben', layout: 'week' }, {
+  '2026-08-06': {
+    exams: [
+      { date: '2026-08-06', title: 'Mathe (Mül)', start: '08:45', period: 2 },
+      { date: '2026-08-06', title: 'Vokabeltest', start: null, period: null },
+    ],
+  },
+});
+await page.waitForTimeout(300);
+const examCells = await page.evaluate(() => {
+  const root = document.querySelector('schoolday-timetable-card').shadowRoot;
+  return [...root.querySelectorAll('.cell')]
+    .filter((cell) => cell.querySelector('.exam-tag'))
+    .map((cell) => ({
+      subject: cell.querySelector('.subject')?.textContent.trim(),
+      tag: cell.querySelector('.exam-tag').textContent.trim(),
+      title: cell.getAttribute('title'),
+    }));
+});
+check(
+  'an exam is labelled on the lesson it falls in, and only there',
+  examCells.length === 1 &&
+    examCells[0].subject === 'Mathe' &&
+    examCells[0].tag === 'Arbeit' &&
+    examCells[0].title.includes('Mathe (Mül)'),
+  JSON.stringify(examCells),
+);
+
 // The whole day taken over: a trip is neither a holiday nor care, and gets said so.
 await closeDays({ type: 'custom:schoolday-timetable-card', member: 'Ben', layout: 'week' }, {
   '2026-08-06': { mode: 'event', label: 'Wandertag' },
@@ -703,6 +733,43 @@ check(
     packedCall?.data?.done === true,
   JSON.stringify(packedCall?.data ?? null),
 );
+
+// Tomorrow's exam sits above the evening's steps, as something to know rather than a
+// box to tick — so it adds nothing to the count and calls no service.
+await page.evaluate(() => {
+  const id = 'sensor.schoolday_ben';
+  const state = window.__hass.states[id];
+  window.__hass.states[id] = {
+    ...state,
+    attributes: { ...state.attributes, tomorrow_exams: ['Mathe (Mül)'] },
+  };
+  window.__pushHass();
+});
+await page.waitForTimeout(300);
+const examNote = await page.evaluate(() => {
+  const root = document.querySelector('schoolday-routines-card').shadowRoot;
+  const person = [...root.querySelectorAll('.person')].find(
+    (node) => node.querySelector('.person-name')?.textContent.trim() === 'Ben',
+  );
+  return {
+    note: person?.querySelector('.exam-note')?.textContent.replace(/\s+/g, ' ').trim() ?? null,
+    progress: person?.querySelector('.progress')?.textContent.trim() ?? null,
+  };
+});
+check(
+  "tomorrow's exam is shown on the evening, outside the steps",
+  examNote.note === 'Morgen Arbeit Mathe (Mül)' && examNote.progress === '1/2',
+  JSON.stringify(examNote),
+);
+await page.evaluate(() => {
+  const id = 'sensor.schoolday_ben';
+  const state = window.__hass.states[id];
+  window.__hass.states[id] = {
+    ...state,
+    attributes: { ...state.attributes, tomorrow_exams: [] },
+  };
+  window.__pushHass();
+});
 
 // An ill child keeps their place on the board. Dropping them would answer the wrong
 // question: the reader wants to know why the list is gone.
@@ -1395,6 +1462,31 @@ check(
   JSON.stringify(adminMemberCall?.data ?? null),
 );
 
+// The school system's calendars are saved alongside, and always sent: the service
+// clears a field it is not told about, so leaving one out would quietly drop it.
+await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  root
+    .querySelector('ha-entity-picker#exams-m1')
+    .dispatchEvent(
+      new CustomEvent('value-changed', {
+        detail: { value: 'calendar.ben_exams' },
+        bubbles: true,
+      }),
+    );
+  root.querySelectorAll('.member')[0].querySelector('.apply').click();
+});
+await page.waitForTimeout(300);
+const adminSchoolCall = await page.evaluate(
+  () => window.__calls.services.filter((c) => c.service === 'set_member').pop() ?? null,
+);
+check(
+  "a child's school calendars are saved, the empty one as empty",
+  adminSchoolCall?.data.exams_calendar === 'calendar.ben_exams' &&
+    adminSchoolCall?.data.lessons_calendar === '',
+  JSON.stringify(adminSchoolCall?.data ?? null),
+);
+
 // Materials are listed per subject, because the subject is the key the evening routine
 // looks them up by — a typed subject name that does not match is a packing list that
 // silently never appears.
@@ -1592,6 +1684,25 @@ check(
     adminHolidayFields.domains?.join(',') === 'calendar' &&
     adminHolidayFields.keywords?.trim() === 'Ferienbetreuung',
   JSON.stringify(adminHolidayFields),
+);
+
+// The cancellation words sit beside the care words and save on their own, so changing
+// one list never resends the other.
+const cancelWordsCall = await page.evaluate(async () => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  const area = [...root.querySelectorAll('textarea')].find((node) =>
+    node.value.includes('Cancelled'),
+  );
+  area.value = 'Cancelled\nEntfall\n❌';
+  area.closest('.field').querySelector('.apply').click();
+  await new Promise((r) => setTimeout(r, 300));
+  return window.__calls.services.filter((c) => c.service === 'set_calendars').pop() ?? null;
+});
+check(
+  'the cancellation words save on their own',
+  JSON.stringify(cancelWordsCall?.data) ===
+    JSON.stringify({ cancel_keywords: ['Cancelled', 'Entfall', '❌'] }),
+  JSON.stringify(cancelWordsCall?.data ?? null),
 );
 
 // A refused value has to say why. Home Assistant rejects with a plain object rather

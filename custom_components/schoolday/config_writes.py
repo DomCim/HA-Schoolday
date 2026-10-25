@@ -23,6 +23,7 @@ from homeassistant.util.ulid import ulid_now
 from .const import (
     CONF_AVATAR,
     CONF_CALENDAR,
+    CONF_CANCEL_KEYWORDS,
     CONF_CARE_KEYWORDS,
     CONF_COLOR,
     CONF_CYCLE_ANCHOR,
@@ -35,6 +36,8 @@ from .const import (
     CONF_ORDER,
     CONF_ROUTINES,
     CONF_SCHEDULE,
+    CONF_EXAMS_CALENDAR,
+    CONF_LESSONS_CALENDAR,
     CONF_SCHOOL_CALENDARS,
     SCHEDULE_NAME_MAX,
     CONF_TIMETABLE,
@@ -298,6 +301,8 @@ def set_member(
     calendar: str | None = None,
     avatar: str | None = None,
     schedule: str | None = None,
+    lessons_calendar: str | None = None,
+    exams_calendar: str | None = None,
 ) -> tuple[dict[str, Any], str]:
     """Add a family member, or change one that exists.
 
@@ -313,6 +318,19 @@ def set_member(
     hex_color = color_to_hex(color) if color not in (None, "") else None
     if color not in (None, "") and hex_color is None:
         raise SchooldayValueError(f"'{color}' is not a colour. Use #rrggbb or [r, g, b].")
+
+    calendars = {
+        key: cleaned
+        for key, raw in (
+            (CONF_CALENDAR, calendar),
+            (CONF_LESSONS_CALENDAR, lessons_calendar),
+            (CONF_EXAMS_CALENDAR, exams_calendar),
+        )
+        if (cleaned := (raw or "").strip())
+    }
+    for entity in calendars.values():
+        if not entity.startswith("calendar."):
+            raise SchooldayValueError(f"'{entity}' is not a calendar entity.")
 
     existing = next((item for item in members if item.get(CONF_MEMBER_ID) == member_id), None)
     if member_id is not None and existing is None:
@@ -330,7 +348,9 @@ def set_member(
     entry[CONF_NAME] = label
     for key, value in (
         (CONF_COLOR, hex_color),
-        (CONF_CALENDAR, (calendar or "").strip() or None),
+        (CONF_CALENDAR, calendars.get(CONF_CALENDAR)),
+        (CONF_LESSONS_CALENDAR, calendars.get(CONF_LESSONS_CALENDAR)),
+        (CONF_EXAMS_CALENDAR, calendars.get(CONF_EXAMS_CALENDAR)),
         (CONF_AVATAR, (avatar or "").strip() or None),
         # Not checked against the schedules that exist: one can be written before the
         # times behind it are, and a name that stands for nothing already reads as the
@@ -564,11 +584,14 @@ def set_calendars(
     options: dict[str, Any],
     school_calendars: list[str] | None,
     care_keywords: list[str] | None,
+    cancel_keywords: list[str] | None = None,
 ) -> dict[str, Any]:
-    """Name the calendars that close the school, and the words that mean holiday care.
+    """Name the calendars that close the school, and the words calendars are read for.
 
-    Passing nothing for either leaves it alone, so a card can offer one without
-    having to resend the other.
+    Passing nothing for any of them leaves it alone, so a card can offer one without
+    having to resend the others. An empty list of cancellation words is kept as empty
+    — the household switched matching off — rather than falling back to the defaults,
+    which only apply while the field has never been set.
     """
     changes: dict[str, Any] = {}
     if school_calendars is not None:
@@ -582,5 +605,9 @@ def set_calendars(
     if care_keywords is not None:
         changes[CONF_CARE_KEYWORDS] = [
             keyword for raw in care_keywords if (keyword := str(raw).strip())
+        ]
+    if cancel_keywords is not None:
+        changes[CONF_CANCEL_KEYWORDS] = [
+            keyword for raw in cancel_keywords if (keyword := str(raw).strip())
         ]
     return changes

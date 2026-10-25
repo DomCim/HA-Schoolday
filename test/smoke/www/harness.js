@@ -354,6 +354,7 @@ const hass = {
           colors: { Deutsch: '#ff4015' },
           school_calendars: ['calendar.ferien'],
           care_keywords: ['Ferienbetreuung'],
+          cancel_keywords: ['Cancelled', 'Entfall'],
           materials: { Sport: ['Sportbeutel', 'Turnschuhe'] },
           subjects: Object.keys(TIMETABLE.subjects),
           // Thursday the 6th: second period covered, third period off.

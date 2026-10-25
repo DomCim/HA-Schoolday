@@ -253,6 +253,18 @@ await shot('timetable-exceptions', 1100, withOutlook(
   },
 ));
 
+// What a school system's calendars add: WebUntis cancelled Tuesday's double WG, and
+// Monday's Mathe is an exam.
+await shot('timetable-school-system', 1100, withOutlook(
+  { type: 'custom:schoolday-timetable-card', member: 'Ben', layout: 'week' },
+  {
+    '2026-08-10': {
+      exams: [{ date: '2026-08-10', title: 'Mathe', start: '08:45', period: 2 }],
+    },
+    '2026-08-11': { changes: { 3: null, 4: null } },
+  },
+));
+
 await shot('timetable-sick', 1100, withOutlook(
   { type: 'custom:schoolday-timetable-card', member: 'Ben', layout: 'week' },
   { '2026-08-05': { mode: 'sick', label: null } },

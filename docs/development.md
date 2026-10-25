@@ -103,6 +103,14 @@ npm run shots      # writes docs/images/
 Adding a state worth showing means adding it to `test/smoke/docs-shots.mjs`, not taking
 a photo of your own dashboard.
 
+The cards draw in `system-ui`, so the pictures are only byte-identical on a machine that
+resolves it to the same font. The committed ones use **DejaVu Sans**. A machine that picks
+Noto Sans instead rewrites every picture with different line heights, and the diff stops
+saying what changed. Check with `fc-match system-ui`, and if it answers anything else,
+point fontconfig at DejaVu for the run — a `fonts.conf` that includes `/etc/fonts/fonts.conf`
+and maps `system-ui` and `sans-serif` to `DejaVu Sans`, passed as
+`FONTCONFIG_FILE=… npm run shots`.
+
 ## Branch rules
 
 `main` is protected by a repository ruleset: no deletions, no force pushes, and changes

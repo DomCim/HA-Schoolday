@@ -20,6 +20,7 @@ from .const import (
     BREAK_MIN_MINUTES,
     CONF_AVATAR,
     CONF_CALENDAR,
+    CONF_CANCEL_KEYWORDS,
     CONF_CARE_KEYWORDS,
     CONF_COLOR,
     CONF_CYCLE_ANCHOR,
@@ -36,10 +37,13 @@ from .const import (
     CONF_ROUTINES,
     CONF_SCHEDULE,
     CONF_SCHEDULES,
+    CONF_EXAMS_CALENDAR,
+    CONF_LESSONS_CALENDAR,
     CONF_SCHOOL_CALENDARS,
     ATTR_SCHEDULES,
     CONF_SUBJECT_COLORS,
     CONF_TIMETABLE,
+    DEFAULT_CANCEL_KEYWORDS,
     DEFAULT_COLORS,
     FREE_MARKERS,
     CONF_MATERIALS,
@@ -116,8 +120,12 @@ class Member:
     avatar: str | None = None
     order: int = 0
     #: This member's own calendar, if they have one. Only ever read for the
-    #: holiday-care keyword — Schoolday shows no events anywhere.
+    #: holiday-care keyword — Schoolday shows none of its events.
     calendar: str | None = None
+    #: What a school system publishes for this member: the lessons, read only for the
+    #: cancelled ones, and the exams, every event of which is one.
+    lessons_calendar: str | None = None
+    exams_calendar: str | None = None
     #: Which named lesson-time grid this member's school rings to. None is the
     #: household's usual times, which is what most members are.
     schedule: str | None = None
@@ -133,6 +141,8 @@ class Member:
             avatar=data.get(CONF_AVATAR) or None,
             order=int(data.get(CONF_ORDER, index)),
             calendar=data.get(CONF_CALENDAR) or None,
+            lessons_calendar=data.get(CONF_LESSONS_CALENDAR) or None,
+            exams_calendar=data.get(CONF_EXAMS_CALENDAR) or None,
             schedule=str(data.get(CONF_SCHEDULE) or "").strip() or None,
         )
 
@@ -151,6 +161,8 @@ class Member:
         return {
             **self.as_card_dict(),
             "calendar": self.calendar,
+            CONF_LESSONS_CALENDAR: self.lessons_calendar,
+            CONF_EXAMS_CALENDAR: self.exams_calendar,
             CONF_SCHEDULE: self.schedule,
         }
 
@@ -779,6 +791,97 @@ class DayException:
         return [by_period[period] for period in sorted(by_period)]
 
 
+@dataclass(slots=True, frozen=True)
+class FeedEvent:
+    """One event from a school system's calendar, cut down to what Schoolday reads.
+
+    Times are minutes since midnight on `day`, in Home Assistant's zone, because that
+    is what the lesson times are; turning a calendar's timestamps into them is the
+    sensor's job, the one place that has the timezone.
+    """
+
+    day: date
+    summary: str
+    #: None for an all-day event, which says something about a day but not a lesson.
+    start: int | None = None
+    end: int | None = None
+
+
+def periods_between(periods: list[Period], start: int, end: int) -> list[int]:
+    """The periods an event overlaps, by index.
+
+    Overlap rather than "the period it starts in", because a school system may hand
+    over a double lesson as one event — WebUntis merges consecutive identical ones —
+    and cancelling only the first half of it would put the second half in the bag.
+    """
+    if end <= start:
+        end = start + 1
+    return [
+        period.index
+        for period in periods
+        if period.start_minutes < end and period.end_minutes > start
+    ]
+
+
+def cancelled_periods(
+    events: Iterable[FeedEvent], periods: list[Period], keywords: Iterable[str]
+) -> dict[date, set[int]]:
+    """Which periods a lessons calendar says are cancelled, per date.
+
+    Only timed events count. An all-day "Unterrichtsausfall" is a day without school,
+    which is what the holiday calendars already answer — read here as well, it would
+    become a day of school with every lesson missing, which is not the same thing to a
+    routine that knows what a free morning looks like.
+    """
+    wanted = [keyword.casefold() for keyword in keywords if keyword.strip()]
+    found: dict[date, set[int]] = {}
+    if not wanted:
+        return found
+    for event in events:
+        if event.start is None or event.end is None:
+            continue
+        title = event.summary.casefold()
+        if not any(keyword in title for keyword in wanted):
+            continue
+        if hits := periods_between(periods, event.start, event.end):
+            found.setdefault(event.day, set()).update(hits)
+    return found
+
+
+def exams_by_day(
+    events: Iterable[FeedEvent], periods: list[Period]
+) -> dict[date, list[dict[str, Any]]]:
+    """Every event on an exams calendar, as the exams the sensor publishes.
+
+    The title is kept as the school wrote it — usually the subject, sometimes the
+    teacher as well — rather than matched to a timetable subject: a card can show it as
+    it stands, and a match that fails quietly would hide the one entry that mattered.
+    """
+    exams: dict[date, list[dict[str, Any]]] = {}
+    for event in sorted(events, key=lambda item: (item.day, item.start or 0)):
+        title = event.summary.strip()
+        if not title:
+            continue
+        hits = (
+            periods_between(periods, event.start, event.end)
+            if event.start is not None and event.end is not None
+            else []
+        )
+        exams.setdefault(event.day, []).append(
+            {
+                "date": event.day.isoformat(),
+                "title": title,
+                "start": (
+                    f"{event.start // 60:02d}:{event.start % 60:02d}"
+                    if event.start is not None
+                    else None
+                ),
+                "period": hits[0] if hits else None,
+            }
+        )
+    return exams
+
+
 @dataclass(slots=True)
 class SchooldayConfig:
     """The full Schoolday configuration."""
@@ -789,6 +892,8 @@ class SchooldayConfig:
     #: What an event has to say for the day to count as holiday care. Empty means
     #: nothing does: no keywords, no care days.
     care_keywords: list[str] = field(default_factory=list)
+    #: What an event on a lessons calendar has to say for its lesson to be cancelled.
+    cancel_keywords: list[str] = field(default_factory=lambda: list(DEFAULT_CANCEL_KEYWORDS))
     #: member id -> block -> Routine
     routines: dict[str, dict[str, Routine]] = field(default_factory=dict)
     timetable: Timetable = field(default_factory=Timetable)
@@ -857,6 +962,13 @@ class SchooldayConfig:
                 for raw in (options.get(CONF_CARE_KEYWORDS) or [])
                 if (keyword := str(raw).strip())
             ],
+            # None is "never set" and gets the defaults; an empty list is a household
+            # that switched matching off, and stays off.
+            cancel_keywords=(
+                list(DEFAULT_CANCEL_KEYWORDS)
+                if (raw_cancel := options.get(CONF_CANCEL_KEYWORDS)) is None
+                else [keyword for raw in raw_cancel if (keyword := str(raw).strip())]
+            ),
             routines=routines,
             timetable=Timetable.from_dict(options.get(CONF_TIMETABLE)),
             materials=materials,
@@ -977,6 +1089,7 @@ class SchooldayConfig:
             "colors": dict(self.timetable.colors),
             "school_calendars": list(self.school_calendars),
             "care_keywords": list(self.care_keywords),
+            "cancel_keywords": list(self.cancel_keywords),
             "materials": {name: list(items) for name, items in self.materials.items()},
             # From today on only: the editor's date field starts at today, and a trip
             # from last spring is not something anybody will come back to change.

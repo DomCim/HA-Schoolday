@@ -24,8 +24,11 @@ from .const import (
     BLOCK_MORNING,
     CONF_AVATAR,
     CONF_CALENDAR,
+    CONF_CANCEL_KEYWORDS,
     CONF_CARE_KEYWORDS,
     CONF_COLOR,
+    CONF_EXAMS_CALENDAR,
+    CONF_LESSONS_CALENDAR,
     CONF_MATERIALS,
     CONF_MEMBER_ID,
     CONF_MEMBERS,
@@ -46,6 +49,7 @@ from .const import (
 from .models import (
     InvalidPeriod,
     Lesson,
+    SchooldayConfig,
     Timetable,
     color_to_hex,
     hex_to_rgb,
@@ -149,6 +153,12 @@ class SchooldayOptionsFlow(OptionsFlow):
             vol.Required(CONF_NAME): selector.TextSelector(),
             vol.Required(CONF_COLOR): selector.ColorRGBSelector(),
             vol.Optional(CONF_CALENDAR): selector.EntitySelector(
+                selector.EntitySelectorConfig(domain="calendar")
+            ),
+            vol.Optional(CONF_LESSONS_CALENDAR): selector.EntitySelector(
+                selector.EntitySelectorConfig(domain="calendar")
+            ),
+            vol.Optional(CONF_EXAMS_CALENDAR): selector.EntitySelector(
                 selector.EntitySelectorConfig(domain="calendar")
             ),
             vol.Optional(CONF_AVATAR): selector.TextSelector(),
@@ -416,6 +426,9 @@ class SchooldayOptionsFlow(OptionsFlow):
                     CONF_CARE_KEYWORDS: steps_from_text(
                         user_input.get(CONF_CARE_KEYWORDS)
                     ),
+                    CONF_CANCEL_KEYWORDS: steps_from_text(
+                        user_input.get(CONF_CANCEL_KEYWORDS)
+                    ),
                 }
             )
             return await self.async_step_init()
@@ -426,6 +439,9 @@ class SchooldayOptionsFlow(OptionsFlow):
                     selector.EntitySelectorConfig(domain="calendar", multiple=True)
                 ),
                 vol.Optional(CONF_CARE_KEYWORDS): selector.TextSelector(
+                    selector.TextSelectorConfig(multiline=True)
+                ),
+                vol.Optional(CONF_CANCEL_KEYWORDS): selector.TextSelector(
                     selector.TextSelectorConfig(multiline=True)
                 ),
             }
@@ -447,6 +463,13 @@ class SchooldayOptionsFlow(OptionsFlow):
                 {
                     CONF_SCHOOL_CALENDARS: self._school_calendars,
                     CONF_CARE_KEYWORDS: keywords,
+                    # What the sensors are using right now, defaults included, so
+                    # saving this form without touching the field changes nothing.
+                    CONF_CANCEL_KEYWORDS: text_from_steps(
+                        SchooldayConfig.from_options(
+                            dict(self.config_entry.options)
+                        ).cancel_keywords
+                    ),
                 },
             ),
         )

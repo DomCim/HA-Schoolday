@@ -54,8 +54,9 @@ It is built for one thing: a tablet on the kitchen wall that a family walks past
   </a>
   <a class="tile yellow" href="exceptions.html">
     <span class="tile-title">Days that differ</span>
-    <p>Holidays, holiday care, school trips, a cancelled lesson, a substitution — and a child
-    at home ill, which expires by itself instead of waiting to be switched off.</p>
+    <p>Holidays, holiday care, school trips, a cancelled lesson, a substitution, an exam — and
+    a child at home ill, which expires by itself instead of waiting to be switched off.
+    Cancellations and exams can come from WebUntis or any school calendar.</p>
   </a>
   <a class="tile" href="automations.html">
     <span class="tile-title">Automations</span>
@@ -116,6 +117,7 @@ score them. It keeps [a record](routines.md#the-record) of what got done — but
 for the grown-ups working out whether a routine is working, not a league table on the
 wall.
 
-It also does not talk to your school's portal. If yours has one the data may well be
-reachable — but Schoolday holds what you type in, and that is what makes it work the same
-in every country.
+It also does not log into your school's portal. Schoolday holds what you type in, and
+that is what makes it work the same in every country. Where a portal already reaches
+Home Assistant as a calendar — WebUntis does — Schoolday can
+[read its cancellations and exams](exceptions.md#from-the-schools-own-system) from there.

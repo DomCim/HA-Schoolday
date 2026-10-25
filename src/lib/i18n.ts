@@ -26,6 +26,8 @@ const EN: Dict = {
   'timetable.sick': 'Ill',
   'timetable.event': 'No normal lessons',
   'timetable.changed': 'Changed',
+  'timetable.exam': 'Exam',
+  'routines.exam_tomorrow': 'Exam tomorrow',
 
   // the routine record
   'stats.percent': '{value}%',
@@ -139,6 +141,8 @@ const EN: Dict = {
   'admin.name': 'Name',
   'admin.color': 'Colour',
   'admin.calendar': 'Own calendar',
+  'admin.lessons_calendar': 'Lessons calendar from school',
+  'admin.exams_calendar': 'Exams calendar from school',
   'admin.avatar': 'Picture',
   'admin.block_morning': 'Morning',
   'admin.block_evening': 'Evening',
@@ -148,6 +152,8 @@ const EN: Dict = {
   'admin.school_calendars': 'Calendars that close the school, one per line',
   'admin.care_keywords': 'Holiday-care keywords, one per line',
   'admin.care_hint': 'Holiday care',
+  'admin.cancel_keywords': 'Words that mean a lesson is cancelled, one per line',
+  'admin.cancel_hint': 'Cancelled',
   'admin.avatar_hint':
     'For a picture, put in a person entity — the one Home Assistant already has. A URL works too.',
   'admin.colors_hint':
@@ -174,6 +180,8 @@ const DE: Dict = {
   'timetable.sick': 'Krank',
   'timetable.event': 'Kein regulärer Unterricht',
   'timetable.changed': 'Geändert',
+  'timetable.exam': 'Arbeit',
+  'routines.exam_tomorrow': 'Morgen Arbeit',
 
   'stats.percent': '{value} %',
   'stats.window': 'über {days} Tage',
@@ -283,6 +291,8 @@ const DE: Dict = {
   'admin.name': 'Name',
   'admin.color': 'Farbe',
   'admin.calendar': 'Eigener Kalender',
+  'admin.lessons_calendar': 'Stundenplan-Kalender der Schule',
+  'admin.exams_calendar': 'Klassenarbeiten-Kalender der Schule',
   'admin.avatar': 'Bild',
   'admin.block_morning': 'Morgens',
   'admin.block_evening': 'Abends',
@@ -292,6 +302,8 @@ const DE: Dict = {
   'admin.school_calendars': 'Kalender, die die Schule schließen, einer pro Zeile',
   'admin.care_keywords': 'Betreuungs-Stichwörter, eines pro Zeile',
   'admin.care_hint': 'Ferienbetreuung',
+  'admin.cancel_keywords': 'Wörter für eine ausgefallene Stunde, eines pro Zeile',
+  'admin.cancel_hint': 'Entfall',
   'admin.avatar_hint':
     'Für ein Bild eine Person-Entität eintragen — die, die Home Assistant schon kennt. Eine URL geht auch.',
   'admin.colors_hint':

@@ -5,6 +5,29 @@ version you are updating to; the [manual](https://domcim.github.io/HA-Schoolday/
 details. Releases before 0.14.0 are listed on
 [GitHub](https://github.com/DomCim/HA-Schoolday/releases).
 
+## 0.17.0
+
+### Schulmanager Online
+
+If your school uses Schulmanager Online, Schoolday can now read it through the
+[Schulmanager Online integration](https://github.com/MrIcemanLE/Schulmanager-homeassistant)
+from HACS. Under **Edit a family member**, behind **School system**, give a child:
+
+- its **Stundenplan** calendar as the lessons calendar. Cancelled lessons disappear from
+  the timetable, the packing list and tomorrow's subjects, substitutions and room changes
+  show as changes, and the plan-change notification says so. Schulmanager names every
+  change itself, so there are no words to set up. A change of teacher alone is not
+  reported.
+- its **Arbeiten** calendar as the exams calendar.
+- its **Hausaufgaben** list as the new **Homework list**. New homework is copied onto the
+  child's Schoolday list and ticked off there. Linking the list copies nothing that is
+  already on it, because Schulmanager keeps every piece of homework since September.
+
+Two children at two schools with one parent login: Schulmanager keeps one account per
+school, and the integration only finds both when the password is the same at both. The
+manual explains it under
+[With Schulmanager Online](https://domcim.github.io/HA-Schoolday/exceptions.html#with-schulmanager-online).
+
 ## 0.16.0
 
 ### A bus does not wait for the first lesson

@@ -23,6 +23,8 @@ export interface AdminMember {
   lessonsCalendar: string | null;
   /** A school system's calendar of this member's exams; every event is one. */
   examsCalendar: string | null;
+  /** A school system's to-do list of this member's homework, copied into Schoolday's. */
+  homeworkList: string | null;
   /** Which named set of lesson times their school rings to; null is the household's. */
   schedule: string | null;
   /** Minutes to school, which gives a leaving time; null for none, which is not 0. */
@@ -119,6 +121,10 @@ export function parseAdmin(raw: unknown): AdminConfig {
       examsCalendar:
         typeof entry.exams_calendar === 'string' && entry.exams_calendar
           ? entry.exams_calendar
+          : null,
+      homeworkList:
+        typeof entry.homework_list === 'string' && entry.homework_list
+          ? entry.homework_list
           : null,
       schedule: typeof entry.schedule === 'string' && entry.schedule ? entry.schedule : null,
       travelMinutes: typeof entry.travel_minutes === 'number' ? entry.travel_minutes : null,
@@ -274,6 +280,13 @@ export function stepsFor(
 export function calendarEntities(hass: HomeAssistant): string[] {
   return Object.keys(hass.states)
     .filter((entityId) => entityId.startsWith('calendar.'))
+    .sort();
+}
+
+/** Every to-do list, for the homework a school system keeps. */
+export function todoEntities(hass: HomeAssistant): string[] {
+  return Object.keys(hass.states)
+    .filter((entityId) => entityId.startsWith('todo.'))
     .sort();
 }
 

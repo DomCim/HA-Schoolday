@@ -45,7 +45,8 @@ It is built for one thing: a tablet on the kitchen wall that a family walks past
   <a class="tile green" href="homework.html">
     <span class="tile-title">Homework</span>
     <p>A Home Assistant todo list per child, sorted by what is due first, with finished work
-    kept for a fortnight so Thursday's question has an answer on Friday.</p>
+    kept for a fortnight so Thursday's question has an answer on Friday. New homework can come
+    over from Schulmanager Online.</p>
   </a>
   <a class="tile" href="routines.html#the-record">
     <span class="tile-title">The record</span>
@@ -56,7 +57,8 @@ It is built for one thing: a tablet on the kitchen wall that a family walks past
     <span class="tile-title">Days that differ</span>
     <p>Holidays, holiday care, school trips, a cancelled lesson, a substitution, an exam — and
     a child at home ill, which expires by itself instead of waiting to be switched off.
-    Cancellations, substitutions and exams can come from WebUntis or any school calendar.</p>
+    Cancellations, substitutions and exams can come from WebUntis, Schulmanager Online or
+    any school calendar.</p>
   </a>
   <a class="tile" href="automations.html">
     <span class="tile-title">Automations</span>
@@ -120,6 +122,6 @@ wall.
 
 It also does not log into your school's portal. Schoolday holds what you type in, and
 that is what makes it work the same in every country. Where a portal already reaches
-Home Assistant as a calendar — WebUntis does — Schoolday can
+Home Assistant as a calendar — WebUntis and Schulmanager Online do — Schoolday can
 [read its cancellations, substitutions and exams](exceptions.md#from-the-schools-own-system)
-from there.
+from there, and copy new homework from its list.

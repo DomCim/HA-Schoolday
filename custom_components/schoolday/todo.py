@@ -12,7 +12,9 @@ sorting a school evening actually wants: unfinished first, soonest first.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+import logging
+import re
+from datetime import date, datetime, timedelta
 from typing import Any
 
 from homeassistant.components.todo import (
@@ -22,10 +24,15 @@ from homeassistant.components.todo import (
     TodoListEntityFeature,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import Event, EventStateChangedData, HomeAssistant, callback
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.helpers.event import (
+    async_track_state_change_event,
+    async_track_time_interval,
+)
 from homeassistant.util.ulid import ulid_now
 
 from .const import (
@@ -43,6 +50,18 @@ from .const import (
 from .models import Member, SchooldayConfig
 from .sensor import homework_unique_id
 from .store import HomeworkStore
+
+_LOGGER = logging.getLogger(__name__)
+
+# A school system's list is read whenever its state changes — which is its count of
+# open items, so a new piece of homework moves it — and every half hour besides, for
+# an item that was reworded or ticked without changing the count.
+HOMEWORK_PULL_INTERVAL = timedelta(minutes=30)
+
+# Schulmanager's list writes the day the homework was set in front of it,
+# "[2026-10-12] Deutsch: AB". On a child's list that is a date to read past, and it
+# is not when the work is due.
+_HOMEWORK_DATE_RE = re.compile(r"^\s*\[\d{4}-\d{2}-\d{2}\]\s*")
 
 
 async def async_setup_entry(
@@ -68,6 +87,18 @@ def _due_string(due: date | datetime | None) -> str | None:
     if due is None:
         return None
     return (due.date() if isinstance(due, datetime) else due).isoformat()
+
+
+def _parse_due(raw: Any) -> date | None:
+    """A due date as `todo.get_items` hands it over: a date, a datetime, or a string."""
+    if isinstance(raw, (date, datetime)):
+        return raw
+    if not raw:
+        return None
+    try:
+        return date.fromisoformat(str(raw)[:10])
+    except ValueError:
+        return None
 
 
 class SchooldayHomeworkList(TodoListEntity):
@@ -108,6 +139,56 @@ class SchooldayHomeworkList(TodoListEntity):
             async_dispatcher_connect(
                 self.hass, SIGNAL_HOMEWORK_UPDATED, self._handle_change
             )
+        )
+        if source := self._member.homework_list:
+            self.async_on_remove(
+                async_track_state_change_event(self.hass, [source], self._handle_source)
+            )
+            self.async_on_remove(
+                async_track_time_interval(self.hass, self._handle_source, HOMEWORK_PULL_INTERVAL)
+            )
+            await self._async_pull()
+
+    async def _handle_source(self, _event: Event[EventStateChangedData] | Any) -> None:
+        await self._async_pull()
+
+    async def _async_pull(self) -> None:
+        """Copy over whatever the school system's list has that this one has not seen."""
+        source = self._member.homework_list
+        if not source or self.hass.states.get(source) is None:
+            # Not there yet while Home Assistant starts; its first state change says
+            # when it is.
+            return
+        try:
+            response = await self.hass.services.async_call(
+                "todo",
+                "get_items",
+                {},
+                target={"entity_id": source},
+                blocking=True,
+                return_response=True,
+            )
+        except HomeAssistantError as err:
+            _LOGGER.warning(
+                "Could not read %s for %s: %s", source, self._member.name, err
+            )
+            return
+        raw = ((response or {}).get(source) or {}).get("items") or []
+        await self._store.async_import(
+            self._member.id,
+            source,
+            [
+                {
+                    "source": item.get("uid"),
+                    "summary": _HOMEWORK_DATE_RE.sub("", str(item.get("summary") or "")),
+                    "due": _due_string(_parse_due(item.get("due"))),
+                    "description": item.get("description") or None,
+                    "done": item.get("status") == TodoItemStatus.COMPLETED,
+                }
+                for item in raw
+                if isinstance(item, dict)
+            ],
+            ulid_now,
         )
 
     @callback

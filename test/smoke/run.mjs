@@ -1567,7 +1567,7 @@ const schoolFold = await page.evaluate(() => {
 });
 check(
   "a child's school-system calendars are folded away unless one is set",
-  schoolFold.join(',') === 'closed:2,closed:2,open:2,closed:2',
+  schoolFold.join(',') === 'closed:3,closed:3,open:3,closed:3',
   JSON.stringify(schoolFold),
 );
 
@@ -1583,6 +1583,14 @@ await page.evaluate(() => {
         bubbles: true,
       }),
     );
+  root
+    .querySelector('ha-entity-picker#homeworklist-m1')
+    .dispatchEvent(
+      new CustomEvent('value-changed', {
+        detail: { value: 'todo.ben_hausaufgaben' },
+        bubbles: true,
+      }),
+    );
   root.querySelectorAll('.member')[0].querySelector('.apply').click();
 });
 await page.waitForTimeout(300);
@@ -1590,8 +1598,9 @@ const adminSchoolCall = await page.evaluate(
   () => window.__calls.services.filter((c) => c.service === 'set_member').pop() ?? null,
 );
 check(
-  "a child's school calendars are saved, the empty one as empty",
+  "a child's school calendars and homework list are saved, the empty one as empty",
   adminSchoolCall?.data.exams_calendar === 'calendar.ben_exams' &&
+    adminSchoolCall?.data.homework_list === 'todo.ben_hausaufgaben' &&
     adminSchoolCall?.data.lessons_calendar === '',
   JSON.stringify(adminSchoolCall?.data ?? null),
 );

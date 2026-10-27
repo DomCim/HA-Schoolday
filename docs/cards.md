@@ -210,7 +210,7 @@ the **Family** section.
 
 ![Name, colour, the calendar searched for the holiday-care keyword, the school system's calendars folded away, a picture taken from a person entity, the way to school, the times to leave for a bus and for holiday care, and which school's lesson times they ring to.](images/admin-family.png)
 *Name, colour, the calendar searched for the holiday-care keyword, the school system's
-lessons and exams calendars — folded away until a child has one — a picture taken from a
+lessons and exams calendars and homework list — folded away until a child has one — a picture taken from a
 person entity, the way to school in minutes, the times to leave for a bus and for holiday
 care, and which school's lesson times they ring to. The last of those only appears once there is more than one school to choose between.
 An empty way to school means no [leaving time](automations.md#time-to-leave); 0 is one.*

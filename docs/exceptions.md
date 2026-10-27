@@ -132,22 +132,23 @@ data:
 
 ## From the school's own system
 
-If the school runs WebUntis, IServ or something like it, the cancellations, the
-substitutions and the exams are already written down somewhere — typing them in again is the copy nobody keeps up.
+If the school runs WebUntis, Schulmanager Online, IServ or something like it, the
+cancellations, the substitutions and the exams are already written down somewhere — typing them in again is the copy nobody keeps up.
 Schoolday does not log into school portals: every one has its own login and its own
 quirks, schools switch parts of them off, and it would mean storing a child's password.
 It **reads a calendar** instead. Integrations that turn a school portal into Home
 Assistant calendars already exist, and a calendar is the one shape all of them can
 produce.
 
-Each child can have two, set under **Edit a family member** (or in the admin card's
-Family section), folded away under **School system (WebUntis or similar)** until one is
-set — most households never open it:
+Each child can have up to three, set under **Edit a family member** (or in the admin
+card's Family section), folded away under **School system (WebUntis, Schulmanager or
+similar)** until one is set — most households never open it:
 
 | | What Schoolday reads from it |
 |---|---|
-| **Lessons calendar** | Only what changed. An event whose title contains one of the **cancellation words** strikes every period it overlaps from that day; one with a **substitution word** puts the rest of its title in those periods instead, drawn marked like a substitution you typed in. Either way it reaches the card, today's and tomorrow's subjects, and the packing list. |
+| **Lessons calendar** | Only what changed. An event whose title contains one of the **cancellation words** strikes every period it overlaps from that day; one with a **substitution word** puts the rest of its title in those periods instead, drawn marked like a substitution you typed in. A calendar from [Schulmanager Online](#with-schulmanager-online) says what changed in its own words, and needs no words set at all. Either way it reaches the card, today's and tomorrow's subjects, and the packing list. |
 | **Exams calendar** | Every event on it is an exam, as bluntly as every event on a holiday calendar is a day off. It is labelled on the lesson it falls in and shown the evening before. |
+| **Homework list** | A to-do list the school system keeps. New homework on it is copied onto the child's own [homework list](homework.md#from-the-schools-own-system), where it is ticked off. |
 
 ![Monday's Mathe carries an exam label from the exams calendar; Tuesday's double WG is gone, cancelled on the lessons calendar; Friday's second period is marked as a substitution.](images/timetable-school-system.png)
 *Monday's Mathe carries an exam label from the exams calendar; Tuesday's double WG is
@@ -195,7 +196,8 @@ the first would empty a period that is very much on.
 The subject is the school's own wording, not matched to yours. If the school system
 writes `D` where your timetable says `Deutsch`, the card shows `D`, in a colour of its own.
 Guessing that `M` means Mathe would be right until the child also had Musik — tell the
-school system to write the full names instead.
+school system to write the full names instead, where it can. A cancellation or a new room
+is not affected: those keep the lesson your timetable has, in your spelling.
 
 ### With WebUntis
 
@@ -222,9 +224,40 @@ If you had it replace "Cancelled: " with something else — its own example is �
 that in the cancellation words. Whether the exams calendar has anything in it depends on
 what the school shares through WebUntis; some schools keep exams out of it.
 
+### With Schulmanager Online
+
+The [Schulmanager Online integration](https://github.com/MrIcemanLE/Schulmanager-homeassistant)
+(HACS) logs in once for the household and creates, per child, a timetable calendar, an
+exams calendar, a calendar of school events and a homework list.
+
+1. Its **Stundenplan** calendar goes in **Lessons calendar**, as it is. It holds every
+   lesson, not only the changed ones, and writes the kind of change into each event's
+   notes — `Typ: cancelledLesson`, `Typ: substitution`, `Typ: roomChange`. Schoolday
+   reads that, whether or not the emoji option is on, so the cancellation and
+   substitution words do not matter for it. A change of teacher alone is left out: the
+   lesson is the one the timetable promised.
+2. Its **Arbeiten** calendar goes in **Exams calendar**.
+3. Its **Hausaufgaben** list goes in **Homework list**.
+
+Its subjects are the school's abbreviations — `D`, `M`, `Sp` — so a substitution shows as
+`D` until the school writes full names. The other Schulmanager integration,
+[schulmanager-online-hass](https://github.com/rwunsch/schulmanager-online-hass), writes
+its change types the same way, in English (`Type: substitution`), and is read just as
+well.
+
+Not every school uses every part of Schulmanager. A primary school may keep homework and
+events in it but no timetable, and then its timetable calendar simply stays empty.
+
+**Two schools, one parent login.** Schulmanager keeps a separate account per school,
+even with the same e-mail address, and its app remembers the second one after you add
+it — so nobody notices if the two have different passwords. The integration only finds
+both schools when the password is the same at both; otherwise it sees one child. Set the
+same password at each school (in the app, with that school selected, **Passwort ändern**)
+and add the integration again.
+
 ### Any other calendar
 
-Nothing here is specific to WebUntis. An IServ or Moodle calendar export subscribed with
+Nothing here is specific to WebUntis or Schulmanager. An IServ or Moodle calendar export subscribed with
 **Remote Calendar**, or a local calendar somebody keeps by hand — "Ben Arbeiten" with one
 event per test — works the same way.
 

@@ -20,6 +20,7 @@ import {
   materialsFor,
   messageOf,
   personEntities,
+  todoEntities,
   stepsFor,
   type AdminConfig,
   type AdminMember,
@@ -717,6 +718,7 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
   private _renderFamily(config: AdminConfig): TemplateResult {
     const calendars = calendarEntities(this.hass!);
     const people = personEntities(this.hass!);
+    const todos = todoEntities(this.hass!);
     const form = (member: AdminMember | null) => {
       const key = member?.id ?? 'new';
       return html`
@@ -741,7 +743,12 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
               (next) => this._setDraft(key, 'calendar', next),
             )}
           </div>
-          <details class="more" ?open=${Boolean(member?.lessonsCalendar || member?.examsCalendar)}>
+          <details
+            class="more"
+            ?open=${Boolean(
+              member?.lessonsCalendar || member?.examsCalendar || member?.homeworkList,
+            )}
+          >
             <summary>${t(this.hass, 'admin.school_system')}</summary>
             <div class="notice quiet">${t(this.hass, 'admin.school_system_hint')}</div>
             <div class="row">
@@ -760,6 +767,16 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
               this._draft(key, 'exams_calendar', member?.examsCalendar ?? ''),
               'schoolday-calendars',
               (next) => this._setDraft(key, 'exams_calendar', next),
+            )}
+            </div>
+            <div class="row">
+            ${this._entityField(
+              `homeworklist-${key}`,
+              t(this.hass, 'admin.homework_list'),
+              'todo',
+              this._draft(key, 'homework_list', member?.homeworkList ?? ''),
+              'schoolday-todos',
+              (next) => this._setDraft(key, 'homework_list', next),
             )}
             </div>
           </details>
@@ -849,6 +866,7 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
                     member?.lessonsCalendar ?? '',
                   ),
                   exams_calendar: this._draft(key, 'exams_calendar', member?.examsCalendar ?? ''),
+                  homework_list: this._draft(key, 'homework_list', member?.homeworkList ?? ''),
                   avatar: this._draft(key, 'avatar', member?.avatar ?? ''),
                   // Always sent, even when the household has one school and the field
                   // is not drawn: the service clears what it is not told, so leaving it
@@ -895,6 +913,9 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
       </datalist>
       <datalist id="schoolday-people">
         ${people.map((entityId) => html`<option value=${entityId}></option>`)}
+      </datalist>
+      <datalist id="schoolday-todos">
+        ${todos.map((entityId) => html`<option value=${entityId}></option>`)}
       </datalist>
       <div class="notice quiet">${t(this.hass, 'admin.avatar_hint')}</div>
       ${config.members.map((member) => form(member))}

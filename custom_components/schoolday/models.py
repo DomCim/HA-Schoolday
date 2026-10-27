@@ -39,6 +39,7 @@ from .const import (
     CONF_SCHEDULE,
     CONF_SCHEDULES,
     CONF_EXAMS_CALENDAR,
+    CONF_HOMEWORK_LIST,
     CONF_LESSONS_CALENDAR,
     CONF_SCHOOL_CALENDARS,
     CONF_TRAVEL_MINUTES,
@@ -129,10 +130,11 @@ class Member:
     #: holiday-care keyword and when such an event starts — Schoolday shows none of
     #: its events.
     calendar: str | None = None
-    #: What a school system publishes for this member: the lessons, read only for the
-    #: cancelled ones, and the exams, every event of which is one.
+    #: What a school system publishes for this member: the lessons, read only for what
+    #: changed, the exams, every event of which is one, and the homework, copied over.
     lessons_calendar: str | None = None
     exams_calendar: str | None = None
+    homework_list: str | None = None
     #: Which named lesson-time grid this member's school rings to. None is the
     #: household's usual times, which is what most members are.
     schedule: str | None = None
@@ -166,6 +168,7 @@ class Member:
             calendar=data.get(CONF_CALENDAR) or None,
             lessons_calendar=data.get(CONF_LESSONS_CALENDAR) or None,
             exams_calendar=data.get(CONF_EXAMS_CALENDAR) or None,
+            homework_list=data.get(CONF_HOMEWORK_LIST) or None,
             schedule=str(data.get(CONF_SCHEDULE) or "").strip() or None,
             travel_minutes=_minutes(data.get(CONF_TRAVEL_MINUTES)),
             leave_time=clock(data.get(CONF_LEAVE_TIME)),
@@ -189,6 +192,7 @@ class Member:
             "calendar": self.calendar,
             CONF_LESSONS_CALENDAR: self.lessons_calendar,
             CONF_EXAMS_CALENDAR: self.exams_calendar,
+            CONF_HOMEWORK_LIST: self.homework_list,
             CONF_SCHEDULE: self.schedule,
             CONF_TRAVEL_MINUTES: self.travel_minutes,
             CONF_LEAVE_TIME: self.leave_time,
@@ -900,6 +904,8 @@ class FeedEvent:
     end: int | None = None
     #: Where it takes place, which for a lesson is the room.
     location: str | None = None
+    #: The event's notes, where some school systems say what kind of change it is.
+    description: str | None = None
 
 
 def periods_between(periods: list[Period], start: int, end: int) -> list[int]:
@@ -974,6 +980,94 @@ def substituted_periods(
                 period=period, subject=subject, room=room
             )
     return found
+
+
+# Schulmanager Online's own words for a lesson that is not the regular one. Both Home
+# Assistant integrations for it write the word into the event's notes — "Typ:" in one,
+# "Type:" in the other — which is a better witness than the title: the title carries
+# an emoji only while that option is on, and the word is there either way.
+_SCHULMANAGER_CANCELLED = "cancelledLesson"
+_SCHULMANAGER_ROOM = "roomChange"
+_SCHULMANAGER_REPLACED = frozenset(
+    {"substitution", "specialLesson", "irregularLesson", "changedLesson"}
+)
+_NOTE_RE = re.compile(r"^\s*(Typ|Type|Raum|Room|Subject)\s*:\s*(.*?)\s*$", re.MULTILINE)
+
+
+@dataclass(slots=True)
+class SchoolSystemChanges:
+    """What a school system's change types say about its lessons, per date."""
+
+    cancelled: dict[date, set[int]] = field(default_factory=dict)
+    replaced: dict[date, dict[int, Lesson]] = field(default_factory=dict)
+    #: The same lesson in another room: only the room, because the title has the
+    #: school's abbreviation for the subject and the household has its own spelling.
+    rooms: dict[date, dict[int, str]] = field(default_factory=dict)
+
+
+def _notes(description: str | None) -> dict[str, str]:
+    """The `Word: value` lines of an event's notes, German and English as one."""
+    found: dict[str, str] = {}
+    for word, value in _NOTE_RE.findall(description or ""):
+        key = {"Typ": "type", "Type": "type", "Raum": "room", "Room": "room"}.get(
+            word, "subject"
+        )
+        found.setdefault(key, value)
+    return found
+
+
+def _subject_from_title(title: str, room: str | None) -> str:
+    """The subject out of a title like "🔁 D – R12" or "🔄 D (R12)".
+
+    The marker in front and the room behind are the integration's decoration, not the
+    school's; what is left is the subject as the school system abbreviates it.
+    """
+    subject = re.sub(r"^[^\w]+", "", title.strip())
+    subject = re.sub(r"\s*\((?:Cancelled|Entfall)\)", "", subject)
+    if room:
+        for tail in (f" – {room}", f" - {room}", f" ({room})"):
+            if subject.endswith(tail):
+                subject = subject[: -len(tail)]
+                break
+    return subject.strip()
+
+
+def school_system_changes(
+    events: Iterable[FeedEvent], periods: list[Period]
+) -> SchoolSystemChanges:
+    """What a lessons calendar from Schulmanager Online says changed, by its change types.
+
+    Such a calendar holds every lesson, not only the changed ones, so a title alone
+    proves nothing: "D – R12" is an ordinary lesson. Only an event whose notes name a
+    change type counts. A teacher change is left out on purpose — the lesson is the one
+    the timetable promised, and a parent has nothing to do about it.
+    """
+    changes = SchoolSystemChanges()
+    for event in events:
+        if event.start is None or event.end is None:
+            continue
+        notes = _notes(event.description)
+        kind = notes.get("type")
+        if not kind:
+            continue
+        hits = periods_between(periods, event.start, event.end)
+        if not hits:
+            continue
+        room = notes.get("room") or (event.location or "").strip() or None
+        if kind == _SCHULMANAGER_CANCELLED:
+            changes.cancelled.setdefault(event.day, set()).update(hits)
+        elif kind == _SCHULMANAGER_ROOM and room:
+            for period in hits:
+                changes.rooms.setdefault(event.day, {})[period] = room
+        elif kind in _SCHULMANAGER_REPLACED:
+            subject = notes.get("subject") or _subject_from_title(event.summary, room)
+            if not subject:
+                continue
+            for period in hits:
+                changes.replaced.setdefault(event.day, {})[period] = Lesson(
+                    period=period, subject=subject, room=room
+                )
+    return changes
 
 
 def exams_by_day(

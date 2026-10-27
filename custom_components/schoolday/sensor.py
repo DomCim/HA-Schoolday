@@ -108,6 +108,7 @@ from .models import (
     Period,
     SchooldayConfig,
     cancelled_periods,
+    school_system_changes,
     leave_minutes,
     exams_by_day,
     substituted_periods,
@@ -259,6 +260,7 @@ def _feed_events(events: Iterable[Mapping[str, Any]]) -> list[FeedEvent]:
                 start=start,
                 end=end,
                 location=str(event.get("location") or "") or None,
+                description=str(event.get("description") or "") or None,
             )
         )
     return feed
@@ -682,6 +684,7 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         periods = self._periods
         cancelled: dict[date, set[int]] = {}
         substituted: dict[date, dict[int, Lesson]] = {}
+        rooms: dict[date, dict[int, str]] = {}
         if self._member.lessons_calendar:
             lessons_feed = _feed_events(events.get(self._member.lessons_calendar, []))
             cancelled = cancelled_periods(
@@ -690,6 +693,14 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
             substituted = substituted_periods(
                 lessons_feed, periods, self._config.substitute_keywords
             )
+            # A calendar that names its change types is believed over the keywords:
+            # it says so for every lesson, whatever the titles look like.
+            typed = school_system_changes(lessons_feed, periods)
+            for day, hits in typed.cancelled.items():
+                cancelled.setdefault(day, set()).update(hits)
+            for day, lessons in typed.replaced.items():
+                substituted.setdefault(day, {}).update(lessons)
+            rooms = typed.rooms
         self._care_starts = care_starts
         self._exams = (
             exams_by_day(_feed_events(events.get(self._member.exams_calendar, [])), periods)
@@ -704,7 +715,7 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
             if exams := self._exams.get(day):
                 entry[ATTR_EXAMS] = exams
             if entry[ATTR_MODE] != MODE_SCHOOL or (
-                day not in cancelled and day not in substituted
+                day not in cancelled and day not in substituted and day not in rooms
             ):
                 continue
             change = self._config.exception(self._member.id, day)
@@ -726,6 +737,16 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
                         continue
                     lesson = Lesson(period=period, subject=planned.subject, room=lesson.room)
                 swapped[period] = lesson
+            for period, room in rooms.get(day, {}).items():
+                planned = held.get(period)
+                if (
+                    planned is None
+                    or period in said
+                    or period in swapped
+                    or room == planned.room
+                ):
+                    continue
+                swapped[period] = Lesson(period=period, subject=planned.subject, room=room)
             # A substitution beats a cancellation in the same period: WebUntis reports a
             # replaced lesson as the old one cancelled and the new one irregular, and
             # believing only the first would send the child home from a lesson that is

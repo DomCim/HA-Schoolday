@@ -52,15 +52,17 @@
         },
         "sections": {
           "school_system": {
-            "name": "School system (WebUntis or similar), optional",
-            "description": "Calendars a school system such as WebUntis already keeps for this child. Only cancellations, substitutions and exams come from them.",
+            "name": "School system (WebUntis, Schulmanager or similar), optional",
+            "description": "Calendars and lists a school system such as WebUntis or Schulmanager Online already keeps for this child. Only changes to the timetable, exams and homework come from them.",
             "data": {
               "lessons_calendar": "Lessons calendar from school",
-              "exams_calendar": "Exams calendar from school"
+              "exams_calendar": "Exams calendar from school",
+              "homework_list": "Homework list from school"
             },
             "data_description": {
-              "lessons_calendar": "With WebUntis, its timetable calendar. Switch on “Calendar - cancelled lessons” there, or a cancellation never reaches this calendar.",
-              "exams_calendar": "Every event on it counts as an exam and shows in the timetable and the evening before. With WebUntis, its exams calendar."
+              "lessons_calendar": "With WebUntis, its timetable calendar; switch on “Calendar - cancelled lessons” there, or a cancellation never reaches this calendar. With Schulmanager Online, its timetable calendar as it is.",
+              "exams_calendar": "Every event on it counts as an exam and shows in the timetable and the evening before. With WebUntis, its exams calendar; with Schulmanager Online, its exams calendar.",
+              "homework_list": "With Schulmanager Online, its homework to-do list. New homework is copied into this child's Schoolday list; ticking it off happens there."
             }
           }
         }
@@ -94,15 +96,17 @@
         },
         "sections": {
           "school_system": {
-            "name": "School system (WebUntis or similar), optional",
-            "description": "Calendars a school system such as WebUntis already keeps for this child. Only cancellations, substitutions and exams come from them.",
+            "name": "School system (WebUntis, Schulmanager or similar), optional",
+            "description": "Calendars and lists a school system such as WebUntis or Schulmanager Online already keeps for this child. Only changes to the timetable, exams and homework come from them.",
             "data": {
               "lessons_calendar": "Lessons calendar from school",
-              "exams_calendar": "Exams calendar from school"
+              "exams_calendar": "Exams calendar from school",
+              "homework_list": "Homework list from school"
             },
             "data_description": {
-              "lessons_calendar": "With WebUntis, its timetable calendar. Switch on “Calendar - cancelled lessons” there, or a cancellation never reaches this calendar.",
-              "exams_calendar": "Every event on it counts as an exam and shows in the timetable and the evening before. With WebUntis, its exams calendar."
+              "lessons_calendar": "With WebUntis, its timetable calendar; switch on “Calendar - cancelled lessons” there, or a cancellation never reaches this calendar. With Schulmanager Online, its timetable calendar as it is.",
+              "exams_calendar": "Every event on it counts as an exam and shows in the timetable and the evening before. With WebUntis, its exams calendar; with Schulmanager Online, its exams calendar.",
+              "homework_list": "With Schulmanager Online, its homework to-do list. New homework is copied into this child's Schoolday list; ticking it off happens there."
             }
           }
         }
@@ -475,6 +479,10 @@
         "exams_calendar": {
           "name": "Exams calendar",
           "description": "A school system's calendar for this member; every event on it is an exam."
+        },
+        "homework_list": {
+          "name": "Homework list",
+          "description": "A school system's to-do list of homework for this member; new items are copied into Schoolday's list."
         },
         "avatar": {
           "name": "Avatar",

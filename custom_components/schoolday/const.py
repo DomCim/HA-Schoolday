@@ -7,7 +7,7 @@ from typing import Final
 DOMAIN: Final = "schoolday"
 
 # Keep in sync with manifest.json, package.json and src/lib/const.ts.
-VERSION: Final = "0.16.0"
+VERSION: Final = "0.17.0"
 
 # Where the bundled Lovelace cards are served from.
 FRONTEND_URL_BASE: Final = "/schoolday-frontend"
@@ -197,11 +197,15 @@ CONF_ORDER: Final = "order"
 CONF_CALENDAR: Final = "calendar"
 # Calendars a school system keeps for this member, read rather than logged into: the
 # school portal integrations already exist, and a calendar is the shape all of them can
-# produce. The lessons calendar is read for cancellations only — the timetable stays the
+# produce. The lessons calendar is read for what changed only — the timetable stays the
 # one Schoolday holds. Every event on the exams calendar is an exam, as bluntly as every
 # event on a holiday calendar is a day off.
 CONF_LESSONS_CALENDAR: Final = "lessons_calendar"
 CONF_EXAMS_CALENDAR: Final = "exams_calendar"
+# A to-do list a school system keeps for this member — Schulmanager Online's homework.
+# Copied into Schoolday's own list rather than shown beside it, so the child ticks
+# homework off in one place, whoever wrote it down.
+CONF_HOMEWORK_LIST: Final = "homework_list"
 # How long this member takes to get to school, in minutes. Unset is not zero: a child
 # who has not been given a way to school gets no leaving time at all, rather than one
 # that says "leave as the bell rings".

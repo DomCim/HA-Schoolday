@@ -12,6 +12,7 @@ panel visibly clears without anyone touching it.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import date, timedelta
 from typing import Any
 
@@ -490,6 +491,12 @@ class HomeworkStore:
         )
         # member id -> uid -> item
         self._items: dict[str, dict[str, dict[str, Any]]] = {}
+        # "member id list entity" -> a school system's uid -> {"uid": ours, "done":
+        # whether the school system had it finished}, for everything ever seen there.
+        # Remembered past the item itself, so homework deleted here is not copied back
+        # the next time the school system's list is read. An empty uid is something
+        # that was already on that list when it was linked.
+        self._imported: dict[str, dict[str, dict[str, Any]]] = {}
 
     async def async_load(self) -> None:
         """Load the stored homework, sweeping anything long finished."""
@@ -502,11 +509,19 @@ class HomeworkStore:
             }
             for member_id, items in (data.get("items") or {}).items()
         }
+        self._imported = {
+            str(key): {
+                str(source): {"uid": str(mark.get("uid") or ""), "done": bool(mark.get("done"))}
+                for source, mark in (seen or {}).items()
+                if isinstance(mark, dict)
+            }
+            for key, seen in (data.get("imported") or {}).items()
+        }
         if self._sweep():
             await self._async_save()
 
     async def _async_save(self) -> None:
-        await self._store.async_save({"items": self._items})
+        await self._store.async_save({"items": self._items, "imported": self._imported})
 
     def _sweep(self) -> bool:
         """Drop items finished more than a fortnight ago."""
@@ -597,6 +612,83 @@ class HomeworkStore:
         await self._async_save()
         async_dispatcher_send(self._hass, SIGNAL_HOMEWORK_UPDATED)
         return True
+
+    async def async_import(
+        self,
+        member_id: str,
+        source_list: str,
+        incoming: list[dict[str, Any]],
+        new_uid: Callable[[], str],
+    ) -> int:
+        """Copy a school system's homework onto a member's list. Returns how many are new.
+
+        Each incoming item carries `source` (the school system's uid), `summary`, `due`,
+        `description` and `done`. Something finished before it was ever copied is not
+        copied at all; something finished there later is ticked here once, when it
+        changes there, and never unticked — a child who opens it again here means it.
+
+        The first reading of a list copies nothing and only remembers what is on it.
+        Schulmanager Online never ticks anything off, so its list is every piece of
+        homework since September, and linking it must not hand a child thirty of them.
+        """
+        items = self._items.setdefault(member_id, {})
+        key = f"{member_id} {source_list}"
+        if key not in self._imported:
+            # Not on an empty reading, which may be a list that is still loading:
+            # the baseline would then be nothing, and the next reading everything.
+            if not incoming:
+                return 0
+            self._imported[key] = {
+                str(entry.get("source")): {"uid": "", "done": bool(entry.get("done"))}
+                for entry in incoming
+                if entry.get("source")
+            }
+            await self._async_save()
+            return 0
+        seen = self._imported[key]
+        added = 0
+        changed = False
+        for entry in incoming:
+            source = str(entry.get("source") or "")
+            summary = str(entry.get("summary") or "").strip()
+            if not source or not summary:
+                continue
+            done = bool(entry.get("done"))
+            mark = seen.get(source)
+            if mark is None:
+                if done:
+                    continue
+                uid = new_uid()
+                seen[source] = {"uid": uid, "done": False}
+                items[uid] = {
+                    "summary": summary,
+                    "due": entry.get("due"),
+                    "description": entry.get("description"),
+                    "done": False,
+                    "done_on": None,
+                }
+                added += 1
+                changed = True
+            elif done != mark["done"]:
+                mark["done"] = done
+                changed = True
+                if done and (item := items.get(mark["uid"])) and not item.get("done"):
+                    item["done"] = True
+                    item["done_on"] = _today().isoformat()
+        # Forget what has gone from both lists, so the record does not grow forever.
+        # Not while the school system's list is empty: a list that is being reloaded
+        # is briefly empty, and forgetting then would copy back everything deleted here.
+        if incoming:
+            present = {str(entry.get("source") or "") for entry in incoming}
+            for source in [
+                s for s, mark in seen.items() if s not in present and mark["uid"] not in items
+            ]:
+                del seen[source]
+                changed = True
+        if changed:
+            await self._async_save()
+            async_dispatcher_send(self._hass, SIGNAL_HOMEWORK_UPDATED)
+        return added
 
     async def async_remove(self, member_id: str, uids: list[str]) -> None:
         """Take items off a member's list for good."""

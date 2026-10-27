@@ -185,8 +185,8 @@ set_member:
       selector:
         entity:
           domain: calendar
-    # What a school system publishes for this member, e.g. the WebUntis integration's
-    # timetable and exams calendars. Omitted means none, like the fields above.
+    # What a school system publishes for this member, e.g. the WebUntis or Schulmanager
+    # integration's timetable and exams calendars. Omitted means none, like the fields above.
     lessons_calendar:
       required: false
       selector:
@@ -197,6 +197,12 @@ set_member:
       selector:
         entity:
           domain: calendar
+    # A school system's homework, e.g. Schulmanager Online's to-do list for this child.
+    homework_list:
+      required: false
+      selector:
+        entity:
+          domain: todo
     avatar:
       required: false
       selector:

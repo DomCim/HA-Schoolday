@@ -30,6 +30,7 @@ from .const import (
     CONF_CARE_KEYWORDS,
     CONF_COLOR,
     CONF_EXAMS_CALENDAR,
+    CONF_HOMEWORK_LIST,
     CONF_TRAVEL_MINUTES,
     CONF_LEAVE_TIME,
     CONF_CARE_LEAVE_TIME,
@@ -198,6 +199,9 @@ class SchooldayOptionsFlow(OptionsFlow):
                     ),
                     vol.Optional(CONF_EXAMS_CALENDAR): selector.EntitySelector(
                         selector.EntitySelectorConfig(domain="calendar")
+                    ),
+                    vol.Optional(CONF_HOMEWORK_LIST): selector.EntitySelector(
+                        selector.EntitySelectorConfig(domain="todo")
                     ),
                 }
             ),
@@ -760,7 +764,7 @@ class SchooldayOptionsFlow(OptionsFlow):
 
         calendars = {
             key: current[key]
-            for key in (CONF_LESSONS_CALENDAR, CONF_EXAMS_CALENDAR)
+            for key in (CONF_LESSONS_CALENDAR, CONF_EXAMS_CALENDAR, CONF_HOMEWORK_LIST)
             if current.get(key)
         }
         suggested = {

@@ -52,15 +52,17 @@
         },
         "sections": {
           "school_system": {
-            "name": "Schulsystem (WebUntis o. Ä.), optional",
-            "description": "Kalender, die ein Schulsystem wie WebUntis schon für dieses Kind führt. Daraus kommen nur Ausfälle, Vertretungen und Arbeiten.",
+            "name": "Schulsystem (WebUntis, Schulmanager o. Ä.), optional",
+            "description": "Kalender und Listen, die ein Schulsystem wie WebUntis oder Schulmanager Online schon für dieses Kind führt. Daraus kommen nur Änderungen am Stundenplan, Arbeiten und Hausaufgaben.",
             "data": {
               "lessons_calendar": "Stundenplan-Kalender der Schule",
-              "exams_calendar": "Klassenarbeiten-Kalender der Schule"
+              "exams_calendar": "Klassenarbeiten-Kalender der Schule",
+              "homework_list": "Hausaufgaben-Liste der Schule"
             },
             "data_description": {
-              "lessons_calendar": "Bei WebUntis dessen Stundenplan-Kalender. Dort „Kalender - Ausfallende Stunden“ einschalten, sonst kommt ein Ausfall nie in diesem Kalender an.",
-              "exams_calendar": "Jeder Termin darin gilt als Arbeit oder Test und erscheint im Stundenplan und am Vorabend. Bei WebUntis dessen Prüfungen-Kalender."
+              "lessons_calendar": "Bei WebUntis dessen Stundenplan-Kalender; dort „Kalender - Ausfallende Stunden“ einschalten, sonst kommt ein Ausfall nie in diesem Kalender an. Bei Schulmanager Online dessen Stundenplan-Kalender, so wie er ist.",
+              "exams_calendar": "Jeder Termin darin gilt als Arbeit oder Test und erscheint im Stundenplan und am Vorabend. Bei WebUntis dessen Prüfungen-Kalender, bei Schulmanager Online der Kalender „Arbeiten“.",
+              "homework_list": "Bei Schulmanager Online dessen Hausaufgaben-Liste. Neue Hausaufgaben werden in die Schoolday-Liste dieses Kindes übernommen; abgehakt wird dort."
             }
           }
         }
@@ -94,15 +96,17 @@
         },
         "sections": {
           "school_system": {
-            "name": "Schulsystem (WebUntis o. Ä.), optional",
-            "description": "Kalender, die ein Schulsystem wie WebUntis schon für dieses Kind führt. Daraus kommen nur Ausfälle, Vertretungen und Arbeiten.",
+            "name": "Schulsystem (WebUntis, Schulmanager o. Ä.), optional",
+            "description": "Kalender und Listen, die ein Schulsystem wie WebUntis oder Schulmanager Online schon für dieses Kind führt. Daraus kommen nur Änderungen am Stundenplan, Arbeiten und Hausaufgaben.",
             "data": {
               "lessons_calendar": "Stundenplan-Kalender der Schule",
-              "exams_calendar": "Klassenarbeiten-Kalender der Schule"
+              "exams_calendar": "Klassenarbeiten-Kalender der Schule",
+              "homework_list": "Hausaufgaben-Liste der Schule"
             },
             "data_description": {
-              "lessons_calendar": "Bei WebUntis dessen Stundenplan-Kalender. Dort „Kalender - Ausfallende Stunden“ einschalten, sonst kommt ein Ausfall nie in diesem Kalender an.",
-              "exams_calendar": "Jeder Termin darin gilt als Arbeit oder Test und erscheint im Stundenplan und am Vorabend. Bei WebUntis dessen Prüfungen-Kalender."
+              "lessons_calendar": "Bei WebUntis dessen Stundenplan-Kalender; dort „Kalender - Ausfallende Stunden“ einschalten, sonst kommt ein Ausfall nie in diesem Kalender an. Bei Schulmanager Online dessen Stundenplan-Kalender, so wie er ist.",
+              "exams_calendar": "Jeder Termin darin gilt als Arbeit oder Test und erscheint im Stundenplan und am Vorabend. Bei WebUntis dessen Prüfungen-Kalender, bei Schulmanager Online der Kalender „Arbeiten“.",
+              "homework_list": "Bei Schulmanager Online dessen Hausaufgaben-Liste. Neue Hausaufgaben werden in die Schoolday-Liste dieses Kindes übernommen; abgehakt wird dort."
             }
           }
         }
@@ -475,6 +479,10 @@
         "exams_calendar": {
           "name": "Klassenarbeiten-Kalender",
           "description": "Kalender eines Schulsystems für dieses Kind; jeder Termin darin ist eine Arbeit."
+        },
+        "homework_list": {
+          "name": "Hausaufgaben-Liste",
+          "description": "Die Hausaufgaben-Liste eines Schulsystems für dieses Mitglied; neue Einträge werden in die Schoolday-Liste übernommen."
         },
         "avatar": {
           "name": "Avatar",

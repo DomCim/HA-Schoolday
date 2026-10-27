@@ -38,6 +38,7 @@ from .const import (
     CONF_ROUTINES,
     CONF_SCHEDULE,
     CONF_EXAMS_CALENDAR,
+    CONF_HOMEWORK_LIST,
     CONF_TRAVEL_MINUTES,
     CONF_LEAVE_TIME,
     CONF_CARE_LEAVE_TIME,
@@ -312,6 +313,7 @@ def set_member(
     travel_minutes: Any = None,
     leave_time: Any = None,
     care_leave_time: Any = None,
+    homework_list: str | None = None,
 ) -> tuple[dict[str, Any], str]:
     """Add a family member, or change one that exists.
 
@@ -340,6 +342,10 @@ def set_member(
     for entity in calendars.values():
         if not entity.startswith("calendar."):
             raise SchooldayValueError(f"'{entity}' is not a calendar entity.")
+
+    todo_list = (homework_list or "").strip() or None
+    if todo_list and not todo_list.startswith("todo."):
+        raise SchooldayValueError(f"'{todo_list}' is not a to-do list.")
 
     travel: int | None = None
     if travel_minutes not in (None, ""):
@@ -380,6 +386,7 @@ def set_member(
         (CONF_CALENDAR, calendars.get(CONF_CALENDAR)),
         (CONF_LESSONS_CALENDAR, calendars.get(CONF_LESSONS_CALENDAR)),
         (CONF_EXAMS_CALENDAR, calendars.get(CONF_EXAMS_CALENDAR)),
+        (CONF_HOMEWORK_LIST, todo_list),
         (CONF_AVATAR, (avatar or "").strip() or None),
         # Not checked against the schedules that exist: one can be written before the
         # times behind it are, and a name that stands for nothing already reads as the

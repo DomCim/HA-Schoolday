@@ -570,6 +570,67 @@ history.record(MEMBER, "school", "morning", ["a", "b"], ["a"])
 check("unveraenderte Tage werden nicht erneut geschrieben",
       history._store.writes == writes, f"{history._store.writes - writes} Schreibvorgaenge")
 
+# --- homework copied from a school system's list --------------------------------
+import asyncio  # noqa: E402
+
+homework = S.HomeworkStore(None)
+homework._items, homework._imported = {}, {}
+counter = itertools.count(1)
+def new_uid():
+    return f"h{next(counter)}"
+def sm_item(source, summary, done=False):
+    return {"source": source, "summary": summary, "due": None, "description": None,
+            "done": done}
+LIST = "todo.ben_hausaufgaben"
+added = asyncio.run(homework.async_import(MEMBER, LIST, [], new_uid))
+check("eine leere erste Lesung legt keine Grundlinie an",
+      added == 0 and homework._imported == {}, str(homework._imported))
+old = [sm_item("a", "Deutsch: AB"), sm_item("b", "Mathe: AH S. 1")]
+added = asyncio.run(homework.async_import(MEMBER, LIST, old, new_uid))
+check("die erste Lesung übernimmt nichts, sie merkt sich nur, was schon da war",
+      added == 0 and homework.items(MEMBER) == [], str(homework.items(MEMBER)))
+added = asyncio.run(homework.async_import(
+    MEMBER, LIST, [*old, sm_item("c", "Deutsch: Lesebuch S. 6"),
+                   sm_item("d", "Sport: Turnbeutel", done=True)], new_uid))
+copied = homework.items(MEMBER)
+check("neue Hausaufgaben werden übernommen, schon erledigte nicht",
+      added == 1 and [item["summary"] for _, item in copied] == ["Deutsch: Lesebuch S. 6"],
+      str(copied))
+uid_c = copied[0][0]
+asyncio.run(homework.async_import(
+    MEMBER, LIST, [*old, sm_item("c", "Deutsch: Lesebuch S. 6", done=True)], new_uid))
+check("in der Schule abgehakt wird hier abgehakt",
+      homework.items(MEMBER)[0][1]["done"] is True, str(homework.items(MEMBER)))
+asyncio.run(homework.async_update(MEMBER, uid_c, done=False))
+asyncio.run(homework.async_import(
+    MEMBER, LIST, [*old, sm_item("c", "Deutsch: Lesebuch S. 6", done=True)], new_uid))
+check("hier wieder geöffnet bleibt offen, auch wenn die Schule es erledigt nennt",
+      homework.items(MEMBER)[0][1]["done"] is False, str(homework.items(MEMBER)))
+asyncio.run(homework.async_remove(MEMBER, [uid_c]))
+added = asyncio.run(homework.async_import(
+    MEMBER, LIST, [*old, sm_item("c", "Deutsch: Lesebuch S. 6")], new_uid))
+check("hier gelöscht kommt nicht wieder",
+      added == 0 and homework.items(MEMBER) == [], str(homework.items(MEMBER)))
+asyncio.run(homework.async_import(MEMBER, LIST, old, new_uid))
+check("was aus beiden Listen verschwunden ist, wird vergessen",
+      set(homework._imported[f"{MEMBER} {LIST}"]) == {"a", "b"},
+      str(homework._imported))
+added = asyncio.run(homework.async_import(MEMBER, "todo.andere", old, new_uid))
+check("eine andere Liste beginnt mit ihrer eigenen ersten Lesung",
+      added == 0 and homework.items(MEMBER) == [], str(homework.items(MEMBER)))
+
+out, _ = W.set_member(BASE, MEMBER, "Ben", homework_list=" todo.ben_hausaufgaben ")
+check("die Hausaufgaben-Liste der Schule wird gespeichert",
+      out["members"][0].get("homework_list") == "todo.ben_hausaufgaben", str(out["members"][0]))
+try:
+    W.set_member(BASE, MEMBER, "Ben", homework_list="calendar.ben")
+    check("eine Hausaufgaben-Liste muss eine To-do-Liste sein", False)
+except W.SchooldayValueError as err:
+    check("eine Hausaufgaben-Liste muss eine To-do-Liste sein", "to-do" in str(err), str(err))
+check("die Verwaltungskarte sieht die Hausaufgaben-Liste",
+      Models.SchooldayConfig.from_options(merged(out)).as_admin_dict()["members"][0]
+      ["homework_list"] == "todo.ben_hausaufgaben")
+
 # --- the base must never be mutated ---------------------------------------
 check("Ausgangs-Optionen bleiben unveraendert",
       BASE["timetable"]["lessons"][MEMBER]["0"] == {"1": {"subject": "Deutsch", "room": None}}
@@ -781,6 +842,42 @@ check("WebUntis: die Vertretung in derselben Stunde kommt mit Fach und Raum",
       Models.substituted_periods(untis, UNTIS, config.substitute_keywords)
       == {MON: {3: Models.Lesson(period=3, subject="Deutsch", room="007")}},
       str(Models.substituted_periods(untis, UNTIS, config.substitute_keywords)))
+
+# Exactly what the Schulmanager Online integration (MrIcemanLE) writes, with its emoji
+# option on and off, and what the other one (rwunsch) writes: every lesson is on the
+# calendar, and only the change type in the notes says which ones changed.
+sm = [
+    Feed(MON, "D – 104", 8 * 60, 8 * 60 + 45, None, "Lehrer: Mül\nRaum: 104"),
+    Feed(MON, "❌ M – 104", 8 * 60 + 50, 9 * 60 + 35, None,
+         "Lehrer: Ber\nRaum: 104\nTyp: cancelledLesson"),
+    Feed(MON, "X Mu – 104", 9 * 60 + 55, 10 * 60 + 40, None,
+         "Raum: 104\nTyp: cancelledLesson"),
+    Feed(MON, "🔁 D – 007", 10 * 60 + 45, 11 * 60 + 30, None,
+         "Lehrer: Rei\nRaum: 007\nTyp: substitution\nUrsprünglich: E (Ber) in 104"),
+    Feed(MON, "🚪 Sp – TH2", 11 * 60 + 50, 12 * 60 + 35, None,
+         "Raum: TH2\nTyp: roomChange"),
+    Feed(MON, "🔁 Sp – TH", 12 * 60 + 40, 13 * 60 + 25, None,
+         "Lehrer: Neu\nRaum: TH\nTyp: teacherChange"),
+    Feed(MON, "🔄 Mathematik (R12)", 9 * 60 + 55, 10 * 60 + 40, None,
+         "Subject: Mathematik\nClass Hour: 3\nRoom: R12\nType: substitution"),
+]
+typed = Models.school_system_changes(sm, UNTIS)
+check("Schulmanager: Ausfälle am Typ erkannt, mit und ohne Emoji",
+      typed.cancelled == {MON: {2, 3}}, str(typed.cancelled))
+check("Schulmanager: Vertretung ohne Emoji und Raum im Fach",
+      typed.replaced[MON][4] == Models.Lesson(period=4, subject="D", room="007"),
+      str(typed.replaced.get(MON)))
+check("Schulmanager (rwunsch): das Fach aus der Notiz, der Raum aus 'Room:'",
+      typed.replaced[MON][3] == Models.Lesson(period=3, subject="Mathematik", room="R12"),
+      str(typed.replaced.get(MON)))
+check("Schulmanager: ein Raumwechsel ist nur der Raum, ein Lehrerwechsel nichts",
+      typed.rooms == {MON: {5: "TH2"}} and 6 not in typed.replaced[MON]
+      and 1 not in typed.replaced[MON], str((typed.rooms, typed.replaced)))
+check("Schulmanager-Notizen lassen die Stichwort-Suche unberührt",
+      Models.cancelled_periods(sm, UNTIS, config.cancel_keywords) == {},
+      str(Models.cancelled_periods(sm, UNTIS, config.cancel_keywords)))
+check("ein Kalender ohne Typ-Notizen ergibt keine Schulmanager-Änderungen",
+      Models.school_system_changes(untis, UNTIS) == Models.SchoolSystemChanges())
 
 exams = Models.exams_by_day([
     Feed(WED, "Mathe (Mül)", 8 * 60 + 45, 9 * 60 + 30),

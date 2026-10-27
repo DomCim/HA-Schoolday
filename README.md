@@ -29,8 +29,8 @@ homework, days off, the cards and the automations.
 |---|---|
 | **Timetable** | The week per child, colour-coded by subject, with the running lesson marked. Two-week A/B schools included. |
 | **Routines** | The things that simply have to happen, ticked off by the kids — plus the packing list tomorrow's lessons generate. |
-| **Homework** | A Home Assistant todo list per child, grouped by when it is due. |
-| **Days that differ** | Holidays, holiday care, school trips, cancelled lessons, substitutions, exams, and a child at home ill. Cancellations, substitutions and exams can be read from WebUntis or any school calendar. |
+| **Homework** | A Home Assistant todo list per child, grouped by when it is due. New homework can be copied over from Schulmanager Online. |
+| **Days that differ** | Holidays, holiday care, school trips, cancelled lessons, substitutions, exams, and a child at home ill. Cancellations, substitutions and exams can be read from WebUntis, Schulmanager Online or any school calendar. |
 | **The record** | How reliably each child gets through their routines over the last month, and which steps keep being skipped. |
 | **Automations** | A sensor per child whose state is the subject they are in right now, today's and tomorrow's subjects ready to speak — "Ben has PE tomorrow" — events at every lesson boundary, and a service for everything the options dialog can change. |
 | **On time** | A leaving time per child that moves by itself when the first lesson is cancelled — or stays put for the bus, with its own time for holiday care — counted down on the wall, and a push notification when the school changes tomorrow's plan. Three blueprints ship with it: the notification, a hallway light that turns red when it is time to go, and anything you like an hour before — the wake-up light sleeps in when the first lesson does. |
@@ -63,6 +63,20 @@ Schoolday is free and stays free. If it saves your mornings and you want to give
 back, there is a coffee:
 
 [![Buy me a coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/did0m)
+
+## Built on the work of others
+
+Schoolday reads what a school system already publishes rather than logging in itself,
+and that only works because other people wrote the integrations that do the logging in:
+
+- [Schulmanager Online](https://github.com/MrIcemanLE/Schulmanager-homeassistant) by
+  MrIcemanLE, building on Alpakat's
+  [schulmanager-online-api-client](https://github.com/Alpakat/schulmanager-online-api-client)
+- [WebUntis](https://github.com/JonasJoKuJonas/homeassistant-WebUntis) by JonasJoKuJonas
+
+Thank you. If Schoolday reads your school through one of them, their repository deserves
+a ⭐ as much as this one. How to set each one up is in the manual under
+[From the school's own system](https://domcim.github.io/HA-Schoolday/exceptions.html#from-the-schools-own-system).
 
 ## Contributing
 

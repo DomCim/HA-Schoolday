@@ -5,7 +5,22 @@ version you are updating to; the [manual](https://domcim.github.io/HA-Schoolday/
 details. Releases before 0.14.0 are listed on
 [GitHub](https://github.com/DomCim/HA-Schoolday/releases).
 
-## 0.19.1
+## 0.20.0
+
+### The exams still to come
+
+A new card, **Schoolday Exams**, lists every exam ahead for the whole family, in date
+order and grouped by week: this week, next week, in four weeks. Each line says the
+subject as the school wrote it, which lesson it is in, whose it is in that child's colour,
+and how many days are left. Today's and tomorrow's stand out. Add it from the card picker;
+it needs no options, and `member` and `days` narrow it down.
+
+It reads each child's exams calendar — Schulmanager Online's **Arbeiten**, WebUntis' exams
+or any calendar of tests — which Schoolday now reads twelve weeks ahead instead of one. A
+child without an exams calendar simply does not appear. The `exams` attribute of each
+child's sensor reaches just as far, so automations see the same list.
+
+### First day of the week, in the options dialog
 
 **Week begins on** is now also in the integration's options dialog, as **First day of
 the week**. Until now it was only in the admin card, so a household that sets
@@ -17,6 +32,8 @@ when the week begins on Sunday.
 
 The Hebrew texts are reworded throughout, in the cards and in the integration's dialogs,
 to read naturally and say plainly what each setting does.
+
+Thanks to [@Shenharo](https://github.com/Shenharo) for the first day of the week in the options dialog and the reworded Hebrew.
 
 ## 0.19.0
 

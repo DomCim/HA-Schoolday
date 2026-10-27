@@ -138,6 +138,35 @@ voice and from the todo panel.
 | `show_done` | `false` | Show what is already finished. |
 | `show_empty` | `false` | Keep children with nothing to do. |
 
+## Exams card
+
+```yaml
+type: custom:schoolday-exams-card
+```
+
+Every exam still to come, for the whole family, in date order and grouped by calendar
+week. The timetable labels an exam on its lesson and the routines card says it the evening
+before, but both only once it is close; this is the list for seeing the busy week while
+there is still time to revise.
+
+The exams come from each child's
+[exams calendar](exceptions.md#from-the-schools-own-system), read twelve weeks ahead. One
+list rather than a column per child, because "when is the next busy week" is a question
+about everybody at once; each line carries the child's colour and name, and the name is
+left off when the card shows one child only. Today's and tomorrow's exams stand out.
+
+![This week and next, then four weeks on: each line says when, in which lesson and how many days away.](images/exams.png)
+*This week and next, then four weeks on: each line says when, in which lesson and how many
+days away.*
+
+| Option | Default | What it does |
+|---|---|---|
+| `member` | all | One child only. |
+| `days` | all | How many days ahead to list, up to the 84 Schoolday reads. |
+
+With no exams ahead the card says so rather than standing empty, so it can stay on the
+dashboard all year.
+
 ## Header card
 
 ```yaml
@@ -314,6 +343,7 @@ move.
 | Routines | `.person` `.person-name` `.avatar` `.block` `.block-head` `.progress` `.bar` `.bar-fill` `.step` `.label` `.from` `.exam-note` `.sick-note` |
 | Routine record | `.person` `.person-head` `.name` `.rate` `.window` `.streak` `.strip` `.day` `.axis` `.row` `.meter` `.meter-fill` `.value` |
 | Homework | `.person` `.bucket` `.bucket-head` `.item` `.label` `.due` `.count` |
+| Exams | `.week` `.week-head` `.range` `.exam` `.soon` `.date` `.title` `.who` `.slot` `.when` |
 | Header | `.clock` `.date` `.greeting` `.weather` `.temperature` `.condition` |
 | Admin | `.tabs` `.field` `.row` `.apply` `.danger` `.notice` `.error` |
 

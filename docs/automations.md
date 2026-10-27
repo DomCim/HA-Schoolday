@@ -23,7 +23,7 @@ sensor.schoolday_ben        →  Sport
 | `today_subjects` | Today's subjects, de-duplicated: `["Deutsch", "Mathe", "Sport"]` |
 | `today_summary` | The same, ready to speak: `"Deutsch, Mathe, Sport"` |
 | `tomorrow_subjects` / `tomorrow_summary` | The same for tomorrow — empty when tomorrow is a weekend, a holiday, a care day, a trip or a sick day |
-| `exams` | Exams from today to the end of the outlook, from this child's [exams calendar](exceptions.md#from-the-schools-own-system): `date`, `title`, `start` and `period` — `start` and `period` are `null` for an all-day one |
+| `exams` | Exams from today and for the next twelve weeks, from this child's [exams calendar](exceptions.md#from-the-schools-own-system): `date`, `title`, `start` and `period` — `start` and `period` are `null` for an all-day one |
 | `tomorrow_exams` | Tomorrow's exam titles: `["Mathe"]` — empty when tomorrow is not a school day, like `tomorrow_subjects` |
 | `school_start` / `school_end` | When today's first lesson begins and the last one ends, `"08:00"` / `"13:10"`, after what the [school system](exceptions.md#from-the-schools-own-system) cancelled — `null` on a day without school |
 | `tomorrow_start` / `tomorrow_end` | The same for tomorrow |

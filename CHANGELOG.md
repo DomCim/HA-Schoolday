@@ -23,10 +23,20 @@ from HACS. Under **Edit a family member**, behind **School system**, give a chil
   child's Schoolday list and ticked off there. Linking the list copies nothing that is
   already on it, because Schulmanager keeps every piece of homework since September.
 
+**What you need:** the Schulmanager Online integration 0.12.0 or newer, added to HACS as
+a custom repository (`https://github.com/MrIcemanLE/Schulmanager-homeassistant`, type
+Integration), downloaded, Home Assistant restarted, and set up under **Settings → Devices
+& services** with the login you use in the Schulmanager app. Nothing changes in Schoolday
+until you pick its calendars and list for a child.
+
 Two children at two schools with one parent login: Schulmanager keeps one account per
 school, and the integration only finds both when the password is the same at both. The
-manual explains it under
+manual explains it, step by step, under
 [With Schulmanager Online](https://domcim.github.io/HA-Schoolday/exceptions.html#with-schulmanager-online).
+
+Thank you to [MrIcemanLE](https://github.com/MrIcemanLE) for the Schulmanager Online
+integration, which does all the talking to Schulmanager and writes every change in a way
+Schoolday can read. If it helps your family, their repository deserves a ⭐ too.
 
 ## 0.16.0
 

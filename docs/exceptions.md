@@ -226,9 +226,26 @@ what the school shares through WebUntis; some schools keep exams out of it.
 
 ### With Schulmanager Online
 
-The [Schulmanager Online integration](https://github.com/MrIcemanLE/Schulmanager-homeassistant)
-(HACS) logs in once for the household and creates, per child, a timetable calendar, an
-exams calendar, a calendar of school events and a homework list.
+Schoolday does not talk to Schulmanager itself. The
+[Schulmanager Online integration](https://github.com/MrIcemanLE/Schulmanager-homeassistant)
+by [MrIcemanLE](https://github.com/MrIcemanLE) does that: it logs in once for the household
+and creates, per child, a timetable calendar, an exams calendar, a calendar of school
+events and a homework list. Schoolday reads those.
+
+**What you need**
+
+- Schoolday 0.17.0 or newer.
+- The Schulmanager Online integration, 0.12.0 or newer, from HACS. It is a custom
+  repository, so add it first:
+  1. **HACS → ⋮ (top right) → Custom repositories**, repository
+     `https://github.com/MrIcemanLE/Schulmanager-homeassistant`, type **Integration**.
+  2. Search HACS for **Schulmanager Online**, download it, and restart Home Assistant.
+  3. **Settings → Devices & services → Add integration → Schulmanager Online**, with the
+     e-mail address and password you use in the Schulmanager app.
+- A parent login at the school. If your children are at two schools, read
+  [Two schools, one parent login](#two-schools-one-parent-login) below before you start.
+
+Then, for each child, under **Edit a family member → School system**:
 
 1. Its **Stundenplan** calendar goes in **Lessons calendar**, as it is. It holds every
    lesson, not only the changed ones, and writes the kind of change into each event's
@@ -248,12 +265,25 @@ well.
 Not every school uses every part of Schulmanager. A primary school may keep homework and
 events in it but no timetable, and then its timetable calendar simply stays empty.
 
-**Two schools, one parent login.** Schulmanager keeps a separate account per school,
-even with the same e-mail address, and its app remembers the second one after you add
-it — so nobody notices if the two have different passwords. The integration only finds
-both schools when the password is the same at both; otherwise it sees one child. Set the
-same password at each school (in the app, with that school selected, **Passwort ändern**)
-and add the integration again.
+#### Two schools, one parent login
+
+Schulmanager keeps a separate account per school, even with the same e-mail address, and
+its app remembers the second one after you add it — so nobody notices if the two have
+different passwords. The integration only finds both schools when the password is the
+same at both; otherwise it sees one child. Set the same password at each school (in the
+app, with that school selected, **Passwort ändern**). If the integration was already set
+up with the old password, remove it and add it again.
+
+#### Thank you
+
+The Schulmanager side of this is entirely
+[MrIcemanLE](https://github.com/MrIcemanLE)'s work: finding out how the Schulmanager app
+talks to its server, keeping up with it, and writing the change type into every lesson
+in a way another integration can read. Schoolday only had to listen. If it helps you,
+give [their repository](https://github.com/MrIcemanLE/Schulmanager-homeassistant) a ⭐
+too. Thanks as well to [rwunsch](https://github.com/rwunsch/schulmanager-online-hass) and
+to the [schulmanager-online-api-client](https://github.com/Alpakat/schulmanager-online-api-client)
+by Alpakat, which the integrations build on.
 
 ### Any other calendar
 

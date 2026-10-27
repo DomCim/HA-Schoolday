@@ -64,6 +64,20 @@ back, there is a coffee:
 
 [![Buy me a coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/did0m)
 
+## Built on the work of others
+
+Schoolday reads what a school system already publishes rather than logging in itself,
+and that only works because other people wrote the integrations that do the logging in:
+
+- [Schulmanager Online](https://github.com/MrIcemanLE/Schulmanager-homeassistant) by
+  MrIcemanLE, building on Alpakat's
+  [schulmanager-online-api-client](https://github.com/Alpakat/schulmanager-online-api-client)
+- [WebUntis](https://github.com/JonasJoKuJonas/homeassistant-WebUntis) by JonasJoKuJonas
+
+Thank you. If Schoolday reads your school through one of them, their repository deserves
+a ⭐ as much as this one. How to set each one up is in the manual under
+[From the school's own system](https://domcim.github.io/HA-Schoolday/exceptions.html#from-the-schools-own-system).
+
 ## Contributing
 
 Something broken goes in an [issue](https://github.com/DomCim/HA-Schoolday/issues/new/choose);

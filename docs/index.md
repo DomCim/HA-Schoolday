@@ -102,6 +102,16 @@ form asks for the version and the log, which is what makes it answerable. Questi
 [Discussions](https://github.com/DomCim/HA-Schoolday/discussions), and an idea becomes an issue once
 there is a plan.
 
+## Built on the work of others
+
+Reading a school system works because other people wrote the integrations that log in to
+it: [Schulmanager Online](https://github.com/MrIcemanLE/Schulmanager-homeassistant) by
+MrIcemanLE, building on Alpakat's
+[schulmanager-online-api-client](https://github.com/Alpakat/schulmanager-online-api-client),
+and [WebUntis](https://github.com/JonasJoKuJonas/homeassistant-WebUntis) by
+JonasJoKuJonas. Thank you — and if Schoolday reads your school through one of them, their
+repository deserves a ⭐ as well.
+
 ## If it works in your house
 
 Give it a [⭐ on GitHub](https://github.com/DomCim/HA-Schoolday). The star count is what the

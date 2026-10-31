@@ -20,7 +20,7 @@ import { customElement, property, state } from 'lit/decorators.js';
 
 import { avatarUrl, findBoard, memberSensor, type SchooldayMember } from '../lib/board';
 import { localeOf } from '../lib/dates';
-import { t } from '../lib/i18n';
+import { isRtl, t } from '../lib/i18n';
 import { schooldayButtons, schooldayTokens } from '../lib/styles';
 import type {
   HomeAssistant,
@@ -219,7 +219,7 @@ export class SchooldayStatsCard extends LitElement implements LovelaceCard {
     return html`
       <div class="row step">
         ${icon ? this._icon(icon, 'row-icon') : nothing}
-        <span class="label" title=${entry.step}>${entry.step}</span>
+        <span class="label" title=${entry.step}><bdi>${entry.step}</bdi></span>
         <div class="meter">
           <div class="meter-fill" style=${`width:${entry.rate ?? 0}%`}></div>
         </div>
@@ -273,7 +273,7 @@ export class SchooldayStatsCard extends LitElement implements LovelaceCard {
             ? html`<img class="avatar" src=${avatarUrl(this.hass!, member.avatar)!} alt="" />`
             : nothing}
           <div class="who">
-            <span class="name">${member.name}</span>
+            <span class="name"><bdi>${member.name}</bdi></span>
             ${counted > 0
               ? html`<span class="window"
                   >${t(this.hass, counted === 1 ? 'stats.window_one' : 'stats.window', {
@@ -302,6 +302,13 @@ export class SchooldayStatsCard extends LitElement implements LovelaceCard {
             `}
       </div>
     `;
+  }
+
+  protected override willUpdate(): void {
+    // Home Assistant turns its own pages right to left, but a card shown anywhere
+    // else — the card picker's preview, the docs shots — has nothing to inherit it
+    // from. Empty rather than "ltr" so a page that is already rtl is not overruled.
+    this.dir = isRtl(this.hass) ? 'rtl' : '';
   }
 
   protected override render(): TemplateResult {
@@ -418,7 +425,7 @@ export class SchooldayStatsCard extends LitElement implements LovelaceCard {
          member's colour: the colour is already carrying who this is, and a number that
          changes hue with the child is a number that is hard to compare. */
       .rate {
-        margin-left: auto;
+        margin-inline-start: auto;
         font-size: 1.9rem;
         font-weight: 700;
         line-height: 1;
@@ -444,7 +451,7 @@ export class SchooldayStatsCard extends LitElement implements LovelaceCard {
       }
 
       .streak .best {
-        margin-left: auto;
+        margin-inline-start: auto;
         font-weight: 400;
       }
 
@@ -564,7 +571,7 @@ export class SchooldayStatsCard extends LitElement implements LovelaceCard {
       .value {
         flex: none;
         min-width: 3.2em;
-        text-align: right;
+        text-align: end;
         color: var(--schoolday-muted);
         font-weight: 600;
         font-variant-numeric: tabular-nums;

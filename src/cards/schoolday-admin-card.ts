@@ -26,7 +26,7 @@ import {
   type AdminMember,
 } from '../lib/admin';
 import { localeOf } from '../lib/dates';
-import { t } from '../lib/i18n';
+import { isRtl, t } from '../lib/i18n';
 import { schooldayButtons, schooldayTokens } from '../lib/styles';
 import { gridFor, lessonAt, SLOTS_PER_WEEK, weekOf, type TimetableWeek } from '../lib/timetable';
 import { findBoard, memberSensor } from '../lib/board';
@@ -185,7 +185,7 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
                 this._cell = undefined;
               }}
             >
-              ${member.name}
+              <bdi>${member.name}</bdi>
             </button>
           `,
         )}
@@ -306,9 +306,11 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
     save: (lines: string[]) => void,
   ): TemplateResult {
     const id = `lines-${label}`;
+    // Isolated because the label is sometimes a school's own name, typed in whatever
+    // script the household writes — "ד׳1" must not come out as "1ד׳" in an English UI.
     return html`
       <label class="field">
-        <span class="label">${label}</span>
+        <span class="label"><bdi>${label}</bdi></span>
         <textarea
           id=${id}
           rows=${Math.max(3, value.length + 1)}
@@ -470,8 +472,8 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
                             this._draftRoom = lesson?.room ?? '';
                           }}
                         >
-                          <span class="subject">${lesson?.subject ?? '+'}</span>
-                          ${lesson?.room ? html`<span class="room">${lesson.room}</span>` : nothing}
+                          <span class="subject"><bdi>${lesson?.subject ?? '+'}</bdi></span>
+                          ${lesson?.room ? html`<span class="room"><bdi>${lesson.room}</bdi></span>` : nothing}
                         </button>
                       `;
                     })}
@@ -494,7 +496,7 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
     return html`
       <div class="editor">
         <div class="editor-head">
-          ${member.name} · ${this._weekdayName(weekday, 'long')}${cycled
+          <bdi>${member.name}</bdi> · ${this._weekdayName(weekday, 'long')}${cycled
             ? ` ${t(this.hass, week === 1 ? 'admin.week_b' : 'admin.week_a')}`
             : ''} · ${period}.
         </div>
@@ -948,7 +950,7 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
                     color: (e.target as HTMLInputElement).value,
                   })}
               />
-              <span class="name">${subject}</span>
+              <span class="name"><bdi>${subject}</bdi></span>
               ${custom
                 ? html`
                     <button
@@ -1199,6 +1201,13 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
 
   // --- render -------------------------------------------------------------
 
+  protected override willUpdate(): void {
+    // Home Assistant turns its own pages right to left, but a card shown anywhere
+    // else — the card picker's preview, the docs shots — has nothing to inherit it
+    // from. Empty rather than "ltr" so a page that is already rtl is not overruled.
+    this.dir = isRtl(this.hass) ? 'rtl' : '';
+  }
+
   protected override render(): TemplateResult {
     if (!this.hass) {
       return html`<ha-card></ha-card>`;
@@ -1441,7 +1450,7 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
         display: flex;
         align-items: center;
         justify-content: flex-end;
-        padding-right: 4px;
+        padding-inline-end: 4px;
         font-weight: 700;
         color: var(--schoolday-muted);
       }
@@ -1462,7 +1471,7 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
 
       .slot.filled {
         border: none;
-        border-left: 3px solid var(--subject);
+        border-inline-start: 3px solid var(--subject);
         background: color-mix(in srgb, var(--subject) 22%, transparent);
         color: inherit;
         font-weight: 700;
@@ -1486,7 +1495,7 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
         padding: 10px;
         border-radius: 10px;
         background: var(--schoolday-surface-alt);
-        border-left: 3px solid var(--member-color, var(--schoolday-today));
+        border-inline-start: 3px solid var(--member-color, var(--schoolday-today));
       }
 
       .editor-head,

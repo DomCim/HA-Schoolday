@@ -1201,6 +1201,55 @@ check(
   unknownLang.replace(/\s+/g, ' ').trim().slice(0, 60),
 );
 
+// Hebrew is the one shipped language written right to left, so it is the one that
+// proves the layout follows the language rather than assuming a left edge.
+const hebrew = await page.evaluate(async () => {
+  const host = document.getElementById('host');
+  host.innerHTML = '';
+  const card = document.createElement('schoolday-timetable-card');
+  card.setConfig({ type: 'custom:schoolday-timetable-card' });
+  card.hass = { ...window.__hass, language: 'he', locale: { ...window.__hass.locale, language: 'he' } };
+  host.appendChild(card);
+  await new Promise((r) => setTimeout(r, 300));
+  const root = card.shadowRoot;
+  const cell = root.querySelector('.cell:not(.free):not(.closed)');
+  const style = cell ? getComputedStyle(cell) : null;
+  const heads = [...root.querySelectorAll('.col-head')].map((h) => h.getBoundingClientRect().left);
+  return {
+    dir: card.dir,
+    text: root.textContent,
+    accentRight: style?.borderRightWidth,
+    accentLeft: style?.borderLeftWidth,
+    mondayRightOfTuesday: heads.length > 1 && heads[0] > heads[1],
+    isolated: Boolean(root.querySelector('.cell .subject bdi')),
+  };
+});
+check(
+  'a Hebrew frontend gets Hebrew cards, laid out right to left',
+  hebrew.dir === 'rtl' && /עכשיו/.test(hebrew.text) && /הפסקה/.test(hebrew.text),
+  `${hebrew.dir} ${hebrew.text.replace(/\s+/g, ' ').trim().slice(0, 40)}`,
+);
+check(
+  'right to left, the week starts at the right and the lesson accent moves with it',
+  hebrew.mondayRightOfTuesday && hebrew.accentRight === '3px' && hebrew.accentLeft === '0px',
+  JSON.stringify({ monday: hebrew.mondayRightOfTuesday, right: hebrew.accentRight, left: hebrew.accentLeft }),
+);
+check(
+  'what the household typed is isolated, so "ד׳1" cannot turn into "1ד׳" in either direction',
+  hebrew.isolated,
+);
+
+const germanDir = await page.evaluate(async () => {
+  window.__mount({ type: 'custom:schoolday-timetable-card' }, 'schoolday-timetable-card');
+  await new Promise((r) => setTimeout(r, 300));
+  return document.querySelector('schoolday-timetable-card').dir;
+});
+check(
+  'a left-to-right language leaves the direction to the page rather than forcing one',
+  germanDir === '',
+  JSON.stringify(germanDir),
+);
+
 // ------------------------------------------------------------ restyling
 
 // card-mod appends a <style> into a card's shadow root, so whether a household can

@@ -188,7 +188,7 @@ nobody updates, so do not.
 
 ## Language
 
-The cards follow Home Assistant's own language — currently German and English, with English as the
+The cards follow Home Assistant's own language — currently German, English and Hebrew, with English as the
 fallback for anything else. There is no language option to set; a German frontend gets a German wall
 panel. Strings live in `src/lib/i18n.ts`, and the smoke suite fails if a card renders raw keys.
 

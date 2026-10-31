@@ -321,5 +321,8 @@ The cards follow **Home Assistant's own language** rather than a card option, so
 household gets a German wall panel without configuring anything. English is the fallback,
 key by key.
 
-Shipped today: **German** and **English**. A third is a translation file and one block in
+Shipped today: **German**, **English** and **Hebrew**. A fourth is a translation file and one block in
 `src/lib/i18n.ts` — no code changes.
+
+Hebrew turns the cards right to left, and text the household typed keeps its own reading
+order in either direction.

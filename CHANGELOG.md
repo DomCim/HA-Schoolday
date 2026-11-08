@@ -14,6 +14,8 @@ Names, subjects, rooms and routine steps now keep their own reading order in any
 so Hebrew text on an English card no longer has its numbers and full stops jump to the
 other end. Nothing to do: the cards follow your Home Assistant language.
 
+Thanks to [@Shenharo](https://github.com/Shenharo) for the translation and the right-to-left layout.
+
 ## 0.17.0
 
 ### Schulmanager Online

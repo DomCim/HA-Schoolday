@@ -15,7 +15,7 @@ import { customElement, property, state } from 'lit/decorators.js';
 
 import { avatarUrl, findBoard, type SchooldayMember } from '../lib/board';
 import { localeOf } from '../lib/dates';
-import { t } from '../lib/i18n';
+import { isRtl, t } from '../lib/i18n';
 import { schooldayButtons, schooldayTokens } from '../lib/styles';
 import { todayKey } from '../lib/timetable';
 import type {
@@ -184,10 +184,17 @@ export class SchooldayHomeworkCard extends LitElement implements LovelaceCard {
         @click=${() => this._toggle(member.id, item)}
       >
         ${this._icon(done ? ICONS.checked : ICONS.unchecked, 'tick')}
-        <span class="label">${item.summary}</span>
+        <span class="label"><bdi>${item.summary}</bdi></span>
         ${due ? html`<span class="due">${due}</span>` : nothing}
       </button>
     `;
+  }
+
+  protected override willUpdate(): void {
+    // Home Assistant turns its own pages right to left, but a card shown anywhere
+    // else — the card picker's preview, the docs shots — has nothing to inherit it
+    // from. Empty rather than "ltr" so a page that is already rtl is not overruled.
+    this.dir = isRtl(this.hass) ? 'rtl' : '';
   }
 
   protected override render(): TemplateResult {
@@ -233,7 +240,7 @@ export class SchooldayHomeworkCard extends LitElement implements LovelaceCard {
                   ${avatarUrl(this.hass!, member.avatar)
                     ? html`<img class="avatar" src=${avatarUrl(this.hass!, member.avatar)!} alt="" />`
                     : nothing}
-                  <span>${member.name}</span>
+                  <span><bdi>${member.name}</bdi></span>
                   <span class="count">${items.filter((item) => !item.done).length}</span>
                 </div>
                 ${items.length === 0
@@ -304,7 +311,7 @@ export class SchooldayHomeworkCard extends LitElement implements LovelaceCard {
       /* How much is left, where the eye lands first — the number is the whole point
          of walking past this card. */
       .count {
-        margin-left: auto;
+        margin-inline-start: auto;
         min-width: 26px;
         padding: 1px 8px;
         border-radius: 12px;
@@ -339,7 +346,7 @@ export class SchooldayHomeworkCard extends LitElement implements LovelaceCard {
         margin-bottom: 2px;
         box-sizing: border-box;
         border-radius: 8px;
-        text-align: left;
+        text-align: start;
         font-size: 1rem;
         background: color-mix(in srgb, var(--member-color) 20%, var(--schoolday-surface));
       }
@@ -380,7 +387,7 @@ export class SchooldayHomeworkCard extends LitElement implements LovelaceCard {
 
       .due {
         flex: none;
-        margin-left: auto;
+        margin-inline-start: auto;
         color: var(--schoolday-muted);
         font-size: 0.75rem;
         white-space: nowrap;

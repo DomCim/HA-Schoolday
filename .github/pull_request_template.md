@@ -20,6 +20,7 @@ Fixes #
 - [ ] No changes to `.github/workflows/` — or, if there are, they are explained below
 
 CI runs all of this. First-time contributors: the checks start once a maintainer approves
-the run, so a waiting check is not a failing one.
+the run, so a waiting check is not a failing one. Opening against `main` is fine — when the
+pull request is taken it moves to `develop`, where changes collect until the next release.
 
 <!-- See CONTRIBUTING.md for where bugs, questions and ideas go. -->

@@ -321,5 +321,11 @@ The cards follow **Home Assistant's own language** rather than a card option, so
 household gets a German wall panel without configuring anything. English is the fallback,
 key by key.
 
-Shipped today: **German** and **English**. A third is a translation file and one block in
-`src/lib/i18n.ts` — no code changes.
+Shipped today: **German**, **English** and **Hebrew**. A fourth language needs four small
+additions, no new logic: a translation file under `custom_components/schoolday/translations/`,
+one block in `src/lib/i18n.ts` for the cards, one block in the sentences and weekday names in
+`custom_components/schoolday/plan.py` for the plan-change message, and the suggested
+holiday-care keywords in `custom_components/schoolday/const.py`.
+
+Hebrew turns the cards right to left, and text the household typed keeps its own reading
+order in either direction.

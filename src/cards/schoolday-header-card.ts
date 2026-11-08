@@ -10,7 +10,7 @@ import { customElement, property, state } from 'lit/decorators.js';
 
 import { findBoard, memberSensor } from '../lib/board';
 import { localeOf, prefersHour12 } from '../lib/dates';
-import { t } from '../lib/i18n';
+import { isRtl, t } from '../lib/i18n';
 import { schooldayTokens } from '../lib/styles';
 import type {
   HomeAssistant,
@@ -166,13 +166,20 @@ export class SchooldayHeaderCard extends LitElement implements LovelaceCard {
         html`
           <div class=${`leave ${tone}`} style=${`--member-color:${member.color}`}>
             <span class="dot"></span>
-            <span class="who">${member.name}</span>
+            <span class="who"><bdi>${member.name}</bdi></span>
             <span class="when">${text}</span>
           </div>
         `,
       ];
     });
     return rows.length ? html`<div class="leaving">${rows}</div>` : nothing;
+  }
+
+  protected override willUpdate(): void {
+    // Home Assistant turns its own pages right to left, but a card shown anywhere
+    // else — the card picker's preview, the docs shots — has nothing to inherit it
+    // from. Empty rather than "ltr" so a page that is already rtl is not overruled.
+    this.dir = isRtl(this.hass) ? 'rtl' : '';
   }
 
   protected override render(): TemplateResult {
@@ -248,7 +255,7 @@ export class SchooldayHeaderCard extends LitElement implements LovelaceCard {
       }
 
       .weather {
-        text-align: right;
+        text-align: end;
       }
 
       .temperature {

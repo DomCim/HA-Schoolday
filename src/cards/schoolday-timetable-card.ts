@@ -15,7 +15,7 @@ import { customElement, property, state } from 'lit/decorators.js';
 
 import { avatarUrl, findBoard, memberSensor, type SchooldayMember } from '../lib/board';
 import { localeOf } from '../lib/dates';
-import { t } from '../lib/i18n';
+import { isRtl, t } from '../lib/i18n';
 import { schooldayButtons, schooldayTokens } from '../lib/styles';
 import {
   buildRows,
@@ -326,7 +326,7 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
                 this._memberId = member.id;
               }}
             >
-              ${member.name}
+              <bdi>${member.name}</bdi>
             </button>
           `,
         )}
@@ -339,7 +339,7 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
     return html`
       <div class="status">
         <span class="pill closed">${t(this.hass, 'timetable.no_school')}</span>
-        ${reason ? html`<span class="status-text">${reason}</span>` : nothing}
+        ${reason ? html`<span class="status-text"><bdi>${reason}</bdi></span>` : nothing}
       </div>
     `;
   }
@@ -364,7 +364,7 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
             >${t(this.hass, 'timetable.now')}</span
           >
           <span class="status-text">
-            ${lesson.subject}${lesson.room ? html` · ${lesson.room}` : nothing}
+            <bdi>${lesson.subject}</bdi>${lesson.room ? html` · <bdi>${lesson.room}</bdi>` : nothing}
           </span>
           <span class="status-muted">${t(this.hass, 'timetable.remaining', { minutes: left })}</span>
         </div>
@@ -380,7 +380,7 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
         <div class="status">
           <span class="pill next">${t(this.hass, 'timetable.next')}</span>
           <span class="status-text">
-            ${next.subject}${next.room ? html` · ${next.room}` : nothing}
+            <bdi>${next.subject}</bdi>${next.room ? html` · <bdi>${next.room}</bdi>` : nothing}
           </span>
           <span class="status-muted">${formatTime(this.hass, upcoming.start)}</span>
         </div>
@@ -418,8 +418,8 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
           changed ? ` · ${t(this.hass, 'timetable.changed')}` : ''
         }${exam ? ` · ${examLabel}: ${exam.title}` : ''}`}
       >
-        <span class="subject">${lesson.subject}</span>
-        ${showRoom ? html`<span class="room">${lesson.room}</span>` : nothing}
+        <span class="subject"><bdi>${lesson.subject}</bdi></span>
+        ${showRoom ? html`<span class="room"><bdi>${lesson.room}</bdi></span>` : nothing}
         ${changed
           ? html`<span class="swap" aria-label=${t(this.hass, 'timetable.changed')}></span>`
           : nothing}
@@ -429,6 +429,13 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
           : nothing}
       </div>
     `;
+  }
+
+  protected override willUpdate(): void {
+    // Home Assistant turns its own pages right to left, but a card shown anywhere
+    // else — the card picker's preview, the docs shots — has nothing to inherit it
+    // from. Empty rather than "ltr" so a page that is already rtl is not overruled.
+    this.dir = isRtl(this.hass) ? 'rtl' : '';
   }
 
   protected override render(): TemplateResult {
@@ -517,7 +524,7 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
             ${avatarUrl(this.hass, member.avatar)
               ? html`<img class="avatar" src=${avatarUrl(this.hass, member.avatar)!} alt="" />`
               : html`<span class="dot"></span>`}
-            <span>${member.name}</span>
+            <span><bdi>${member.name}</bdi></span>
           </div>
           ${this._renderChips(candidates, member)}
         </div>
@@ -591,7 +598,7 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
                         style=${`grid-column:${run.start + 2} / span ${run.span};grid-row:2`}
                         title=${run.closed.label}
                       >
-                        ${run.closed.label}
+                        <bdi>${run.closed.label}</bdi>
                       </div>
                     `
                   : html`
@@ -797,7 +804,7 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
          --subject quietly invalidating the chip's own background. */
       .cell.closed {
         background: none;
-        border-left: none;
+        border-inline-start: none;
       }
 
       .day-panel {
@@ -819,7 +826,7 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
       /* Which week of the cycle this column belongs to. Only drawn by an A/B school,
          where it is the difference between two entirely different Tuesdays. */
       .col-week {
-        margin-left: 4px;
+        margin-inline-start: 4px;
         padding: 0 4px;
         border-radius: 5px;
         background: color-mix(in srgb, currentColor 20%, transparent);
@@ -844,7 +851,7 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
         box-sizing: border-box;
         overflow: hidden;
         border-radius: 10px;
-        border-left: 3px solid var(--closure);
+        border-inline-start: 3px solid var(--closure);
         background: color-mix(in srgb, var(--closure) 22%, transparent);
         color: var(--primary-text-color);
         font-size: 0.78rem;
@@ -880,7 +887,7 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
       .cell.changed .swap {
         position: absolute;
         top: 3px;
-        right: 4px;
+        inset-inline-end: 4px;
         width: 6px;
         height: 6px;
         border-radius: 50%;
@@ -898,7 +905,7 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
          legible on half the subjects is not a label. */
       .cell .exam-tag {
         position: absolute;
-        right: 4px;
+        inset-inline-end: 4px;
         bottom: 3px;
         padding: 0 5px;
         border: 1px solid var(--subject);
@@ -915,8 +922,8 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
         display: flex;
         flex-direction: column;
         justify-content: center;
-        padding-right: 8px;
-        text-align: right;
+        padding-inline-end: 8px;
+        text-align: end;
         font-size: 0.68rem;
         line-height: 1.25;
         color: var(--schoolday-muted);
@@ -938,7 +945,7 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
         box-sizing: border-box;
         overflow: hidden;
         border-radius: 10px;
-        border-left: 3px solid var(--subject);
+        border-inline-start: 3px solid var(--subject);
         background: color-mix(in srgb, var(--subject) 22%, transparent);
       }
 
@@ -984,7 +991,8 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
         display: flex;
         align-items: center;
         justify-content: flex-end;
-        padding: 1px 4px 1px 0;
+        padding-block: 1px;
+        padding-inline-end: 4px;
         font-size: 0.65rem;
         line-height: 1;
         color: var(--schoolday-muted);

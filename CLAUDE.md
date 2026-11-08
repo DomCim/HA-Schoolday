@@ -68,6 +68,15 @@ Chromium is preinstalled in some environments; point Playwright at it with
 committed on purpose — HACS installs `custom_components/schoolday/` and does not build.
 Rebuild it in the same commit as any frontend change.
 
+## Branches: develop collects, main releases
+
+`main` is the default branch and what is released; forks start from it. Changes land on
+**`develop`**: your own branches are cut from `develop` and their pull requests target it,
+and a contributed pull request is moved from `main` to `develop` when it is taken. Only the
+maintainer merges `develop` into `main` — that pull request is the release, and the version
+bump and changelog section are settled there. Never open a pull request against `main`
+yourself, and never merge one.
+
 ## Versions
 
 Four places have to agree, and the release workflow refuses to run if they do not:
@@ -85,7 +94,10 @@ A change that ships also gets its lines in `CHANGELOG.md`, under the new version
 same commit. That section becomes the GitHub release text, and the release text is what
 HACS shows a household in its update dialog. So write it for them, in English like the
 rest of the repository: what they will notice, and anything they have to do, such as
-switching on a setting elsewhere. Do not list pull requests. CI fails when the version in
+switching on a setting elsewhere. Do not list pull requests. One exception: a change
+someone outside contributed ends its section with one line of thanks, `Thanks to
+[@login](https://github.com/login) for …` — it shows in the HACS update dialog and on the
+release, and it is how a contributor sees their work arrive. CI fails when the version in
 `manifest.json` has no section, and the release workflow refuses to run without one.
 
 Releasing is the `Release` workflow, either by pushing a `v*` tag or by running it with

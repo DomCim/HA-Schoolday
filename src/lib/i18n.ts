@@ -351,7 +351,171 @@ const DE: Dict = {
   'editor.show_leave': 'Losgeh-Zeit für die Schule anzeigen',
 };
 
-const DICTS: Record<string, Dict> = { en: EN, de: DE };
+/**
+ * Hebrew. The cards also turn right-to-left for it, which is not a string at all — see
+ * `isRtl` below — so a translation alone would still draw the week backwards.
+ */
+const HE: Dict = {
+  'board.missing': 'לא נמצא לוח של Schoolday. הוסיפו את האינטגרציה Schoolday.',
+  'routines.nothing_today': 'אין כלום היום',
+  'routines.auto': 'אוטומטי (לפי שעה ביום)',
+  'routines.morning': 'בוקר',
+  'routines.evening': 'ערב',
+  'routines.both': 'שניהם',
+  'routines.none_configured':
+    'אין שגרות להיום. הוסיפו אותן תחת „הגדר“ ← עריכת שגרות באינטגרציה Schoolday.',
+  'routines.sick': 'בבית, חולה',
+  'routines.packed_for': 'בשביל {subject}',
+  'timetable.sick': 'חולה',
+  'timetable.event': 'אין לימודים רגילים',
+  'timetable.changed': 'שינוי',
+  'timetable.exam': 'מבחן',
+  'routines.exam_tomorrow': 'מחר מבחן',
+  'stats.percent': '{value}%',
+  'stats.window': 'ב-{days} ימים',
+  'stats.window_one': 'ביום אחד',
+  'stats.streak': '{days} ימים ברצף',
+  'stats.best': 'שיא {days}',
+  'stats.day_done': '{done} מתוך {asked} בוצעו',
+  'stats.nothing_asked': 'לא היה כלום',
+  'stats.nothing_yet': 'עדיין אין רישום. הוא מתחיל ביום הלימודים הראשון.',
+  'stats.none_configured':
+    'אין שגרות לרשום. הוסיפו אותן תחת „הגדר“ ← עריכת שגרות באינטגרציה Schoolday.',
+  'stats.sort_board': 'הסדר הרגיל של המשפחה',
+  'stats.sort_rate': 'הרישום הטוב ביותר קודם',
+  'homework.nothing': 'אין מה לעשות',
+  'homework.all_done': 'אין שיעורי בית פתוחים.',
+  'homework.overdue': 'באיחור',
+  'homework.today': 'להיום',
+  'homework.tomorrow': 'למחר',
+  'homework.later': 'בהמשך',
+  'homework.someday': 'בלי תאריך',
+  'timetable.no_periods':
+    'עדיין אין זמני שיעורים. הוסיפו אותם תחת „הגדר“ ← זמני שיעורים באינטגרציה Schoolday.',
+  'timetable.none_configured':
+    'לאף אחד עדיין אין מערכת שעות. הוסיפו אחת תחת „הגדר“ ← עריכת מערכת שעות באינטגרציה Schoolday.',
+  'timetable.break': 'הפסקה',
+  'timetable.no_school': 'אין לימודים',
+  'timetable.free': 'חופש',
+  'timetable.care': 'מסגרת בחופשה',
+  'timetable.now': 'עכשיו',
+  'timetable.next': 'הבא',
+  'timetable.remaining': 'עוד {minutes} דק׳',
+  'timetable.done_for_today': 'הלימודים להיום נגמרו.',
+  'timetable.layout_auto': 'אוטומטי (שבוע, יום אחד כשצר)',
+  'timetable.layout_week': 'כל השבוע',
+  'timetable.layout_day': 'יום אחד',
+  'timetable.days_auto': 'אוטומטי (לפי מה שהמערכת צריכה)',
+  'timetable.days_school': 'שני עד שישי',
+  'timetable.days_week': 'כל שבעת הימים',
+  'editor.block': 'איזה חלק להציג',
+  'editor.evening_from': 'הערב מתחיל בשעה',
+  'editor.show_empty': 'להציג בני משפחה שאין להם כלום היום',
+  'editor.show_done': 'להציג מה שכבר בוצע',
+  'editor.members': 'רק בני המשפחה האלה',
+  'editor.member': 'בן משפחה',
+  'editor.layout': 'פריסה',
+  'editor.week_days': 'ימים מוצגים',
+  'editor.show_rooms': 'להציג חדרים',
+  'editor.show_times': 'להציג זמני שיעורים',
+  'editor.show_breaks': 'להציג הפסקות',
+  'editor.hide_empty_periods': 'להסתיר שיעורים שאין לאף אחד',
+  'editor.highlight': 'לסמן את היום ואת השיעור הנוכחי',
+  'editor.roll_days': 'ימים שעברו עוברים לשבוע הבא',
+  'editor.section': 'החלק שנפתח ראשון',
+  'editor.days': 'ימים מוצגים',
+  'editor.show_steps': 'להציג את הספירה לכל שלב',
+  'editor.sort': 'סדר',
+  'admin.tab_timetable': 'מערכת שעות',
+  'admin.tab_routines': 'שגרות',
+  'admin.tab_family': 'משפחה',
+  'admin.tab_subjects': 'מקצועות',
+  'admin.tab_holidays': 'ימי חופש',
+  'admin.tab_materials': 'ציוד',
+  'admin.tab_exceptions': 'חריגים',
+  'admin.cycle_one': 'שבוע אחד',
+  'admin.cycle_two': 'שבועיים (א׳/ב׳)',
+  'admin.cycle_start': 'שבוע א׳ מתחיל בשבוע מספר',
+  'admin.cycle_now': 'השבוע הוא שבוע {week}.',
+  'admin.week_a': 'שבוע א׳',
+  'admin.week_b': 'שבוע ב׳',
+  'admin.exceptions_hint':
+    'מה שתאריך אחד עושה אחרת. תווית תופסת את כל היום; הקישו על שיעור כדי לבטל אותו או לכתוב מה מתקיים במקומו. תאריכים שעברו נמחקים מעצמם.',
+  'admin.exception_date': 'תאריך',
+  'admin.exception_label': 'מה היום הזה',
+  'admin.exception_label_hint': 'טיול שנתי, יום ספורט — השאירו ריק ליום רגיל',
+  'admin.exception_cancel': 'בוטל',
+  'admin.exception_reset': 'חזרה למערכת השעות',
+  'admin.exception_none': 'אין שום שינוי בתאריך הזה.',
+  'admin.exception_add': 'הוספת תאריך',
+  'admin.materials_hint':
+    'מה צריך להביא לכל מקצוע. הפריטים מופיעים בשגרת הערב ביום שלפני, למי שיש לו את המקצוע.',
+  'admin.materials_items': 'פריט אחד בכל שורה',
+  'admin.save': 'שמירה',
+  'admin.add': 'הוספה',
+  'admin.clear': 'ניקוי',
+  'admin.remove': 'הסרה',
+  'admin.remove_confirm': 'להסיר את {name}? גם מערכת השעות והשגרות יימחקו.',
+  'admin.add_member': 'הוספת בן משפחה',
+  'admin.periods': 'זמני שיעורים, אחד בכל שורה',
+  'admin.schedule': 'בית ספר',
+  'admin.schedule_default': 'הזמנים הרגילים',
+  'admin.travel': 'הדרך לבית הספר (דק׳)',
+  'admin.travel_hint': 'נותן שעת יציאה שזזה כשהשיעור הראשון מבוטל. ריק אם אין.',
+  'admin.leave_time': 'יציאה בימי לימודים בשעה',
+  'admin.care_leave_time': 'יציאה למסגרת בחופשה בשעה',
+  'admin.leave_time_hint':
+    'להסעה או טרמפ, שמגיעים בזמן שלהם לא משנה מה בוטל. גובר על הדרך לבית הספר.',
+  'header.leave_in': 'יוצאים בעוד {minutes} דק׳',
+  'header.leave_now': 'זמן לצאת',
+  'header.leave_at': 'יוצאים ב-{time}',
+  'admin.schedule_name': 'שם בית הספר',
+  'admin.schedule_hint': 'תיכון, יסודי…',
+  'admin.schedule_add': 'בית ספר נוסף עם זמנים אחרים',
+  'admin.schedule_remove': 'להסיר את {name}? זמני השיעורים שלו יימחקו איתו.',
+  'admin.schedule_remove_one': 'להסיר את {name}? {members} חוזר/ת לזמני השיעורים הרגילים.',
+  'admin.schedule_remove_members': 'להסיר את {name}? {members} חוזרים לזמני השיעורים הרגילים.',
+  'admin.periods_first': 'קודם הגדירו את זמני השיעורים — השבוע נבנה עליהם.',
+  'admin.no_members': 'עדיין לא הוגדר אף אחד. הוסיפו קודם בן משפחה.',
+  'admin.no_subjects': 'עדיין אין מקצועות. הם יופיעו ברגע שבמערכת שעות יהיו שיעורים.',
+  'admin.subject': 'מקצוע',
+  'admin.room': 'חדר',
+  'admin.name': 'שם',
+  'admin.color': 'צבע',
+  'admin.calendar': 'לוח שנה פרטי',
+  'admin.lessons_calendar': 'לוח שיעורים מבית הספר',
+  'admin.exams_calendar': 'לוח מבחנים מבית הספר',
+  'admin.homework_list': 'רשימת שיעורי בית מבית הספר',
+  'admin.school_system': 'מערכת בית ספר (WebUntis, Schulmanager וכדומה), אופציונלי',
+  'admin.school_system_hint':
+    'לוחות שנה ורשימות שמערכת בית ספר כמו WebUntis או Schulmanager Online כבר מנהלת עבור הילד: מהם מגיעים שינויים במערכת השעות, מבחנים ושיעורי בית חדשים. ב-WebUntis, הפעילו באפשרויות שלה את “Calendar - cancelled lessons”.',
+  'admin.avatar': 'תמונה',
+  'admin.block_morning': 'בוקר',
+  'admin.block_evening': 'ערב',
+  'admin.day_free': 'יום חופש',
+  'admin.day_care': 'מסגרת בחופשה',
+  'admin.steps_hint': 'שלב אחד בכל שורה',
+  'admin.school_calendars': 'לוחות שנה שסוגרים את בית הספר, אחד בכל שורה',
+  'admin.care_keywords': 'מילות מפתח למסגרת בחופשה, אחת בכל שורה',
+  'admin.care_hint': 'קייטנה',
+  'admin.cancel_keywords': 'מילים שאומרות ששיעור בוטל, אחת בכל שורה',
+  'admin.cancel_hint': 'בוטל',
+  'admin.substitute_keywords': 'מילים שאומרות שמישהו אחר מעביר שיעור, אחת בכל שורה',
+  'admin.substitute_hint': 'מילוי מקום',
+  'admin.school_words': 'מילים ממערכת בית הספר',
+  'admin.school_words_hint': 'כבר מוגדר ל-WebUntis. שנו רק אם מערכת בית הספר שלכם כותבת משהו אחר.',
+  'admin.avatar_hint':
+    'לתמונה, הכניסו ישות person — זו ש-Home Assistant כבר מכיר. גם כתובת URL עובדת.',
+  'admin.colors_hint': 'לכל מקצוע כבר יש צבע שנלקח מהשם שלו. זה רק כדי לתקן אחד.',
+  'admin.calendars_hint':
+    'כל אירוע שפעיל בלוחות האלה אומר שאין לימודים, אז השתמשו בלוחות שאין בהם שום דבר אחר.',
+  'editor.weather_entity': 'ישות מזג אוויר',
+  'editor.greeting': 'ברכה',
+  'editor.show_seconds': 'להציג שניות',
+  'editor.show_leave': 'להציג מתי לצאת לבית הספר',
+};
+
+const DICTS: Record<string, Dict> = { en: EN, de: DE, he: HE };
 
 /** Base language of the Home Assistant frontend, e.g. "de" from "de-DE". */
 function language(hass?: HomeAssistant): string {
@@ -377,6 +541,20 @@ export function t(
     }
   }
   return text;
+}
+
+/** Languages written right to left. Only those the cards ship strings for. */
+const RTL_LANGUAGES = new Set(['he']);
+
+/**
+ * Whether the cards should lay themselves out right to left.
+ *
+ * Asked of Home Assistant's own language rather than of `document.dir`, so a card
+ * rendered on its own — the docs shots, a preview — turns the same way as one on a
+ * dashboard.
+ */
+export function isRtl(hass?: HomeAssistant): boolean {
+  return RTL_LANGUAGES.has(language(hass));
 }
 
 /** Languages the cards ship strings for. */

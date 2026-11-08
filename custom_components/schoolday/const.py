@@ -7,7 +7,7 @@ from typing import Final
 DOMAIN: Final = "schoolday"
 
 # Keep in sync with manifest.json, package.json and src/lib/const.ts.
-VERSION: Final = "0.17.0"
+VERSION: Final = "0.18.0"
 
 # Where the bundled Lovelace cards are served from.
 FRONTEND_URL_BASE: Final = "/schoolday-frontend"
@@ -38,6 +38,7 @@ CONF_CARE_KEYWORDS: Final = "care_keywords"
 SUGGESTED_CARE_KEYWORDS: Final[dict[str, str]] = {
     "de": "Ferienbetreuung\nHort",
     "en": "Holiday club\nHoliday care",
+    "he": "קייטנה\nצהרון",
 }
 
 # What an event on a member's lessons calendar has to say for its lesson to count as

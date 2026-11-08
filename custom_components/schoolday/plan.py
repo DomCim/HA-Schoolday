@@ -158,6 +158,24 @@ _WORDS: dict[str, dict[str, str]] = {
         "ends": "Schluss {new} statt {old}.",
         "lead": "{name} {day}:",
     },
+    # Hebrew verbs agree with the subject's gender, which a subject name does not carry,
+    # so the changes lead with a noun ("ביטול: …") rather than guess "בוטל" or "בוטלה".
+    "he": {
+        "today": "היום",
+        "tomorrow": "מחר",
+        "period": "שיעור {n}",
+        "periods": "שיעורים {a}–{b}",
+        "cancelled": "ביטול: {subject} ({when}).",
+        "instead": "{subject} במקום {old} ({when}).",
+        "room": "{subject} בחדר {room} ({when}).",
+        "extra": "תוספת: {subject} ({when}).",
+        "restored": "חזר למערכת: {subject} ({when}).",
+        "with_room": "{when}, חדר {room}",
+        "none": "אין לימודים.",
+        "starts": "התחלה ב-{new} במקום {old}.",
+        "ends": "סיום ב-{new} במקום {old}.",
+        "lead": "{name} {day}:",
+    },
     "en": {
         "today": "today",
         "tomorrow": "tomorrow",
@@ -178,6 +196,7 @@ _WORDS: dict[str, dict[str, str]] = {
 
 _WEEKDAYS: dict[str, list[str]] = {
     "de": ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"],
+    "he": ["יום שני", "יום שלישי", "יום רביעי", "יום חמישי", "יום שישי", "שבת", "יום ראשון"],
     "en": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
 }
 # Spelled out rather than taken from strftime, which answers in the server's locale.
@@ -202,11 +221,13 @@ def day_word(language: str | None, day: date, today: date) -> str:
     if ahead == 1:
         return words["tomorrow"]
     weekday = _WEEKDAYS[lang][day.weekday()]
-    return (
-        f"{weekday}, {day.day}.{day.month}."
-        if lang == "de"
-        else f"{weekday} {day.day} {_MONTHS[day.month - 1]}"
-    )
+    if lang == "de":
+        return f"{weekday}, {day.day}.{day.month}."
+    if lang == "he":
+        # Day before month, as on an Israeli school notice; no trailing dot, which in a
+        # right-to-left sentence would land on the wrong side of the number.
+        return f"{weekday} {day.day}.{day.month}"
+    return f"{weekday} {day.day} {_MONTHS[day.month - 1]}"
 
 
 def _runs(lessons: list[Lesson]) -> list[tuple[Lesson, int, int]]:

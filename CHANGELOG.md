@@ -5,6 +5,15 @@ version you are updating to; the [manual](https://domcim.github.io/HA-Schoolday/
 details. Releases before 0.14.0 are listed on
 [GitHub](https://github.com/DomCim/HA-Schoolday/releases).
 
+## 0.18.0
+
+### Hebrew
+
+Schoolday now speaks Hebrew, and with a Hebrew profile the cards turn right to left.
+Names, subjects, rooms and routine steps now keep their own reading order in any language,
+so Hebrew text on an English card no longer has its numbers and full stops jump to the
+other end. Nothing to do: the cards follow your Home Assistant language.
+
 ## 0.17.0
 
 ### Schulmanager Online

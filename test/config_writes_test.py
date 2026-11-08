@@ -994,6 +994,14 @@ check("und auf Englisch, auch für en-GB",
       en == "Ben tomorrow: Musik (period 1) is cancelled. Sport (periods 5–6) is cancelled. "
             "Deutsch instead of Mathe (period 3, room 007). Starts 08:45 instead of 08:00. "
             "Finishes 11:20 instead of 13:10.", en)
+he = P.message("he", "Ben", TOMORROW, TODAY, change)
+check("und auf Hebräisch, ohne geratenes Geschlecht des Fachs",
+      he == "Ben מחר: ביטול: Musik (שיעור 1). ביטול: Sport (שיעורים 5–6). "
+            "Deutsch במקום Mathe (שיעור 3, חדר 007). התחלה ב-08:45 במקום 08:00. "
+            "סיום ב-11:20 במקום 13:10.", he)
+check("ein hebräischer Wochentag mit Tag vor Monat",
+      P.day_word("he-IL", datetime.date(2026, 11, 1), TODAY) == "יום ראשון 1.11",
+      P.day_word("he-IL", datetime.date(2026, 11, 1), TODAY))
 check("eine Sprache ohne Übersetzung bekommt Englisch",
       P.message("fr", "Ben", TOMORROW, TODAY, change).startswith("Ben tomorrow:"))
 

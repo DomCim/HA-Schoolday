@@ -12,7 +12,7 @@ import { LitElement, css, html, nothing, type TemplateResult } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 
 import { avatarUrl, findBoard, memberSensor, type SchooldayMember } from '../lib/board';
-import { t } from '../lib/i18n';
+import { isRtl, t } from '../lib/i18n';
 import { schooldayButtons, schooldayTokens } from '../lib/styles';
 import type {
   HomeAssistant,
@@ -209,14 +209,14 @@ export class SchooldayRoutinesCard extends LitElement implements LovelaceCard {
                     @click=${() => this._toggle(member, block, entry)}
                   >
                     ${this._icon(done ? ICONS.checked : ICONS.unchecked, 'tick')}
-                    <span class="label">${entry.step}</span>
+                    <span class="label"><bdi>${entry.step}</bdi></span>
                     ${entry.subject
                       ? html`<span
                           class="from"
                           title=${t(this.hass, 'routines.packed_for', {
                             subject: entry.subject,
                           })}
-                          >${entry.subject}</span
+                          ><bdi>${entry.subject}</bdi></span
                         >`
                       : nothing}
                   </button>
@@ -225,6 +225,13 @@ export class SchooldayRoutinesCard extends LitElement implements LovelaceCard {
             `}
       </section>
     `;
+  }
+
+  protected override willUpdate(): void {
+    // Home Assistant turns its own pages right to left, but a card shown anywhere
+    // else — the card picker's preview, the docs shots — has nothing to inherit it
+    // from. Empty rather than "ltr" so a page that is already rtl is not overruled.
+    this.dir = isRtl(this.hass) ? 'rtl' : '';
   }
 
   protected override render(): TemplateResult {
@@ -290,7 +297,7 @@ export class SchooldayRoutinesCard extends LitElement implements LovelaceCard {
                   ${avatarUrl(this.hass!, member.avatar)
                     ? html`<img class="avatar" src=${avatarUrl(this.hass!, member.avatar)!} alt="" />`
                     : nothing}
-                  <span>${member.name}</span>
+                  <span><bdi>${member.name}</bdi></span>
                 </div>
                 ${this._isSick(member)
                   ? html`<div class="sick-note">${t(this.hass, 'routines.sick')}</div>`
@@ -391,7 +398,7 @@ export class SchooldayRoutinesCard extends LitElement implements LovelaceCard {
         margin-bottom: 2px;
         box-sizing: border-box;
         border-radius: 8px;
-        text-align: left;
+        text-align: start;
         font-size: 1rem;
         background: color-mix(in srgb, var(--member-color) 20%, var(--schoolday-surface));
       }
@@ -430,7 +437,7 @@ export class SchooldayRoutinesCard extends LitElement implements LovelaceCard {
          reason, not the instruction, and the instruction is what gets read. */
       .from {
         flex: none;
-        margin-left: auto;
+        margin-inline-start: auto;
         padding: 2px 8px;
         border-radius: 10px;
         background: color-mix(in srgb, var(--member-color) 26%, transparent);
@@ -450,7 +457,7 @@ export class SchooldayRoutinesCard extends LitElement implements LovelaceCard {
         margin-bottom: 8px;
         padding: 8px 10px;
         border-radius: 10px;
-        border-left: 3px solid var(--member-color);
+        border-inline-start: 3px solid var(--member-color);
         background: color-mix(in srgb, var(--member-color) 16%, transparent);
         font-size: 0.9rem;
         font-weight: 600;
@@ -482,7 +489,7 @@ export class SchooldayRoutinesCard extends LitElement implements LovelaceCard {
         justify-content: center;
         min-height: var(--schoolday-touch);
         border-radius: 10px;
-        border-left: 3px solid var(--schoolday-sick);
+        border-inline-start: 3px solid var(--schoolday-sick);
         background: color-mix(in srgb, var(--schoolday-sick) 22%, transparent);
         color: var(--primary-text-color);
         font-size: 0.85rem;

@@ -124,10 +124,27 @@ the kitchen tablet, so the section says what they will notice and anything they 
 do. The section is written in the same pull request as the change, and CI fails when the
 version in `manifest.json` has none.
 
+## Branches
+
+Two long-lived branches, and they mean different things:
+
+- **`main`** is what is released. HACS installs from its release tags, the manual deploys
+  from it, and it stays the default branch — so a fork starts from `main`, and a pull
+  request opens against `main` by default.
+- **`develop`** is where changes land between releases. Contributed pull requests are moved
+  to `develop` when they are taken; nothing is merged into `main` directly.
+
+A release is one pull request from `develop` to `main`, opened and merged by the
+maintainer, followed by the `Release` workflow. That is also why it does not matter if two
+contributions on `develop` both touch the version: the version on `main` is settled in that
+one release pull request.
+
 ## Branch rules
 
-`main` is protected by a repository ruleset: no deletions, no force pushes, and changes
-arrive through a pull request whose checks have passed. Required approvals are **zero** —
+`main` and `develop` are protected by repository rulesets: no deletions, no force pushes,
+and changes arrive through a pull request whose required checks — hassfest, Python,
+Frontend build, Documentation build — have passed. HACS is not required: it only runs on
+the default branch. Required approvals are **zero** —
 a single maintainer cannot approve their own pull request, and requiring one would lock
 the repository rather than protect it. The gate is the checks, not a second pair of eyes
 that does not exist.

@@ -28,6 +28,13 @@ ruff check custom_components/
 CI runs all of it, plus hassfest and the HACS check. A pull request that changes the
 cards needs the rebuilt bundle committed with it — there is a check for exactly that.
 
+### Which branch
+
+Fork from `main` and open your pull request against `main`, as GitHub suggests. When it is
+taken it is moved to `develop`, where changes collect until the next release; you do not
+need to do anything for that. If you are a first-time contributor, the checks start once a
+maintainer approves the run.
+
 ## What Schoolday is not
 
 A school-management system, a homework nag, or a reward chart. Routines are the things

@@ -68,6 +68,15 @@ Chromium is preinstalled in some environments; point Playwright at it with
 committed on purpose — HACS installs `custom_components/schoolday/` and does not build.
 Rebuild it in the same commit as any frontend change.
 
+## Branches: develop collects, main releases
+
+`main` is the default branch and what is released; forks start from it. Changes land on
+**`develop`**: your own branches are cut from `develop` and their pull requests target it,
+and a contributed pull request is moved from `main` to `develop` when it is taken. Only the
+maintainer merges `develop` into `main` — that pull request is the release, and the version
+bump and changelog section are settled there. Never open a pull request against `main`
+yourself, and never merge one.
+
 ## Versions
 
 Four places have to agree, and the release workflow refuses to run if they do not:

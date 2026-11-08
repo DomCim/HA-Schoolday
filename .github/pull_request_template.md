@@ -15,7 +15,7 @@ Fixes #
 - [ ] Cards changed: the rebuilt bundle (`npm run build`) is committed with the sources
 - [ ] Configuration changed: `python3 test/config_writes_test.py` passes
 - [ ] New or changed text is in **both** `en` and `de` (`src/lib/i18n.ts`, `custom_components/schoolday/translations/`)
-- [ ] The manual under `docs/` says what changed (see [CLAUDE.md](../blob/main/CLAUDE.md) for which page)
+- [ ] The manual under `docs/` says what changed (see [CLAUDE.md](https://github.com/DomCim/HA-Schoolday/blob/main/CLAUDE.md) for which page)
 - [ ] `CHANGELOG.md` has a line for it, written for a household
 - [ ] No changes to `.github/workflows/` — or, if there are, they are explained below
 

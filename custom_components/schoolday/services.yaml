@@ -385,3 +385,17 @@ set_cycle:
       example: "2026-09-07"
       selector:
         date:
+    week_start:
+      required: false
+      example: monday
+      selector:
+        select:
+          translation_key: week_start
+          options:
+            - monday
+            - tuesday
+            - wednesday
+            - thursday
+            - friday
+            - saturday
+            - sunday

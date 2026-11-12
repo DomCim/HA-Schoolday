@@ -413,6 +413,11 @@ const hass = {
 
   async callService(domain, service, data) {
     window.__calls.services.push({ domain, service, data });
+    // One refused write, as Home Assistant refuses a non-administrator's.
+    if (window.__refuseNext) {
+      window.__refuseNext = false;
+      throw new Error('refused');
+    }
 
     if (domain === 'todo' && service === 'update_item') {
       const sensorId = Object.keys(hass.states).find(
@@ -506,6 +511,49 @@ window.__setCycle = (weeks) => {
     ...hass.states[sensorId],
     attributes: { ...hass.states[sensorId].attributes, timetable, outlook },
   };
+  window.__pushHass();
+};
+
+// A household whose week begins on Sunday, as in Israel, or back on Monday. With
+// Sunday, Ben has a lesson on it, the window starts on Sunday 2 August rather than
+// Monday the 3rd, and a Sunday carries the week of the Monday after it, exactly as the
+// sensor publishes it. Applied on top of whatever cycle is set. `language` only sets
+// what the cards are written in.
+window.__setWeekStart = (first, language = 'de') => {
+  const sunday = first === 'sunday';
+  const weekStart = sunday ? 6 : 0;
+  hass.locale = { ...hass.locale, language };
+  const board = hass.states['sensor.schoolday_board'];
+  const cycled = (board.attributes.admin?.cycle_weeks ?? 1) === 2;
+  hass.states['sensor.schoolday_board'] = {
+    ...board,
+    attributes: {
+      ...board.attributes,
+      timetable: { ...board.attributes.timetable, week_start: weekStart },
+      admin: { ...board.attributes.admin, week_start: weekStart },
+    },
+  };
+  const sensorId = 'sensor.schoolday_ben';
+  const attributes = hass.states[sensorId].attributes;
+  const timetable = { ...attributes.timetable };
+  delete timetable[6];
+  delete timetable[13];
+  let outlook = attributes.outlook.filter((day) => day.date !== '2026-08-02');
+  if (sunday) {
+    timetable[6] = [lesson(1, 'Tanach')];
+    if (cycled) {
+      timetable[13] = [lesson(1, 'Mathe'), lesson(2, 'Englisch')];
+    }
+    outlook = [
+      { date: '2026-08-02', weekday: 6, mode: 'school', label: null, week: 0 },
+      ...outlook,
+    ].map((day) => (day.weekday === 6 ? { ...day, week: cycled && day.date === '2026-08-09' ? 1 : 0 } : day));
+  } else {
+    outlook = outlook.map((day) =>
+      day.weekday === 6 ? { ...day, week: cycled && day.date >= '2026-08-10' ? 1 : 0 } : day,
+    );
+  }
+  hass.states[sensorId] = { ...hass.states[sensorId], attributes: { ...attributes, timetable, outlook } };
   window.__pushHass();
 };
 

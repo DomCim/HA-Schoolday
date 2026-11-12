@@ -7,7 +7,7 @@ from typing import Final
 DOMAIN: Final = "schoolday"
 
 # Keep in sync with manifest.json, package.json and src/lib/const.ts.
-VERSION: Final = "0.18.0"
+VERSION: Final = "0.19.0"
 
 # Where the bundled Lovelace cards are served from.
 FRONTEND_URL_BASE: Final = "/schoolday-frontend"
@@ -138,6 +138,29 @@ CONF_CYCLE_WEEKS: Final = "cycle_weeks"
 # A date rather than "this week is A", because the answer has to keep being right next
 # term: a stored flag would mean whatever it meant on the day somebody pressed it.
 CONF_CYCLE_ANCHOR: Final = "cycle_anchor"
+
+# The first day of the household's week, 0 = Monday … 6 = Sunday. The default is Monday.
+#
+# It is the day the cards start the week on. It also says which five days the cards
+# always show (a sixth or seventh day appears when it has lessons), which day starts a
+# new week of the A/B cycle, and where "this week" of the outlook starts.
+#
+# One setting for the whole household, on purpose. Home Assistant has a "first day of
+# the week" too, but per user and worked out in the browser from the user's language,
+# so two people in one home can get different answers and the integration sees neither.
+CONF_WEEK_START: Final = "week_start"
+
+# How the service names those days, so its form can offer a list of days rather than a
+# number. The position in this tuple is the stored value.
+WEEK_START_DAYS: Final[tuple[str, ...]] = (
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+    "sunday",
+)
 
 #: Days in one week, and therefore the distance between week A's slots and week B's.
 SLOTS_PER_WEEK: Final = 7

@@ -282,6 +282,18 @@ await shot('timetable-cycle', 1100, async (page) => {
   return 'schoolday-timetable-card';
 });
 
+await shot('timetable-sunday', 1100, async (page) => {
+  await page.evaluate(() => {
+    window.__setCycle(2);
+    window.__setWeekStart('sunday');
+    window.__mount(
+      { type: 'custom:schoolday-timetable-card', member: 'Ben', layout: 'week' },
+      'schoolday-timetable-card',
+    );
+  });
+  return 'schoolday-timetable-card';
+});
+
 // --- routines, homework, header ----------------------------------------------
 await shot('routines', 1100, mount(
   { type: 'custom:schoolday-routines-card', block: 'both', show_empty: true },

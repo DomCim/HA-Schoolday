@@ -15,7 +15,7 @@ and writing the config entry is the caller's job, so nothing here needs a `hass`
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date
 from typing import Any
 
 from homeassistant.util.ulid import ulid_now
@@ -29,6 +29,8 @@ from .const import (
     CONF_COLOR,
     CONF_CYCLE_ANCHOR,
     CONF_CYCLE_WEEKS,
+    CONF_WEEK_START,
+    WEEK_START_DAYS,
     CONF_EXCEPTIONS,
     CONF_MATERIALS,
     CONF_MEMBER_ID,
@@ -59,6 +61,8 @@ from .models import (
     Lesson,
     Timetable,
     clock,
+    monday_of_week,
+    parse_week_start,
     color_to_hex,
     periods_from_text,
     unify_subjects,
@@ -440,8 +444,9 @@ def set_cycle(
     iso_week: int | None = None,
     iso_year: int | None = None,
     today: date | None = None,
+    week_start: str | None = None,
 ) -> dict[str, Any]:
-    """Say how many weeks the timetable takes to repeat, and where week A starts.
+    """Say how long the cycle is, where week A starts, and which day a week begins on.
 
     Where week A starts can be given as a calendar week — which is how a school says
     it, and how the card asks — or as a date, for anything writing this from a script.
@@ -451,6 +456,9 @@ def set_cycle(
     the odd weeks" swaps itself over some new years and not others, and the household
     would find out in February. A Monday is an answer that keeps meaning the same
     thing, and the card turns it back into a week number to show.
+
+    A date is stored as the Monday of its week. When weeks begin on Sunday, a Sunday
+    counts with the Monday after it. `monday_of_week` explains why.
     """
     if not 1 <= weeks <= CYCLE_MAX_WEEKS:
         raise SchooldayValueError(
@@ -458,6 +466,14 @@ def set_cycle(
         )
 
     changes: dict[str, Any] = {CONF_CYCLE_WEEKS: weeks}
+
+    if week_start is not None:
+        if week_start not in WEEK_START_DAYS:
+            raise SchooldayValueError(
+                f"'{week_start}' is not a day. Write it as monday to sunday."
+            )
+        changes[CONF_WEEK_START] = WEEK_START_DAYS.index(week_start)
+    starts = changes.get(CONF_WEEK_START, parse_week_start(options.get(CONF_WEEK_START)))
 
     if iso_week is not None:
         year = iso_year or (today or _today()).isocalendar().year
@@ -475,16 +491,11 @@ def set_cycle(
             raise SchooldayValueError(
                 f"'{anchor}' is not a date. Write it as YYYY-MM-DD."
             ) from err
-        changes[CONF_CYCLE_ANCHOR] = (
-            picked - timedelta(days=picked.weekday())
-        ).isoformat()
+        changes[CONF_CYCLE_ANCHOR] = monday_of_week(picked, starts).isoformat()
     elif weeks > 1 and not options.get(CONF_CYCLE_ANCHOR):
         # Switching the cycle on without saying where it starts: this week is A, which
         # is the only guess that cannot be wrong today and is one tap to correct.
-        start = today or _today()
-        changes[CONF_CYCLE_ANCHOR] = (
-            start - timedelta(days=start.weekday())
-        ).isoformat()
+        changes[CONF_CYCLE_ANCHOR] = monday_of_week(today or _today(), starts).isoformat()
 
     return changes
 

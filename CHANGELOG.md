@@ -22,6 +22,8 @@ lesson on a day that has none yet.
 set **Week begins on** to Sunday. If you copied week A into week B by hand to get Sunday
 right, restore week B's Sunday.
 
+Thanks to [@Shenharo](https://github.com/Shenharo) for letting each household choose its week start.
+
 ## 0.18.0
 
 ### Hebrew

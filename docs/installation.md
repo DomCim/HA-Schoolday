@@ -53,7 +53,8 @@ integration page to move one lesson.
 2. **Lesson times**, one `HH:MM-HH:MM` per line. Breaks are derived from the gaps, so
    there is nothing else to configure. Children at
    [a second school that rings differently](timetable.md#two-schools-that-do-not-ring-together)
-   get their own set; everybody else shares these.
+   get their own set; everybody else shares these. If your school week does not start on
+   Monday, set [the first day of the week](timetable.md#when-the-week-begins) too.
 3. **One week per child.** See [Timetable](timetable.md).
 4. **Days off**, if you have a holiday calendar. See [Days that differ](exceptions.md).
 5. **Routines**, when you want them. See [Routines](routines.md).

@@ -21,6 +21,7 @@
           "remove_member": "Remove a family member",
           "routines": "Edit routines",
           "timetable_times": "Lesson times",
+          "week_start": "First day of the week",
           "timetable_lessons": "Edit someone's timetable",
           "timetable_colors": "Subject colours",
           "timetable_materials": "What each subject needs",
@@ -151,6 +152,16 @@
         },
         "data_description": {
           "periods": "The order does not matter, they are sorted by their start time. Emptying this field hides the timetable card."
+        }
+      },
+      "week_start": {
+        "title": "First day of the week",
+        "description": "The day the household's week begins on. The cards start the week on it and always show the first five days from it, plus any other day that has lessons. In a two-week timetable, a new week starts on it.",
+        "data": {
+          "week_start": "First day of the week"
+        },
+        "data_description": {
+          "week_start": "The default is Monday."
         }
       },
       "timetable_lessons": {

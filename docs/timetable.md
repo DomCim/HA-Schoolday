@@ -138,8 +138,9 @@ data:
 
 Not every school week starts on Monday. In Israel it starts on Sunday.
 
-In the editor's **Timetable** tab, next to the cycle, **Week begins on** sets the first
-day of the week for the whole household. The default is Monday. It sets four things:
+**Week begins on** sets the first day of the week for the whole household. It is in the
+options dialog under **First day of the week**, and in the admin card's **Timetable**
+tab, next to the cycle. The default is Monday. It sets four things:
 
 - The cards start the week on that day.
 - The cards always show the first five days of the week, so Monday to Friday or Sunday

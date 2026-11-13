@@ -26,6 +26,7 @@ from .const import (
     CONF_COLOR,
     CONF_CYCLE_ANCHOR,
     CONF_CYCLE_WEEKS,
+    CONF_WEEK_START,
     CYCLE_MAX_WEEKS,
     CONF_EXCEPTIONS,
     CONF_LABEL,
@@ -75,6 +76,34 @@ def today() -> date:
     of it silently, and only for the households whose container disagrees with them.
     """
     return dt_util.now().date()
+
+
+def start_of_week(day: date, week_start: int = 0) -> date:
+    """The first day of the week `day` falls in, when weeks begin on `week_start`."""
+    return day - timedelta(days=(day.weekday() - week_start) % 7)
+
+
+def monday_of_week(day: date, week_start: int = 0) -> date:
+    """The Monday of the week `day` falls in, when weeks begin on `week_start`.
+
+    Used only to store the cycle anchor. Nobody picks this Monday: the household
+    names a calendar week or any date in week A, and this is the day that gets saved
+    for it.
+
+    A Monday is saved because it is inside the same week whether weeks begin on
+    Sunday or on Monday. So anchors saved before the first day could be set stay
+    valid, and changing the first day later does not move week A.
+    """
+    return start_of_week(day, week_start) + timedelta(days=-week_start % 7)
+
+
+def parse_week_start(raw: Any) -> int:
+    """A stored first day of the week, 0..6. The default is Monday."""
+    try:
+        value = int(raw)
+    except (TypeError, ValueError):
+        return 0
+    return value if 0 <= value <= 6 else 0
 
 
 def steps_from_text(text: str | None) -> list[str]:
@@ -764,7 +793,10 @@ class Timetable:
         return not self.periods or not any(self.lessons.values())
 
     def as_card_dict(
-        self, extra_subjects: Iterable[str] = (), cycle_weeks: int = 1
+        self,
+        extra_subjects: Iterable[str] = (),
+        cycle_weeks: int = 1,
+        week_start: int = 0,
     ) -> dict[str, Any]:
         """The grid every timetable card shares: periods, breaks and subject colours.
 
@@ -797,6 +829,8 @@ class Timetable:
             # long — and on that Monday every A/B household would look like a one-week
             # one, which is exactly the day the marking matters.
             "cycle_weeks": cycle_weeks,
+            # The household's first day of the week. The cards start the week on it.
+            "week_start": week_start,
         }
 
     def member_card_dict(self, member_id: str) -> dict[str, list[dict[str, Any]]]:
@@ -1129,8 +1163,12 @@ class SchooldayConfig:
     exceptions: dict[str, dict[str, DayException]] = field(default_factory=dict)
     #: How many weeks the timetable takes to repeat: 1, or 2 for an A/B school.
     cycle_weeks: int = 1
-    #: The Monday of a week that is week A. None means "this week", settled on read.
+    #: A day in a week A, stored as a Monday. The A/B weeks are counted from the week
+    #: it falls in. None if it was never set; every week is then week A.
     cycle_anchor: date | None = None
+    #: The first day of the household's week, 0 = Monday … 6 = Sunday. The default
+    #: is Monday.
+    week_start: int = 0
 
     @classmethod
     def from_options(cls, options: dict[str, Any]) -> SchooldayConfig:
@@ -1160,6 +1198,8 @@ class SchooldayConfig:
             cycle_weeks = 1
         cycle_weeks = min(max(cycle_weeks, 1), CYCLE_MAX_WEEKS)
 
+        week_start = parse_week_start(options.get(CONF_WEEK_START))
+
         anchor: date | None = None
         if raw_anchor := options.get(CONF_CYCLE_ANCHOR):
             try:
@@ -1167,7 +1207,9 @@ class SchooldayConfig:
             except ValueError:
                 parsed = None
             if parsed is not None:
-                # Stored as whatever day somebody picked; only its Monday matters.
+                # Any day may be stored; only its Monday counts. Old data can hold
+                # a day that is not a Monday, and it must keep meaning the same
+                # Monday-to-Sunday week whatever the first day is now.
                 anchor = parsed - timedelta(days=parsed.weekday())
 
         exceptions: dict[str, dict[str, DayException]] = {}
@@ -1206,21 +1248,29 @@ class SchooldayConfig:
             exceptions=exceptions,
             cycle_weeks=cycle_weeks,
             cycle_anchor=anchor,
+            week_start=week_start,
         )
 
     def week_index(self, day: date) -> int:
         """Which week of the cycle a date falls in: 0 for A, 1 for B.
 
-        Counted from the anchor Monday rather than from the ISO week number. Week 53
+        Counted from the anchor week rather than from the ISO week number. Week 53
         and the turn of the year make ISO parity jump, and a timetable that swaps
         itself over the Christmas holidays would be a fine bug to explain in February.
+
+        A new week starts on the household's first day. When that is Sunday, a
+        Sunday is in the same week as the Monday after it.
 
         With no cycle, everything is week A — so callers never have to ask first.
         """
         if self.cycle_weeks < 2 or self.cycle_anchor is None:
             return 0
-        monday = day - timedelta(days=day.weekday())
-        return ((monday - self.cycle_anchor).days // SLOTS_PER_WEEK) % self.cycle_weeks
+        weeks = (self.start_of_week(day) - self.start_of_week(self.cycle_anchor)).days
+        return (weeks // SLOTS_PER_WEEK) % self.cycle_weeks
+
+    def start_of_week(self, day: date) -> date:
+        """The first day of the household's week that `day` falls in."""
+        return start_of_week(day, self.week_start)
 
     def slot_for(self, day: date) -> int:
         """The timetable slot a date lands on: weekday, plus seven for week B."""
@@ -1339,6 +1389,7 @@ class SchooldayConfig:
             # Which week the household is in right now, so the editor can open on it
             # rather than making somebody work it out from a date.
             "cycle_now": self.week_index(today()),
+            "week_start": self.week_start,
             # Every subject in use, so the materials editor can offer them instead of
             # asking the household to type a subject name that has to match exactly.
             "subjects": self.timetable.subjects,

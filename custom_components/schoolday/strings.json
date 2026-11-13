@@ -253,6 +253,17 @@
         "morning": "Morning",
         "evening": "Evening"
       }
+    },
+    "week_start": {
+      "options": {
+        "monday": "Monday",
+        "tuesday": "Tuesday",
+        "wednesday": "Wednesday",
+        "thursday": "Thursday",
+        "friday": "Friday",
+        "saturday": "Saturday",
+        "sunday": "Sunday"
+      }
     }
   },
   "services": {
@@ -349,6 +360,10 @@
         "anchor": {
           "name": "Date in week A",
           "description": "An alternative to the week number; any day of that week will do."
+        },
+        "week_start": {
+          "name": "First day of the week",
+          "description": "The day the household's week begins on. The default is Monday. The cards start the week on this day, and always show the first five days from it plus any other day that has lessons. It also sets which day starts a new week of the cycle, and the first day in the sensor's outlook. Leave it empty to keep the current setting."
         }
       }
     },

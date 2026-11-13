@@ -14,7 +14,7 @@ import { LitElement, css, html, nothing, type TemplateResult } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 
 import { avatarUrl, findBoard, memberSensor, type SchooldayMember } from '../lib/board';
-import { localeOf } from '../lib/dates';
+import { localeOf, weekOrder } from '../lib/dates';
 import { isRtl, t } from '../lib/i18n';
 import { schooldayButtons, schooldayTokens } from '../lib/styles';
 import {
@@ -24,11 +24,11 @@ import {
   gridFor,
   hasLessons,
   lessonsOn,
-  SLOTS_PER_WEEK,
   nowMinutes,
   dayFor,
   outlookDate,
   outlookOf,
+  schoolDays,
   periodProgress,
   weekOf,
   weekdayIndex,
@@ -172,26 +172,16 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
       .filter((entry) => hasLessons(entry.week));
   }
 
-  /** The weekdays to draw, 0 = Monday. */
-  private _weekdays(week: TimetableWeek): number[] {
+  /** The weekdays to draw, 0 = Monday, starting on the household's first day. */
+  private _weekdays(week: TimetableWeek, weekStart: number): number[] {
     const setting = this._config.week_days ?? 'auto';
     if (setting === 'week') {
-      return [0, 1, 2, 3, 4, 5, 6];
+      return weekOrder(weekStart);
     }
     if (setting === 'school') {
-      return [0, 1, 2, 3, 4];
+      return weekOrder(weekStart).slice(0, 5);
     }
-    // Monday to Friday, extended only if there really is something at the weekend.
-    // A Wednesday off stays a visible gap rather than vanishing from the grid.
-    //
-    // Slots are folded back to weekdays first: with a two-week timetable the map runs
-    // to 13, and taking the maximum of that would draw a fortnight of columns.
-    const used = Object.keys(week)
-      .map(Number)
-      .filter((slot) => (week[slot] ?? []).length > 0)
-      .map((slot) => slot % SLOTS_PER_WEEK);
-    const last = Math.max(4, ...used);
-    return Array.from({ length: last + 1 }, (_, index) => index);
+    return schoolDays(week, weekStart);
   }
 
   private _weekdayName(weekday: number, style: 'short' | 'long'): string {
@@ -471,7 +461,7 @@ export class SchooldayTimetableCard extends LitElement implements LovelaceCard {
     // minutes are two different tables, and this card only ever draws one child.
     const grid = gridFor(household, selected.schedule);
 
-    const weekdays = this._weekdays(week);
+    const weekdays = this._weekdays(week, grid.weekStart);
     const today = weekdayIndex();
     const highlight = this._config.highlight !== false;
 

@@ -72,7 +72,9 @@ does the same thing.
 
 ## One week per child
 
-Tap a cell and type the subject. A room can go with it.
+Tap a cell and type the subject. A room can go with it. The grid shows the first five days
+of the week and any other day that already has a lesson. **All seven days** shows the rest, so you
+can add the first lesson on a Friday or a Saturday.
 
 In the options dialog the same week is a text field, one line per period:
 
@@ -118,7 +120,7 @@ it belongs to.
 ![A two-week timetable: every column says which week it belongs to, and Monday points at next week — which is a B week](images/timetable-cycle.png)
 *A two-week timetable: every column says which week it belongs to, and Monday points at next week — which is a B week*
 
-What gets **stored** is the Monday that week begins on, not the week number. An ISO year
+What gets **stored** is the Monday of that week, not the week number. An ISO year
 has 52 or 53 weeks — 2026 has 53 — so "A is the odd weeks" would swap itself over some
 new years and not others, and you would find out in February. A Monday keeps meaning the
 same thing.
@@ -130,6 +132,40 @@ action: schoolday.set_cycle
 data:
   weeks: 2
   iso_week: 37
+```
+
+## When the week begins
+
+Not every school week starts on Monday. In Israel it starts on Sunday.
+
+In the editor's **Timetable** tab, next to the cycle, **Week begins on** sets the first
+day of the week for the whole household. The default is Monday. It sets four things:
+
+- The cards start the week on that day.
+- The cards always show the first five days of the week, so Monday to Friday or Sunday
+  to Thursday. Any other day appears as soon as it has lessons, so a school week of six
+  days, such as Sunday to Friday, shows all six.
+- In a [two-week timetable](#two-week-timetables), a new week of the cycle starts on that
+  day. When the week begins on Sunday, Sunday gets the same letter as the Monday after it.
+- The sensor's `outlook` starts on that day. This affects which days the card shows when
+  [past days are not rolled on](#which-day-a-column-means).
+
+Home Assistant has its own *first day of the week* in each user's profile. Schoolday does
+not use it. It is a personal setting that follows each user's language, so two people in
+one home can have different days, and a timetable has to mean the same week for everybody.
+
+![A two-week timetable in a week that begins on Sunday. Sunday is the first column. The coming Sunday is already part of next week, a B week, so it shows week B's lessons.](images/timetable-sunday.png)
+*A two-week timetable in a week that begins on Sunday. Sunday is the first column. The
+coming Sunday is already part of next week, a B week, so it shows week B's lessons.*
+
+Changing it does not move week A: Monday to Saturday keep their letters, and only Sunday
+changes.
+
+```yaml
+action: schoolday.set_cycle
+data:
+  weeks: 2
+  week_start: sunday
 ```
 
 ## Which day a column means

@@ -299,6 +299,71 @@ check("A- und B-Woche liefern verschiedene Stunden",
       and [lesson.subject for lesson in cyc.lessons_on(MEMBER, datetime.date(2026, 9, 21))] == ["Deutsch"],
       "Mo 7.9. / 14.9. / 21.9.")
 
+# --- a week that begins on Sunday ------------------------------------------
+# 13.9.2026 is a Sunday. In Israel it is the first school day of the week that the
+# Monday after it belongs to, so it must carry that week's letter, not the last one's.
+SUN = datetime.date(2026, 9, 13)
+out = W.set_cycle({}, 2, anchor="2026-09-13", today=CT, week_start="sunday")
+check("Sonntag als Wochenanfang wird gespeichert, der Anker bleibt ein Montag",
+      out == {"cycle_weeks": 2, "week_start": 6, "cycle_anchor": "2026-09-14"}, str(out))
+out = W.set_cycle({"week_start": 6}, 2, anchor="2026-09-19", today=CT)
+check("Samstag gehoert zur Woche des Sonntags davor",
+      out["cycle_anchor"] == "2026-09-14", str(out))
+out = W.set_cycle({"week_start": 6}, 2, today=SUN)
+check("Zyklus an einem Sonntag faengt in der Woche ab diesem Sonntag an",
+      out["cycle_anchor"] == "2026-09-14", str(out))
+try:
+    W.set_cycle({}, 2, today=CT, week_start="someday")
+    check("ein Wochenanfang, der kein Tag ist, wird abgewiesen", False, "keine Ausnahme")
+except SchooldayValueError as e:
+    check("ein Wochenanfang, der kein Tag ist, wird abgewiesen", "is not a day" in str(e), str(e)[:50])
+
+SUNDAYS = merged({
+    "cycle_weeks": 2, "cycle_anchor": "2026-09-07", "week_start": 6,
+    "timetable": {"periods": ["08:00-08:45"],
+                  "lessons": {MEMBER: {"6": {"1": {"subject": "Tanach"}},
+                                       "13": {"1": {"subject": "Mathe"}}}}},
+})
+sun = Models.SchooldayConfig.from_options(SUNDAYS)
+check("Sonntag traegt den Buchstaben der Woche, die er beginnt",
+      sun.week_index(datetime.date(2026, 9, 6)) == 0
+      and sun.week_index(datetime.date(2026, 9, 7)) == 0
+      and sun.week_index(datetime.date(2026, 9, 12)) == 0
+      and sun.week_index(datetime.date(2026, 9, 13)) == 1,
+      "So 6.9. A, Mo 7.9. A, Sa 12.9. A, So 13.9. B")
+check("Sonntag liest die Stunden seiner eigenen Woche",
+      [lesson.subject for lesson in sun.lessons_on(MEMBER, datetime.date(2026, 9, 6))] == ["Tanach"]
+      and [lesson.subject for lesson in sun.lessons_on(MEMBER, datetime.date(2026, 9, 13))] == ["Mathe"],
+      "So 6.9. / So 13.9.")
+check("die Woche beginnt am Sonntag",
+      sun.start_of_week(datetime.date(2026, 9, 16)) == datetime.date(2026, 9, 13)
+      and sun.start_of_week(SUN) == SUN, str(sun.start_of_week(datetime.date(2026, 9, 16))))
+mon = Models.SchooldayConfig.from_options({**SUNDAYS, "week_start": None})
+check("ohne Wochenanfang bleibt alles beim Montag",
+      mon.week_start == 0
+      and mon.week_index(datetime.date(2026, 9, 13)) == 0
+      and mon.week_index(datetime.date(2026, 9, 14)) == 1,
+      "So 13.9. A, Mo 14.9. B")
+check("Montag bis Samstag behalten ihren Buchstaben, wenn der Wochenanfang wechselt",
+      all(mon.week_index(datetime.date(2026, 9, d)) == sun.week_index(datetime.date(2026, 9, d))
+          for d in range(7, 13)), "7.–12.9.")
+check("der Anker bleibt fuer die Karte der gespeicherte Montag, damit die KW stimmt",
+      sun.as_admin_dict()["cycle_anchor"] == "2026-09-07", sun.as_admin_dict()["cycle_anchor"])
+# An anchor from before anchors were normalised may be any day. It meant the Monday
+# week it falls in, and has to keep meaning that when the week start changes.
+old_sun = Models.SchooldayConfig.from_options({**SUNDAYS, "cycle_anchor": "2026-09-13"})
+old_mon = Models.SchooldayConfig.from_options(
+    {**SUNDAYS, "cycle_anchor": "2026-09-13", "week_start": 0})
+check("ein alter Sonntags-Anker kippt die Buchstaben nicht, wenn der Wochenanfang wechselt",
+      all(old_sun.week_index(datetime.date(2026, 9, d)) == old_mon.week_index(datetime.date(2026, 9, d))
+          for d in range(7, 13)), "7.–12.9.")
+check("die Stundenplan-Karte erfaehrt den Wochenanfang",
+      sun.timetable.as_card_dict((), sun.cycle_weeks, sun.week_start)["week_start"] == 6
+      and mon.timetable.as_card_dict()["week_start"] == 0)
+check("die Admin-Karte erfaehrt den Wochenanfang",
+      sun.as_admin_dict()["week_start"] == 6 and mon.as_admin_dict()["week_start"] == 0)
+
+
 # Turning the cycle off must not throw week B away — only stop showing it.
 off = Models.SchooldayConfig.from_options({**CYCLED, "cycle_weeks": 1})
 check("Zyklus aus zeigt wieder die A-Woche, B bleibt gespeichert",

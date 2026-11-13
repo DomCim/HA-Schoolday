@@ -253,6 +253,17 @@
         "morning": "Morgen",
         "evening": "Abend"
       }
+    },
+    "week_start": {
+      "options": {
+        "monday": "Montag",
+        "tuesday": "Dienstag",
+        "wednesday": "Mittwoch",
+        "thursday": "Donnerstag",
+        "friday": "Freitag",
+        "saturday": "Samstag",
+        "sunday": "Sonntag"
+      }
     }
   },
   "services": {
@@ -349,6 +360,10 @@
         "anchor": {
           "name": "Datum in der A-Woche",
           "description": "Alternative zur KW; irgendein Tag dieser Woche genügt."
+        },
+        "week_start": {
+          "name": "Erster Tag der Woche",
+          "description": "Der Tag, an dem die Woche des Haushalts beginnt. Standard ist Montag. Die Karten beginnen die Woche an diesem Tag und zeigen immer die ersten fünf Tage ab diesem Tag sowie jeden weiteren Tag mit Unterricht. Er legt außerdem fest, an welchem Tag eine neue Woche des Zyklus beginnt, und ist der erste Tag im outlook des Sensors. Leer lassen, um die Einstellung zu behalten."
         }
       }
     },

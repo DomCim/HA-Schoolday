@@ -22,3 +22,17 @@ export function prefersHour12(hass: HomeAssistant): boolean | undefined {
 export function localeOf(hass: HomeAssistant): string {
   return hass.locale?.language || hass.language || 'en';
 }
+
+/** The names `set_cycle` takes for the first day of the week, Monday first. */
+export const WEEKDAY_NAMES = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+
+/** The seven weekdays in order, starting on `first`. */
+export function weekOrder(first: number): number[] {
+  return Array.from({ length: 7 }, (_, offset) => (first + offset) % 7);
+}
+
+/** The household's first day of the week from sensor data, 0..6. The default is Monday. */
+export function weekStartOf(raw: unknown): number {
+  const value = Number(raw ?? 0);
+  return Number.isInteger(value) && value >= 0 && value <= 6 ? value : 0;
+}

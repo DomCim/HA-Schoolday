@@ -46,12 +46,14 @@ from .const import (
     CONF_ROUTINES,
     CONF_SCHOOL_CALENDARS,
     CONF_TIMETABLE,
+    CONF_WEEK_START,
     DEFAULT_COLORS,
     DOMAIN,
     ROUTINE_BLOCKS,
     ROUTINE_EXTRA_KEYS,
     SUGGESTED_CARE_KEYWORDS,
     WEEKDAYS,
+    WEEK_START_DAYS,
 )
 from .models import (
     InvalidPeriod,
@@ -62,6 +64,7 @@ from .models import (
     color_to_hex,
     hex_to_rgb,
     lessons_from_text,
+    parse_week_start,
     periods_from_text,
     steps_from_text,
     text_from_lessons,
@@ -249,7 +252,7 @@ class SchooldayOptionsFlow(OptionsFlow):
         options = ["add_member"]
         if self._members:
             options += ["edit_member", "remove_member", "routines"]
-        options.append("timetable_times")
+        options += ["timetable_times", "week_start"]
         timetable = self._timetable
         # Offered once there are times to differ from, because a second school's times
         # are only meaningful next to a first school's.
@@ -388,6 +391,38 @@ class SchooldayOptionsFlow(OptionsFlow):
                     selector.TextSelectorConfig(multiline=True)
                 )
             }
+        )
+
+    async def async_step_week_start(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Pick the day the household's week begins on.
+
+        Saving it leaves the cycle anchor where it is, so week A does not move.
+        """
+        if user_input is not None:
+            self._persist(
+                **{CONF_WEEK_START: WEEK_START_DAYS.index(user_input[CONF_WEEK_START])}
+            )
+            return await self.async_step_init()
+
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_WEEK_START): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=list(WEEK_START_DAYS),
+                        translation_key="week_start",
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                )
+            }
+        )
+        stored = parse_week_start(self.config_entry.options.get(CONF_WEEK_START))
+        return self.async_show_form(
+            step_id="week_start",
+            data_schema=self.add_suggested_values_to_schema(
+                schema, {CONF_WEEK_START: WEEK_START_DAYS[stored]}
+            ),
         )
 
     async def async_step_timetable_schedules(

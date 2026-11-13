@@ -5,6 +5,19 @@ version you are updating to; the [manual](https://domcim.github.io/HA-Schoolday/
 details. Releases before 0.14.0 are listed on
 [GitHub](https://github.com/DomCim/HA-Schoolday/releases).
 
+## 0.19.1
+
+**Week begins on** is now also in the integration's options dialog, as **First day of
+the week**. Until now it was only in the admin card, so a household that sets
+Schoolday up from the integration page could not find it.
+
+In the timetable card's editor, one choice under **Days shown** said "Monday to Friday".
+It now says "The first five days of the week", which is what it shows: Sunday to Thursday
+when the week begins on Sunday.
+
+The Hebrew texts are reworded throughout, in the cards and in the integration's dialogs,
+to read naturally and say plainly what each setting does.
+
 ## 0.19.0
 
 ### Weeks that begin on Sunday

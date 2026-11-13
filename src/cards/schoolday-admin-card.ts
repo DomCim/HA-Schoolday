@@ -25,10 +25,17 @@ import {
   type AdminConfig,
   type AdminMember,
 } from '../lib/admin';
-import { localeOf } from '../lib/dates';
+import { localeOf, WEEKDAY_NAMES, weekOrder } from '../lib/dates';
 import { isRtl, t } from '../lib/i18n';
 import { schooldayButtons, schooldayTokens } from '../lib/styles';
-import { gridFor, lessonAt, SLOTS_PER_WEEK, weekOf, type TimetableWeek } from '../lib/timetable';
+import {
+  gridFor,
+  lessonAt,
+  schoolDays,
+  SLOTS_PER_WEEK,
+  weekOf,
+  type TimetableWeek,
+} from '../lib/timetable';
 import { findBoard, memberSensor } from '../lib/board';
 import type {
   HomeAssistant,
@@ -80,6 +87,8 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
   @state() private _exceptionDate = '';
   /** Which week of the cycle the timetable editor is showing; unset means "now". */
   @state() private _week?: number;
+  /** Show all seven days in the timetable grid, so a day with no lessons yet can be filled in. */
+  @state() private _allDays = false;
   /** The cell being edited, as `weekday:period`. */
   @state() private _cell?: string;
   /** Whether the "add a school" name box is open in the timetable section. */
@@ -340,7 +349,9 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
   // --- timetable ----------------------------------------------------------
 
   /**
-   * The two-week cycle: whether there is one, and where week A starts.
+   * The two-week cycle: whether there is one, and where week A starts. Also the first
+   * day of the household's week. That one is shown even without a cycle, because it
+   * also sets the day the cards start the week on.
    *
    * Asked as a calendar week, because that is how a school says it — "A-Wochen sind
    * die geraden KW" — even though what gets stored is the Monday that week begins on.
@@ -393,6 +404,38 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
               </div>
             `
           : nothing}
+        <label class="field">
+          <span class="label">${t(this.hass, 'admin.week_start')}</span>
+          <select
+            id="week-start"
+            .value=${
+              // `selected` below only works until somebody uses the dropdown. After
+              // that, only `.value` moves it.
+              String(config.weekStart)
+            }
+            ?disabled=${this._busy}
+            @change=${async (event: Event) => {
+              const select = event.target as HTMLSelectElement;
+              await this._call('set_cycle', {
+                weeks: config.cycleWeeks,
+                week_start: WEEKDAY_NAMES[Number(select.value)],
+              });
+              // If the save was refused, nothing re-renders, so put the dropdown back
+              // to the saved day.
+              if (this._error) {
+                select.value = String(this._admin().weekStart);
+              }
+            }}
+          >
+            ${weekOrder(0).map(
+              (day) => html`
+                <option value=${String(day)} ?selected=${config.weekStart === day}>
+                  ${this._weekdayName(day, 'long')}
+                </option>
+              `,
+            )}
+          </select>
+        </label>
       </div>
     `;
   }
@@ -406,12 +449,11 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
     // Which week is being edited. Opens on the one the household is in, because that
     // is the one somebody standing at the board is thinking about.
     const cycleWeek = config.cycleWeeks > 1 ? (this._week ?? config.cycleNow) : 0;
-    const weekdays = [0, 1, 2, 3, 4, 5, 6].filter(
-      (day) =>
-        day <= 4 ||
-        (week[day] ?? []).length > 0 ||
-        (week[day + SLOTS_PER_WEEK] ?? []).length > 0,
-    );
+    // The same days as the timetable card: the first five of the household's week, and
+    // any later day up to the last one with a lesson in either week.
+    const order = weekOrder(config.weekStart);
+    const usual = schoolDays(week, config.weekStart);
+    const weekdays = this._allDays ? order : usual;
 
     return html`
       ${this._renderCycle(config)}
@@ -443,6 +485,21 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
                         </button>
                       `,
                     )}
+                  </div>`
+                : nothing}
+              ${usual.length < order.length
+                ? html`<div class="chips">
+                    <button
+                      id="all-days"
+                      class="chip ${this._allDays ? 'on' : ''}"
+                      aria-pressed=${this._allDays}
+                      @click=${() => {
+                        this._allDays = !this._allDays;
+                        this._cell = undefined;
+                      }}
+                    >
+                      ${t(this.hass, 'admin.all_days')}
+                    </button>
                   </div>`
                 : nothing}
               <div
@@ -570,7 +627,7 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
     if (!member) {
       return html`<div class="notice">${t(this.hass, 'admin.no_members')}</div>`;
     }
-    const days = ['0', '1', '2', '3', '4', '5', '6', 'free', 'care'];
+    const days = [...weekOrder(config.weekStart).map(String), 'free', 'care'];
     const dayLabel = (day: string) =>
       day === 'free'
         ? t(this.hass, 'admin.day_free')
@@ -1325,6 +1382,7 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
       }
 
       input,
+      select,
       textarea {
         font: inherit;
         color: inherit;

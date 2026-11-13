@@ -5,7 +5,7 @@
  * is published once on the board sensor. Each member's own week rides on their member
  * sensor, so neither attribute set grows with the size of the family.
  */
-import { localeOf, prefersHour12 } from './dates';
+import { localeOf, prefersHour12, weekOrder, weekStartOf } from './dates';
 import type { HassEntity, HomeAssistant } from './types';
 
 export interface TimetablePeriod {
@@ -32,6 +32,8 @@ export interface TimetableGrid {
   subjects: Record<string, string>;
   /** How many weeks the timetable takes to repeat: 1, or 2 for an A/B school. */
   cycleWeeks: number;
+  /** The first day of the household's week, 0 = Monday … 6 = Sunday. */
+  weekStart: number;
   /**
    * Other schools' lesson times, by name, for a household whose children are at two
    * that do not ring at the same minute. Empty for everybody else, which is most
@@ -105,7 +107,8 @@ export interface OutlookDay {
  *
  * A timetable repeats forever, so on its own a column can only say what a Tuesday is
  * usually like. This says which Tuesday, and whether it is happening at all. The
- * window reaches back to Monday, so a weekday can appear twice — see `dayFor`.
+ * window starts on the first day of the household's week (Monday by default), so a
+ * weekday can appear twice: see `dayFor`.
  */
 export type Outlook = OutlookDay[];
 
@@ -187,6 +190,7 @@ export function parseGrid(raw: unknown): TimetableGrid | null {
     breaks,
     subjects,
     cycleWeeks: Number(data.cycle_weeks ?? 1) === 2 ? 2 : 1,
+    weekStart: weekStartOf(data.week_start),
     schedules,
   };
 }
@@ -396,7 +400,7 @@ export function todayKey(now: Date = new Date()): string {
  *
  * With `roll`, the next one it can still mean — today or later, so a Tuesday that has
  * been points at next Tuesday. Without, the one in the week as it stands, which is
- * simply the first the window holds: the window starts on Monday.
+ * simply the first the window holds: the window starts on the household's first day.
  */
 export function dayFor(outlook: Outlook, weekday: number, roll: boolean): OutlookDay | undefined {
   const matching = outlook.filter((day) => day.weekday === weekday);
@@ -429,6 +433,24 @@ export function usesSecondWeek(week: TimetableWeek): boolean {
   return Object.entries(week).some(
     ([slot, lessons]) => Number(slot) >= SLOTS_PER_WEEK && lessons.length > 0,
   );
+}
+
+/**
+ * The weekdays to draw, starting on the household's first day of the week.
+ *
+ * These are the first five days of the week (Monday to Friday, or Sunday to Thursday),
+ * and any later day up to the last one with a lesson. A Wednesday with no lessons
+ * therefore stays as an empty column.
+ */
+export function schoolDays(week: TimetableWeek, weekStart: number): number[] {
+  const order = weekOrder(weekStart);
+  // Slots are folded back to weekdays first: with a two-week timetable the map runs
+  // to 13, and reading that as a weekday would draw a fortnight of columns.
+  const used = Object.keys(week)
+    .map(Number)
+    .filter((slot) => (week[slot] ?? []).length > 0)
+    .map((slot) => order.indexOf(slot % SLOTS_PER_WEEK));
+  return order.slice(0, Math.max(4, ...used) + 1);
 }
 
 /** True when a week holds at least one lesson. */

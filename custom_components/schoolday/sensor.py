@@ -389,7 +389,9 @@ class SchooldayBoardSensor(SchooldayBaseSensor):
             # The lesson grid only: each member's own week rides on their sensor, so
             # neither attribute set grows with the size of the family.
             ATTR_TIMETABLE: self._config.timetable.as_card_dict(
-                self._config.exception_subjects, self._config.cycle_weeks
+                self._config.exception_subjects,
+                self._config.cycle_weeks,
+                self._config.week_start,
             ),
             ATTR_SCHOOL_TODAY: reason is None,
             ATTR_NO_SCHOOL: reason,
@@ -597,14 +599,15 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
     async def _async_read_outlook(self) -> None:
         """Work out what each day of this week and the next seven days holds.
 
-        The window starts at Monday of the current week rather than at today, so a card
+        The window starts on the first day of the current week (Monday by default)
+        rather than today, so a card
         can show either the week as it stands or the days still to come. That means a
         weekday can appear twice — this Tuesday and next — which is why this is a list
         of dates and not a map keyed by weekday: only the card knows which it wants.
         """
         today = dt_util.now().date()
         self._outlook_date = today
-        first = today - timedelta(days=today.weekday())
+        first = self._config.start_of_week(today)
         last = today + timedelta(days=OUTLOOK_DAYS - 1)
         days = [
             first + timedelta(days=offset) for offset in range((last - first).days + 1)

@@ -9,6 +9,7 @@
  * Writing goes through Schoolday's services, because a card cannot edit a config
  * entry. The service is where the rules live; nothing here second-guesses them.
  */
+import { weekStartOf } from './dates';
 import type { HassEntity, HomeAssistant } from './types';
 
 export interface AdminMember {
@@ -66,6 +67,8 @@ export interface AdminConfig {
   cycleAnchor: string | null;
   /** Which week the household is in right now: 0 for A, 1 for B. */
   cycleNow: number;
+  /** The first day of the household's week, 0 = Monday … 6 = Sunday. */
+  weekStart: number;
 }
 
 export interface AdminException {
@@ -91,6 +94,7 @@ const EMPTY: AdminConfig = {
   cycleWeeks: 1,
   cycleAnchor: null,
   cycleNow: 0,
+  weekStart: 0,
 };
 
 function stringList(raw: unknown): string[] {
@@ -221,6 +225,7 @@ export function parseAdmin(raw: unknown): AdminConfig {
     cycleWeeks: Number(data.cycle_weeks ?? 1) === 2 ? 2 : 1,
     cycleAnchor: typeof data.cycle_anchor === 'string' ? data.cycle_anchor : null,
     cycleNow: Number(data.cycle_now ?? 0) === 1 ? 1 : 0,
+    weekStart: weekStartOf(data.week_start),
   };
 }
 

@@ -20,7 +20,9 @@ type: custom:schoolday-timetable-card
 ```
 
 The card finds the household's lesson grid, offers the members who have a timetable,
-shows Monday to Friday unless somebody has weekend lessons, hides periods nobody has,
+shows the first five days of the week (Monday to Friday, or Sunday to Thursday if the
+household's [week begins on Sunday](timetable.md#when-the-week-begins)), adds other days
+only when somebody has lessons on them, hides periods nobody has,
 marks today and the lesson running right now, and falls back to a single day when it is
 too narrow for a week.
 
@@ -33,7 +35,7 @@ times and breaks come from that child's own school.*
 |---|---|---|
 | `member` | all | One child only, by name or id. Otherwise the card offers a switcher. |
 | `layout` | `auto` | `auto` shows the week and drops to one day when narrow; `week`; `day`. |
-| `week_days` | `auto` | `auto` follows the timetable; `school` is Mon–Fri; `week` is all seven. |
+| `week_days` | `auto` | `auto` follows the timetable; `school` is always the first five days of the household's week (Mon–Fri, or Sun–Thu where it [begins on Sunday](timetable.md#when-the-week-begins)), so use `auto` for a six-day school week; `week` is all seven. |
 | `show_rooms` | `true` | The room under the subject. |
 | `show_times` | `true` | The times next to the period number. |
 | `show_breaks` | `true` | The break rows between the periods. |
@@ -191,10 +193,10 @@ everything, but every change is refused.
 
 ### Timetable
 
-![The household's lesson times at the top, another school's under them, and the week below. Tap a cell to set a lesson; with a two-week timetable the cycle and an A/B switch sit above the grid.](images/admin-timetable.png)
-*The household's lesson times at the top, another school's under them, and the week below.
-Tap a cell to set a lesson; with a two-week timetable the cycle and an A/B switch sit above
-the grid.*
+![The cycle and the first day of the week at the top, then the household's lesson times, another school's under them, and the week below. Tap a cell to set a lesson. All seven days shows the days that have no lessons yet.](images/admin-timetable.png)
+*The cycle and the first day of the week at the top, then the household's lesson times,
+another school's under them, and the week below. Tap a cell to set a lesson. All seven
+days shows the days that have no lessons yet.*
 
 The lesson times live at the top of this section, and under them any
 [other school's](timetable.md#two-schools-that-do-not-ring-together) — for a household

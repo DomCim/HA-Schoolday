@@ -103,6 +103,8 @@ const EN: Dict = {
   'admin.cycle_two': 'Two weeks (A/B)',
   'admin.cycle_start': 'Week A starts in calendar week',
   'admin.cycle_now': 'This week is week {week}.',
+  'admin.week_start': 'Week begins on',
+  'admin.all_days': 'All seven days',
   'admin.week_a': 'Week A',
   'admin.week_b': 'Week B',
   'admin.exceptions_hint':
@@ -271,6 +273,8 @@ const DE: Dict = {
   'admin.cycle_two': 'Zwei Wochen (A/B)',
   'admin.cycle_start': 'A-Woche beginnt in KW',
   'admin.cycle_now': 'Diese Woche ist Woche {week}.',
+  'admin.week_start': 'Woche beginnt am',
+  'admin.all_days': 'Alle sieben Tage',
   'admin.week_a': 'A-Woche',
   'admin.week_b': 'B-Woche',
   'admin.exceptions_hint':
@@ -437,6 +441,8 @@ const HE: Dict = {
   'admin.cycle_two': 'שבועיים (א׳/ב׳)',
   'admin.cycle_start': 'שבוע א׳ מתחיל בשבוע מספר',
   'admin.cycle_now': 'השבוע הוא שבוע {week}.',
+  'admin.week_start': 'השבוע מתחיל ביום',
+  'admin.all_days': 'כל ימות השבוע',
   'admin.week_a': 'שבוע א׳',
   'admin.week_b': 'שבוע ב׳',
   'admin.exceptions_hint':

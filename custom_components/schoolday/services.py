@@ -74,6 +74,7 @@ from .const import (
     SERVICE_SET_ABSENT,
     SERVICE_SET_CALENDARS,
     SERVICE_SET_CYCLE,
+    WEEK_START_DAYS,
     SERVICE_SET_DAY,
     SERVICE_SET_EXCEPTION,
     SERVICE_SET_LESSON,
@@ -136,6 +137,7 @@ SET_CYCLE_SCHEMA = vol.Schema(
         vol.Optional(ATTR_ANCHOR): cv.string,
         vol.Optional("iso_week"): vol.All(vol.Coerce(int), vol.Range(min=1, max=53)),
         vol.Optional("iso_year"): vol.Coerce(int),
+        vol.Optional("week_start"): vol.In(WEEK_START_DAYS),
     }
 )
 
@@ -446,6 +448,7 @@ def async_register_services(hass: HomeAssistant) -> None:
                 call.data.get(ATTR_ANCHOR),
                 call.data.get("iso_week"),
                 call.data.get("iso_year"),
+                week_start=call.data.get("week_start"),
             ),
         )
 

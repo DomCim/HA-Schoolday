@@ -5,6 +5,25 @@ version you are updating to; the [manual](https://domcim.github.io/HA-Schoolday/
 details. Releases before 0.14.0 are listed on
 [GitHub](https://github.com/DomCim/HA-Schoolday/releases).
 
+## 0.19.0
+
+### Weeks that begin on Sunday
+
+The editor's timetable tab has a new **Week begins on** setting next to the cycle
+(`week_start` on `schoolday.set_cycle`). The default is Monday, so nothing changes until
+you set it. Set it to Sunday and the cards start the week on Sunday. They always show
+Sunday to Thursday, plus Friday or Saturday when they have lessons. In a two-week
+timetable, Sunday then gets the same letter as the Monday after it. Week A does not move.
+
+The timetable grid in the editor has a new **All seven days** button. Use it to add a
+lesson on a day that has none yet.
+
+**What you need to do:** nothing if your week starts on Monday. If it starts on Sunday,
+set **Week begins on** to Sunday. If you copied week A into week B by hand to get Sunday
+right, restore week B's Sunday.
+
+Thanks to [@Shenharo](https://github.com/Shenharo) for letting each household choose its week start.
+
 ## 0.18.0
 
 ### Hebrew

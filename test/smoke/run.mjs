@@ -475,6 +475,135 @@ check(
   JSON.stringify(uncycled),
 );
 
+// A week that begins on Sunday draws Sunday first. Ben has Sunday to Friday, so the
+// columns run from Sunday to his last day rather than wrapping Sunday round to the end;
+// with rolling on, Sunday is the coming one, and with it off, the one just gone.
+const sundayHeads = async (config) => {
+  await page.evaluate((cfg) => {
+    window.__mount(cfg, 'schoolday-timetable-card');
+  }, config);
+  await page.waitForTimeout(300);
+  return page.evaluate(() => {
+    const root = document.querySelector('schoolday-timetable-card').shadowRoot;
+    return [...root.querySelectorAll('.col-head')].map((head) => ({
+      day: head.querySelector('.col-day')?.textContent.trim(),
+      date: head.querySelector('.col-date')?.textContent.trim(),
+    }));
+  });
+};
+await page.evaluate(() => window.__setWeekStart('sunday'));
+const sundayRolled = await sundayHeads({
+  type: 'custom:schoolday-timetable-card',
+  member: 'Ben',
+  layout: 'week',
+});
+check(
+  'a week that begins on Sunday draws Sunday first, and it points at the coming one',
+  sundayRolled.length === 6 &&
+    /^So/.test(sundayRolled[0].day) &&
+    sundayRolled[0].date === '9.8.' &&
+    /^Mo/.test(sundayRolled[1].day) &&
+    /^Fr/.test(sundayRolled[5].day),
+  JSON.stringify(sundayRolled),
+);
+const sundayCells = await page.evaluate(() => {
+  const root = document.querySelector('schoolday-timetable-card').shadowRoot;
+  return [...root.querySelectorAll('.cell .subject')]
+    .filter((n) => (n.closest('.cell').getAttribute('style') ?? '').includes('grid-column:2;'))
+    .map((n) => n.textContent.trim());
+});
+check(
+  "and the Sunday column holds Sunday's lessons",
+  JSON.stringify(sundayCells) === JSON.stringify(['Tanach']),
+  JSON.stringify(sundayCells),
+);
+const sundayStatic = await sundayHeads({
+  type: 'custom:schoolday-timetable-card',
+  member: 'Ben',
+  layout: 'week',
+  roll_days: false,
+});
+check(
+  'rolling off, the week as it stands starts on the Sunday just gone',
+  sundayStatic.map((head) => head.date).join(' ') === '2.8. 3.8. 4.8. 5.8. 6.8. 7.8.',
+  sundayStatic.map((head) => head.date).join(' '),
+);
+const sundaySchool = await sundayHeads({
+  type: 'custom:schoolday-timetable-card',
+  member: 'Ben',
+  layout: 'week',
+  week_days: 'school',
+});
+check(
+  'school days are the first five of the week: Sunday to Thursday',
+  sundaySchool.length === 5 && /^So/.test(sundaySchool[0].day) && /^Do/.test(sundaySchool[4].day),
+  sundaySchool.map((head) => head.day).join(' '),
+);
+// With a two-week cycle, the coming Sunday opens next week — a B week — so it shows
+// week B's Sunday, not the A week it would have closed if the week began on Monday.
+await page.evaluate(() => {
+  window.__setCycle(2);
+  window.__setWeekStart('sunday');
+});
+await sundayHeads({ type: 'custom:schoolday-timetable-card', member: 'Ben', layout: 'week' });
+const sundayCycle = await page.evaluate(() => {
+  const root = document.querySelector('schoolday-timetable-card').shadowRoot;
+  const head = root.querySelector('.col-head');
+  return {
+    day: head.querySelector('.col-day')?.textContent.trim(),
+    date: head.querySelector('.col-date')?.textContent.trim(),
+    week: head.querySelector('.col-week')?.textContent.trim() ?? null,
+    lessons: [...root.querySelectorAll('.cell .subject')]
+      .filter((n) => (n.closest('.cell').getAttribute('style') ?? '').includes('grid-column:2;'))
+      .map((n) => n.textContent.trim()),
+  };
+});
+check(
+  "in an A/B cycle, Sunday carries the week it begins and that week's lessons",
+  /^So/.test(sundayCycle.day) &&
+    sundayCycle.date === '9.8.' &&
+    sundayCycle.week === 'B' &&
+    JSON.stringify(sundayCycle.lessons) === JSON.stringify(['Mathe', 'Englisch']),
+  JSON.stringify(sundayCycle),
+);
+await page.evaluate(() => {
+  window.__setWeekStart('monday');
+  window.__setCycle(1);
+  window.__setWeekStart('sunday');
+});
+
+// Home Assistant's own "first day of the week" is each user's and is not asked: a
+// profile that says Sunday changes nothing for a household whose week begins on Monday.
+await page.evaluate(() => {
+  window.__setWeekStart('monday');
+  window.__hass.locale = { ...window.__hass.locale, first_weekday: 'sunday' };
+});
+const profileIgnored = await sundayHeads({ type: 'custom:schoolday-timetable-card', member: 'Ben', layout: 'week' });
+await page.evaluate(() => {
+  window.__hass.locale = { ...window.__hass.locale, first_weekday: 'monday' };
+});
+check(
+  "the week begins on the household's day, whatever a user's profile says",
+  profileIgnored.map((head) => head.day).join(' ') === 'Mo Di Mi Do Fr',
+  profileIgnored.map((head) => head.day).join(' '),
+);
+
+// Hebrew is laid out right to left, so there the first day is the right-hand column,
+// where a Hebrew reader starts.
+await page.evaluate(() => window.__setWeekStart('sunday', 'he'));
+const hebrewWeek = await sundayHeads({ type: 'custom:schoolday-timetable-card', member: 'Ben', layout: 'week' });
+const hebrewEdge = await page.evaluate(() => {
+  const root = document.querySelector('schoolday-timetable-card').shadowRoot;
+  const lefts = [...root.querySelectorAll('.col-head')].map((h) => h.getBoundingClientRect().left);
+  return { first: lefts[0], max: Math.max(...lefts), count: lefts.length };
+});
+check(
+  'in Hebrew, a week that begins on Sunday has Sunday as the right-hand column',
+  /^9\.8/.test(hebrewWeek[0]?.date ?? '') && hebrewEdge.count === 6 && hebrewEdge.first === hebrewEdge.max,
+  `${hebrewWeek.map((head) => head.date).join(' ')} ${JSON.stringify(hebrewEdge)}`,
+);
+await page.evaluate(() => window.__setWeekStart('monday'));
+
 // A date may do something other than what its weekday says. Thursday the 6th is a
 // normal school day whose second period is covered and whose third is off.
 await closeDays({ type: 'custom:schoolday-timetable-card', member: 'Ben', layout: 'week' }, {
@@ -1793,6 +1922,78 @@ check(
   cycleCall?.data.weeks === 2 && cycleCall?.data.iso_week === 37 && cycleCall?.data.iso_year === 2026,
   JSON.stringify(cycleCall?.data ?? null),
 );
+
+// The day the week begins on is offered beside the cycle, and the timetable grid
+// follows the person's own first day.
+await page.evaluate(() => window.__setWeekStart('sunday'));
+await page.waitForTimeout(300);
+const weekStartUi = await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  return {
+    value: root.querySelector('#week-start')?.value ?? null,
+    options: root.querySelectorAll('#week-start option').length,
+    heads: [...root.querySelectorAll('.head')].map((h) => h.textContent.trim()).slice(0, 2),
+  };
+});
+check(
+  "the editor shows the household's first day, and draws the grid from it",
+  weekStartUi.value === '6' && weekStartUi.options === 7 && /^So/.test(weekStartUi.heads[0] ?? ''),
+  JSON.stringify(weekStartUi),
+);
+// A day with nothing on it yet is not drawn, and has to be reachable all the same:
+// Ben has Sunday to Friday, so Saturday only appears when all seven are asked for.
+const editorHeads = () =>
+  page.evaluate(() =>
+    [...document.querySelector('schoolday-admin-card').shadowRoot.querySelectorAll('.week .head')]
+      .map((h) => h.textContent.trim())
+      .join(' '),
+  );
+const usualDays = await editorHeads();
+await page.evaluate(() =>
+  document.querySelector('schoolday-admin-card').shadowRoot.querySelector('#all-days').click(),
+);
+await page.waitForTimeout(200);
+const allDays = await editorHeads();
+await page.evaluate(() =>
+  document.querySelector('schoolday-admin-card').shadowRoot.querySelector('#all-days').click(),
+);
+check(
+  'the editor draws the days in use, and all seven on request',
+  usualDays === 'So Mo Di Mi Do Fr' && allDays === 'So Mo Di Mi Do Fr Sa',
+  `${usualDays} / ${allDays}`,
+);
+
+// A write Home Assistant refuses must not leave the field showing what was asked for.
+await page.evaluate(() => {
+  window.__refuseNext = true;
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  const field = root.querySelector('#week-start');
+  field.value = '3';
+  field.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+});
+await page.waitForTimeout(300);
+const refused = await page.evaluate(
+  () => document.querySelector('schoolday-admin-card').shadowRoot.querySelector('#week-start').value,
+);
+check('a refused change puts the first day back to what is stored', refused === '6', refused);
+
+await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  const field = root.querySelector('#week-start');
+  field.value = '0';
+  field.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+});
+await page.waitForTimeout(300);
+const weekStartCall = await page.evaluate(
+  () => window.__calls.services.filter((c) => c.service === 'set_cycle').pop() ?? null,
+);
+check(
+  'changing the first day sends it with the cycle as it stands',
+  weekStartCall?.data.week_start === 'monday' && weekStartCall?.data.weeks === 2,
+  JSON.stringify(weekStartCall?.data ?? null),
+);
+await page.evaluate(() => window.__setWeekStart('monday'));
+await page.waitForTimeout(300);
 
 // Editing week B writes into week B, not over week A.
 await page.evaluate(() => {

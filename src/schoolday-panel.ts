@@ -11,6 +11,7 @@ import { SCHOOLDAY_VERSION } from './lib/const';
 // and pushes an entry onto window.customCards.
 import './editors/schoolday-card-editors';
 import './cards/schoolday-admin-card';
+import './cards/schoolday-exams-card';
 import './cards/schoolday-header-card';
 import './cards/schoolday-homework-card';
 import './cards/schoolday-routines-card';

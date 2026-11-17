@@ -87,6 +87,7 @@ from .const import (
     EVENT_LESSON_ENDED,
     EVENT_LESSON_STARTED,
     EVENT_PLAN_CHANGED,
+    EXAMS_AHEAD_DAYS,
     FEED_REFRESH_MINUTES,
     MODE_CARE,
     MODE_EVENT,
@@ -628,7 +629,22 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         calendars = list(
             dict.fromkeys([*self._config.school_calendars, *self._member_calendars])
         )
-        events = await self._async_read_events(calendars, start, end)
+        events = await self._async_read_events(
+            [entity_id for entity_id in calendars if entity_id != self._member.exams_calendar],
+            start,
+            end,
+        )
+        if self._member.exams_calendar:
+            # Read on its own and much further ahead than the days above, so a card can
+            # list the tests still weeks away; the days above only use the first of them.
+            events.update(
+                await self._async_read_events(
+                    [self._member.exams_calendar],
+                    start,
+                    dt_util.start_of_local_day(today)
+                    + timedelta(days=EXAMS_AHEAD_DAYS + 1),
+                )
+            )
         self._feed_read = all(
             entity_id in events
             for entity_id in (self._member.lessons_calendar, self._member.exams_calendar)
@@ -1036,7 +1052,7 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
         )
 
     def _exams_from_today(self) -> list[dict[str, Any]]:
-        """Every exam from today to the end of the outlook, in date order."""
+        """Every exam from today on, as far ahead as the exams calendar is read, in date order."""
         today = dt_util.now().date()
         return [
             exam for day in sorted(self._exams) if day >= today for exam in self._exams[day]

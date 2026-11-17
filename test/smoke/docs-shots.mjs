@@ -319,6 +319,11 @@ await shot('homework', 1100, mount(
   'schoolday-homework-card',
 ));
 
+await shot('exams', 700, mount(
+  { type: 'custom:schoolday-exams-card' },
+  'schoolday-exams-card',
+));
+
 await shot('header', 1100, mount(
   {
     type: 'custom:schoolday-header-card',

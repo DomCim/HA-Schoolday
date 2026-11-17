@@ -1161,6 +1161,100 @@ check(
 );
 await page.screenshot({ path: join(SHOTS, 'homework.png') });
 
+// ------------------------------------------------------------------- exams card
+
+const readExams = () =>
+  page.evaluate(() => {
+    const root = document.querySelector('schoolday-exams-card').shadowRoot;
+    return {
+      weeks: [...root.querySelectorAll('.week')].map((week) => ({
+        head: week.querySelector('.week-head span')?.textContent.trim(),
+        exams: [...week.querySelectorAll('.exam')].map((node) =>
+          [
+            node.querySelector('.title')?.textContent.trim(),
+            node.querySelector('.who')?.textContent.trim() ?? '',
+            node.querySelector('.slot')?.textContent.trim() ?? '',
+            node.querySelector('.when')?.textContent.trim(),
+            node.classList.contains('soon') ? 'soon' : '',
+          ].join('|'),
+        ),
+      })),
+      notice: root.querySelector('.notice')?.textContent.trim() ?? null,
+    };
+  });
+
+await page.evaluate(() =>
+  window.__mount({ type: 'custom:schoolday-exams-card' }, 'schoolday-exams-card'),
+);
+await page.waitForTimeout(300);
+const exams = await readExams();
+check(
+  'the exams card lists every child’s exams in date order, by calendar week',
+  JSON.stringify(exams.weeks) ===
+    JSON.stringify([
+      { head: 'Diese Woche', exams: ['Englisch Vokabeltest|Ben|3. Stunde|Morgen|soon'] },
+      {
+        head: 'Nächste Woche',
+        exams: [
+          'Mathe|Jan|2. Stunde|in 6 Tagen|',
+          'Deutsch Schulaufgabe|Ben|1. Stunde|in 9 Tagen|',
+          'Englisch|Jan|5. Stunde|in 9 Tagen|',
+        ],
+      },
+      { head: 'In 4 Wochen', exams: ['HSU|Ben||in 28 Tagen|'] },
+    ]),
+  JSON.stringify(exams.weeks),
+);
+
+// One child needs no name on every line, and `days` cuts the list short.
+await page.evaluate(() =>
+  window.__mount(
+    { type: 'custom:schoolday-exams-card', member: 'Jan', days: 7 },
+    'schoolday-exams-card',
+  ),
+);
+await page.waitForTimeout(300);
+const janExams = await readExams();
+check(
+  'the exams card narrows to one child, without the name, and to the days asked for',
+  JSON.stringify(janExams.weeks) ===
+    JSON.stringify([{ head: 'Nächste Woche', exams: ['Mathe||2. Stunde|in 6 Tagen|'] }]),
+  JSON.stringify(janExams.weeks),
+);
+
+// A week that begins on Sunday groups by it: the first week runs Sunday to Thursday.
+await page.evaluate(() => {
+  window.__setWeekStart('sunday');
+  window.__mount({ type: 'custom:schoolday-exams-card' }, 'schoolday-exams-card');
+});
+await page.waitForTimeout(300);
+const sundayWeeks = await page.evaluate(() =>
+  [...document.querySelector('schoolday-exams-card').shadowRoot.querySelectorAll('.week-head')].map(
+    (head) => head.textContent.replace(/\s+/g, ' ').trim(),
+  ),
+);
+await page.evaluate(() => window.__setWeekStart('monday'));
+check(
+  'the exams card counts weeks from the household’s first day',
+  sundayWeeks.join(' / ') ===
+    'Diese Woche 2. Aug. – 6. Aug. / Nächste Woche 9. Aug. – 13. Aug. / In 4 Wochen 30. Aug. – 3. Sept.',
+  sundayWeeks.join(' / '),
+);
+
+await page.evaluate(() =>
+  window.__mount(
+    { type: 'custom:schoolday-exams-card', member: 'Nik' },
+    'schoolday-exams-card',
+  ),
+);
+await page.waitForTimeout(300);
+const noExams = await readExams();
+check(
+  'with no exams ahead the card says so instead of standing empty',
+  noExams.notice === 'Keine Arbeiten angekündigt.' && noExams.weeks.length === 0,
+  JSON.stringify(noExams),
+);
+
 // ------------------------------------------------------------------ header card
 
 await page.evaluate(() =>
@@ -2346,7 +2440,7 @@ const registered = await page.evaluate(() => window.customCards.map((c) => c.typ
 check(
   'every card registers itself in the picker',
   registered.join(',') ===
-    'schoolday-admin-card,schoolday-header-card,schoolday-homework-card,' +
+    'schoolday-admin-card,schoolday-exams-card,schoolday-header-card,schoolday-homework-card,' +
       'schoolday-routines-card,schoolday-stats-card,schoolday-timetable-card',
   registered.join(','),
 );

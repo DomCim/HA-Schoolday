@@ -7,7 +7,7 @@ from typing import Final
 DOMAIN: Final = "schoolday"
 
 # Keep in sync with manifest.json, package.json and src/lib/const.ts.
-VERSION: Final = "0.19.1"
+VERSION: Final = "0.20.0"
 
 # Where the bundled Lovelace cards are served from.
 FRONTEND_URL_BASE: Final = "/schoolday-frontend"
@@ -333,6 +333,12 @@ ATTR_LABEL: Final = "label"
 # weekday, so every column has a future date to point at; the window also runs back to
 # Monday so the week as it stands can be shown instead.
 OUTLOOK_DAYS: Final = 7
+
+# How far ahead the exams list reaches, much further than the outlook: a test is
+# announced weeks before it is written, and the point of seeing it on the wall is to
+# start revising before the week it falls in. Twelve weeks is about a term — anything
+# further out is a date in the school year's plan rather than something to act on.
+EXAMS_AHEAD_DAYS: Final = 84
 
 # The state of a member sensor when no lesson is running: a plain token rather than
 # a translated word, because automations compare against it.

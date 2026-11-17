@@ -241,6 +241,20 @@ const OUTLOOK = (() => {
   return days;
 })();
 
+// The exams each member sensor publishes, from today to as far ahead as the integration
+// reads the exams calendar. Nik's school shares none, which is the common case too.
+const EXAMS = {
+  m1: [
+    { date: '2026-08-06', title: 'Englisch Vokabeltest', start: '09:50', period: 3 },
+    { date: '2026-08-14', title: 'Deutsch Schulaufgabe', start: '08:00', period: 1 },
+    { date: '2026-09-02', title: 'HSU', start: null, period: null },
+  ],
+  m2: [
+    { date: '2026-08-11', title: 'Mathe', start: '08:45', period: 2 },
+    { date: '2026-08-14', title: 'Englisch', start: '11:30', period: 5 },
+  ],
+};
+
 // Which school each child rings to. Only Nik is on another one; everybody else gets
 // the household's usual times by saying nothing, which is the common case.
 const SCHEDULE_OF = { m3: 'Gymnasium' };
@@ -265,6 +279,7 @@ function memberState(entityId, name, memberId, color) {
       schedule: SCHEDULE_OF[memberId] ?? null,
       timetable: WEEKS[memberId] ?? {},
       outlook: JSON.parse(JSON.stringify(OUTLOOK)),
+      exams: EXAMS[memberId] ?? [],
       today: [],
       today_subjects: [],
       today_summary: '',

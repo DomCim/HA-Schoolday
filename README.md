@@ -35,8 +35,8 @@ homework, days off, the cards and the automations.
 | **Automations** | A sensor per child whose state is the subject they are in right now, today's and tomorrow's subjects ready to speak — "Ben has PE tomorrow" — events at every lesson boundary, and a service for everything the options dialog can change. |
 | **On time** | A leaving time per child that moves by itself when the first lesson is cancelled — or stays put for the bus, with its own time for holiday care — counted down on the wall, and a push notification when the school changes tomorrow's plan. Three blueprints ship with it: the notification, a hallway light that turns red when it is time to go, and anything you like an hour before — the wake-up light sleeps in when the first lesson does. |
 
-Six Lovelace cards come with it — timetable, routines, the routine record, homework, header and
-an admin card that replaces the options dialog. They read the board sensor, so **a card with no options at all is the
+Seven Lovelace cards come with it — timetable, routines, the routine record, homework, the
+exams still to come, header and an admin card that replaces the options dialog. They read the board sensor, so **a card with no options at all is the
 normal case**.
 
 ## Install

@@ -147,7 +147,7 @@ similar)** until one is set — most households never open it:
 | | What Schoolday reads from it |
 |---|---|
 | **Lessons calendar** | Only what changed. An event whose title contains one of the **cancellation words** strikes every period it overlaps from that day; one with a **substitution word** puts the rest of its title in those periods instead, drawn marked like a substitution you typed in. A calendar from [Schulmanager Online](#with-schulmanager-online) says what changed in its own words, and needs no words set at all. Either way it reaches the card, today's and tomorrow's subjects, and the packing list. |
-| **Exams calendar** | Every event on it is an exam, as bluntly as every event on a holiday calendar is a day off. It is labelled on the lesson it falls in and shown the evening before. |
+| **Exams calendar** | Every event on it is an exam, as bluntly as every event on a holiday calendar is a day off. It is labelled on the lesson it falls in, shown the evening before, and listed weeks ahead on the [exams card](cards.md#exams-card). |
 | **Homework list** | A to-do list the school system keeps. New homework on it is copied onto the child's own [homework list](homework.md#from-the-schools-own-system), where it is ticked off. |
 
 ![Monday's Mathe carries an exam label from the exams calendar; Tuesday's double WG is gone, cancelled on the lessons calendar; Friday's second period is marked as a substitution.](images/timetable-school-system.png)

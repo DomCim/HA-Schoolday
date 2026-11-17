@@ -181,6 +181,15 @@ export class SchooldayHomeworkCardEditor extends SchooldayCardEditor {
   }
 }
 
+@customElement('schoolday-exams-card-editor')
+export class SchooldayExamsCardEditor extends SchooldayCardEditor {
+  protected schema(): FormItem[] {
+    const members = memberOptions(this.hass);
+    // Up to the twelve weeks the integration reads ahead; further would show nothing more.
+    return [...(members.length > 1 ? [select('member', members)] : []), number('days', 1, 84)];
+  }
+}
+
 @customElement('schoolday-admin-card-editor')
 export class SchooldayAdminCardEditor extends SchooldayCardEditor {
   protected schema(): FormItem[] {
@@ -217,5 +226,6 @@ declare global {
     'schoolday-timetable-card-editor': SchooldayTimetableCardEditor;
     'schoolday-header-card-editor': SchooldayHeaderCardEditor;
     'schoolday-homework-card-editor': SchooldayHomeworkCardEditor;
+    'schoolday-exams-card-editor': SchooldayExamsCardEditor;
   }
 }

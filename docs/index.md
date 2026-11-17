@@ -70,7 +70,7 @@ It is built for one thing: a tablet on the kitchen wall that a family walks past
   </a>
   <a class="tile orange" href="cards.html">
     <span class="tile-title">The cards</span>
-    <p>Six Lovelace cards that configure themselves. A card with no options at all is the
+    <p>Seven Lovelace cards that configure themselves. A card with no options at all is the
     normal case here, not the fallback.</p>
   </a>
 </div>

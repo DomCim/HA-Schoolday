@@ -52,6 +52,16 @@ const EN: Dict = {
   'homework.later': 'Later',
   'homework.someday': 'No date',
 
+  // exams
+  'exams.none': 'No exams announced.',
+  'exams.this_week': 'This week',
+  'exams.next_week': 'Next week',
+  'exams.in_weeks': 'In {weeks} weeks',
+  'exams.today': 'Today',
+  'exams.tomorrow': 'Tomorrow',
+  'exams.in_days': 'in {days} days',
+  'exams.period': 'Period {period}',
+
   // timetable
   'timetable.no_periods':
     'No lesson times yet. Add them under Configure → School timetable in the Schoolday integration.',
@@ -224,6 +234,16 @@ const DE: Dict = {
   'homework.later': 'Später',
   'homework.someday': 'Ohne Datum',
 
+  // exams
+  'exams.none': 'Keine Arbeiten angekündigt.',
+  'exams.this_week': 'Diese Woche',
+  'exams.next_week': 'Nächste Woche',
+  'exams.in_weeks': 'In {weeks} Wochen',
+  'exams.today': 'Heute',
+  'exams.tomorrow': 'Morgen',
+  'exams.in_days': 'in {days} Tagen',
+  'exams.period': '{period}. Stunde',
+
   'timetable.no_periods':
     'Noch keine Stundenzeiten. Trage sie in der Schoolday-Integration unter „Konfigurieren → Stundenplan“ ein.',
   'timetable.none_configured':
@@ -394,6 +414,16 @@ const HE: Dict = {
   'homework.tomorrow': 'למחר',
   'homework.later': 'בהמשך',
   'homework.someday': 'בלי תאריך',
+
+  // exams
+  'exams.none': 'אין מבחנים קרובים.',
+  'exams.this_week': 'השבוע',
+  'exams.next_week': 'בשבוע הבא',
+  'exams.in_weeks': 'בעוד {weeks} שבועות',
+  'exams.today': 'היום',
+  'exams.tomorrow': 'מחר',
+  'exams.in_days': 'בעוד {days} ימים',
+  'exams.period': 'שיעור {period}',
   'timetable.no_periods':
     'עדיין אין זמני שיעורים. הוסיפו אותם באינטגרציה Schoolday, תחת "הגדר" ← זמני שיעורים.',
   'timetable.none_configured':

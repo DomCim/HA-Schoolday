@@ -696,6 +696,182 @@ check("die Verwaltungskarte sieht die Hausaufgaben-Liste",
       Models.SchooldayConfig.from_options(merged(out)).as_admin_dict()["members"][0]
       ["homework_list"] == "todo.ben_hausaufgaben")
 
+# --- a period that takes turns, week by week ---------------------------------
+# Counted from the cycle anchor, the week A of an A/B household, so "week 1" is one
+# week for everything. 14 September 2026 is a Monday.
+MON = datetime.date(2026, 9, 14)
+def subjects_on(options, day):
+    config = Models.SchooldayConfig.from_options(options)
+    return [(lesson.period, lesson.subject, lesson.room) for lesson in config.lessons_on(MEMBER, day)]
+
+out = W.set_lesson(BASE, MEMBER, 0, 2, None, week=0,
+                   rotation=["Kunst", {"subject": "Musik", "room": "R2"}, "-", "Theater"],
+                   today=MON)
+cell = out["timetable"]["lessons"][MEMBER]["0"]["2"]
+check("Wechsel wird gespeichert, erste Runde bleibt lesbar",
+      cell["subject"] == "Kunst" and len(cell["rotation"]) == 4 and cell["rotation"][2] == {},
+      str(cell))
+check("die erste Wechselstunde setzt Woche 1 auf diese Woche",
+      out.get("cycle_anchor") == "2026-09-14", str(out.get("cycle_anchor")))
+rot = merged(out)
+week_by_week = [subjects_on(rot, MON + datetime.timedelta(weeks=n)) for n in range(5)]
+check("A/B/C/D: jede Woche ist ihre Runde, und dann wieder von vorn",
+      [[x[1] for x in day if x[0] == 2] for day in week_by_week]
+      == [["Kunst"], ["Musik"], [], ["Theater"], ["Kunst"]],
+      str(week_by_week))
+check("der Raum gehoert zur Runde",
+      (2, "Musik", "R2") in week_by_week[1], str(week_by_week[1]))
+check("die Woche davor zaehlt rueckwaerts",
+      [x[1] for x in subjects_on(rot, MON - datetime.timedelta(weeks=1)) if x[0] == 2] == ["Theater"],
+      str(subjects_on(rot, MON - datetime.timedelta(weeks=1))))
+check("eine Stunde ohne Wechsel bleibt jede Woche",
+      all((1, "Deutsch", None) in day for day in week_by_week), str(week_by_week))
+
+# A rotation of one, or of the same lesson every time, is just a lesson.
+out = W.set_lesson(BASE, MEMBER, 0, 2, None, rotation=["Mathe", "Mathe"], today=MON)
+check("gleiche Runden werden zur normalen Stunde",
+      "rotation" not in out["timetable"]["lessons"][MEMBER]["0"]["2"]
+      and "cycle_anchor" not in out, str(out))
+out = W.set_lesson(BASE, MEMBER, 0, 2, None, rotation=["-", ""], today=MON)
+check("nur freie Runden leeren die Stunde",
+      "2" not in out["timetable"]["lessons"][MEMBER]["0"], str(out["timetable"]["lessons"]))
+try:
+    W.set_lesson(BASE, MEMBER, 0, 2, None, rotation=["x"] * 9, today=MON)
+    check("mehr als acht Runden abgewiesen", False, "keine Ausnahme")
+except SchooldayValueError as e:
+    check("mehr als acht Runden abgewiesen", "at most 8" in str(e), str(e)[:60])
+
+# An anchor somebody already set is week 1, not this week.
+anchored = merged({"cycle_anchor": "2026-09-07"}, rot)
+check("ein gesetzter Anker bleibt Woche 1",
+      [x[1] for x in subjects_on(anchored, MON) if x[0] == 2] == ["Musik"]
+      and "cycle_anchor" not in W.set_lesson(anchored, MEMBER, 1, 1, None, rotation=["A", "B"], today=MON),
+      str(subjects_on(anchored, MON)))
+
+# The same in the options flow's text, and back again.
+parsed = Models.lessons_from_text("Deutsch\nKunst / Musik | R2 / -\nDeutsch/Englisch", 3)
+check("Textform: Schraegstrich mit Leerzeichen trennt die Runden",
+      [len(lesson.rotation) for lesson in parsed] == [0, 3, 0]
+      and parsed[2].subject == "Deutsch/Englisch"
+      and Models.text_from_lessons(parsed) == "Deutsch\nKunst / Musik | R2 / -\nDeutsch/Englisch",
+      Models.text_from_lessons(parsed))
+
+# Every turn's subject has a colour, and one spelling.
+config = Models.SchooldayConfig.from_options(rot)
+check("jede Runde hat eine Farbe",
+      {"Kunst", "Musik", "Theater"} <= set(config.timetable.as_card_dict()["subjects"]),
+      str(config.timetable.subjects))
+week = {0: [Models.Lesson(1, "Musik"), Models.rotating(2, [Models.Lesson(2, "musik"), None])]}
+Models.unify_subjects(week)
+check("Schreibweise gilt auch in den Runden",
+      week[0][1].rotation[0].subject == "Musik", str(week[0][1]))
+check("die Karte bekommt die Runden mit",
+      config.timetable.member_card_dict(MEMBER)["0"][1]["rotation"][1]
+      == {"period": 2, "subject": "Musik", "room": "R2"}
+      and config.timetable.rotates(MEMBER),
+      str(config.timetable.member_card_dict(MEMBER)))
+
+# With an A/B cycle too: week B's own slot, and the rotation counted from the same week.
+ab = merged({"cycle_weeks": 2}, rot)
+ab = merged(W.set_lesson(ab, MEMBER, 0, 3, None, week=1, rotation=["Chor", "-"], today=MON), ab)
+# A B week comes round every other week, and a rotation in it counts B weeks: a
+# rotation of two counted in calendar weeks would be on the same turn for ever.
+check("Wechsel in Woche B zaehlt B-Wochen",
+      [[x[1] for x in subjects_on(ab, MON + datetime.timedelta(weeks=n)) if x[0] == 3] for n in (1, 3, 5)]
+      == [["Chor"], [], ["Chor"]],
+      str([[x[1] for x in subjects_on(ab, MON + datetime.timedelta(weeks=n)) if x[0] == 3] for n in (1, 3, 5)]))
+check("Wechsel in Woche A zaehlt A-Wochen",
+      [[x[1] for x in subjects_on(ab, MON + datetime.timedelta(weeks=n)) if x[0] == 2] for n in (0, 2, 4, 6, 8)]
+      == [["Kunst"], ["Musik"], [], ["Theater"], ["Kunst"]],
+      str([[x[1] for x in subjects_on(ab, MON + datetime.timedelta(weeks=n)) if x[0] == 2] for n in (0, 2, 4, 6, 8)]))
+ab2 = merged(W.set_lesson(ab, MEMBER, 0, 3, None, week=1, rotation=["Chor", "Orchester", "Band"], today=MON), ab)
+check("A/B und ein Wechsel von drei vertragen sich",
+      [[x[1] for x in subjects_on(ab2, MON + datetime.timedelta(weeks=n)) if x[0] == 3] for n in (1, 3, 5)]
+      == [["Chor"], ["Orchester"], ["Band"]],
+      str([[x[1] for x in subjects_on(ab2, MON + datetime.timedelta(weeks=n)) if x[0] == 3] for n in (1, 3, 5)]))
+
+out = W.set_day(BASE, MEMBER, 2, [{"period": 1, "rotation": ["Bio", "Chemie"]},
+                                  {"period": 2, "subject": "Mathe"}], today=MON)
+check("ein ganzer Tag nimmt Wechsel an",
+      out["timetable"]["lessons"][MEMBER]["2"]["1"]["rotation"][1]["subject"] == "Chemie"
+      and out["timetable"]["lessons"][MEMBER]["2"]["2"]["subject"] == "Mathe",
+      str(out["timetable"]["lessons"][MEMBER]["2"]))
+
+# An older Schoolday reads the stored shape as a weekly lesson: the first turn.
+check("ohne Wechsel liest sich der Plan wie vorher",
+      W.set_lesson(BASE, MEMBER, 0, 2, "Mathe")["timetable"]["lessons"][MEMBER]["0"]["2"]
+      == {"subject": "Mathe", "room": None}, "")
+
+# --- one weekday, for a while ------------------------------------------------
+TUE = datetime.date(2026, 9, 15)
+out = W.set_weekly_exception(BASE, MEMBER, 1, "2026-09-15", "2026-10-13",
+                             label="Drehtuertag", today=MON)
+stored = out["weekly_exceptions"][MEMBER]
+check("woechentliche Ausnahme wird gespeichert",
+      stored == [{"weekday": 1, "from": "2026-09-15", "until": "2026-10-13",
+                  "label": "Drehtuertag", "periods": {}}], str(stored))
+weekly = Models.SchooldayConfig.from_options(merged(out))
+check("sie gilt an jedem dieser Wochentage, von bis",
+      [bool(weekly.exception(MEMBER, TUE + datetime.timedelta(weeks=n))) for n in range(6)]
+      == [True, True, True, True, True, False]
+      and weekly.exception(MEMBER, MON) is None
+      and weekly.exception(MEMBER, TUE - datetime.timedelta(weeks=1)) is None,
+      "")
+check("eine Bezeichnung nimmt den Tag ein",
+      weekly.exception(MEMBER, TUE).closed
+      and weekly.lessons_on(MEMBER, TUE + datetime.timedelta(weeks=6)) == []
+      and weekly.lessons_on(MEMBER, TUE) == [], "")
+
+# Same weekday and first date is the same one: moving the end keeps the label.
+out = W.set_weekly_exception(merged(out), MEMBER, 1, "2026-09-15", "2026-12-22", today=MON)
+check("dasselbe Datum verschiebt das Ende, die Bezeichnung bleibt",
+      out["weekly_exceptions"][MEMBER] == [{"weekday": 1, "from": "2026-09-15",
+          "until": "2026-12-22", "label": "Drehtuertag", "periods": {}}],
+      str(out["weekly_exceptions"]))
+
+# Periods, the way a dated exception does them: the child leaves after period 1.
+per = merged(W.set_weekly_exception(BASE, MEMBER, 0, "2026-09-14", "2026-10-31", period=1,
+                                    cancelled=True, today=MON))
+per = merged(W.set_weekly_exception(per, MEMBER, 0, "2026-09-14", "2026-10-31", period=2,
+                                    subject="Schwimmen", room="Hallenbad", today=MON), per)
+check("Stunden entfallen und werden ersetzt, jede Woche",
+      subjects_on(per, MON + datetime.timedelta(weeks=2)) == [(2, "Schwimmen", "Hallenbad")]
+      and subjects_on(per, datetime.date(2026, 11, 2)) == [(1, "Deutsch", None)],
+      str(subjects_on(per, MON + datetime.timedelta(weeks=2))))
+check("Ersatzfach der Woche bekommt eine Farbe",
+      "Schwimmen" in Models.SchooldayConfig.from_options(per).exception_subjects, "")
+
+# A date's own exception lies on top of the weekly one.
+both = merged(W.set_exception(per, MEMBER, "2026-09-21", period=1, subject="Ausflug", today=MON), per)
+check("ein Datum geht vor der Woche, der Rest der Woche bleibt",
+      subjects_on(both, datetime.date(2026, 9, 21)) == [(1, "Ausflug", None), (2, "Schwimmen", "Hallenbad")],
+      str(subjects_on(both, datetime.date(2026, 9, 21))))
+
+for bad, args, words in (
+    ("Ende vor Anfang abgewiesen", (1, "2026-10-01", "2026-09-30"), "before it starts"),
+    ("vergangenes Ende abgewiesen", (1, "2026-01-06", "2026-02-24"), "already been"),
+    ("kaputter Wochentag abgewiesen", (7, "2026-09-15", "2026-10-13"), "not a weekday"),
+    ("kaputtes Datum abgewiesen", (1, "bald", "2026-10-13"), "YYYY-MM-DD"),
+):
+    try:
+        W.set_weekly_exception(BASE, MEMBER, *args, label="x", today=MON)
+        check(bad, False, "keine Ausnahme")
+    except SchooldayValueError as e:
+        check(bad, words in str(e), str(e)[:60])
+
+ended = merged({"weekly_exceptions": {MEMBER: [
+    {"weekday": 2, "from": "2026-01-07", "until": "2026-02-25", "label": "vorbei"},
+    *out["weekly_exceptions"][MEMBER]]}})
+out2 = W.set_weekly_exception(ended, MEMBER, 4, "2026-09-18", "2026-09-25", label="Kurs", today=MON)
+check("abgelaufene woechentliche Ausnahmen fallen beim Schreiben weg",
+      [entry["label"] for entry in out2["weekly_exceptions"][MEMBER]] == ["Drehtuertag", "Kurs"],
+      str(out2["weekly_exceptions"]))
+out3 = W.clear_weekly_exception(merged(out2), MEMBER, 1, "2026-09-15", today=MON)
+check("loeschen gibt den Wochentag zurueck",
+      [entry["label"] for entry in out3["weekly_exceptions"][MEMBER]] == ["Kurs"], str(out3))
+out4 = W.set_weekly_exception(merged(out3), MEMBER, 4, "2026-09-18", "2026-09-25", label="", today=MON)
+check("leere Bezeichnung raeumt sie weg", out4["weekly_exceptions"] == {}, str(out4))
+
 # --- the base must never be mutated ---------------------------------------
 check("Ausgangs-Optionen bleiben unveraendert",
       BASE["timetable"]["lessons"][MEMBER]["0"] == {"1": {"subject": "Deutsch", "room": None}}

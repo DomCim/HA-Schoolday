@@ -572,6 +572,53 @@ window.__setWeekStart = (first, language = 'de') => {
   window.__pushHass();
 };
 
+// A period that takes turns, and a weekday that is different for a while, published
+// the way the integration does: the rotation on the lesson, the count of weeks from
+// week 1 on every outlook day, and the weekly exception on the admin attribute only —
+// the outlook already carries what it does to each date.
+window.__setRotation = (on) => {
+  const board = hass.states['sensor.schoolday_board'];
+  hass.states['sensor.schoolday_board'] = {
+    ...board,
+    attributes: {
+      ...board.attributes,
+      admin: {
+        ...board.attributes.admin,
+        cycle_anchor: on ? '2026-08-03' : null,
+        rotation_now: 0,
+        weekly_exceptions: on
+          ? {
+              m1: [
+                {
+                  weekday: 1,
+                  from: '2026-08-04',
+                  until: '2026-12-22',
+                  label: 'Drehtürtag',
+                  periods: {},
+                },
+              ],
+            }
+          : {},
+      },
+    },
+  };
+  const sensorId = 'sensor.schoolday_ben';
+  const timetable = JSON.parse(JSON.stringify(WEEKS.m1));
+  let outlook = JSON.parse(JSON.stringify(OUTLOOK));
+  if (on) {
+    timetable[0][2] = {
+      ...lesson(3, 'Kunst', '1.OG 5'),
+      rotation: [lesson(3, 'Kunst', '1.OG 5'), lesson(3, 'Musik'), null, lesson(3, 'Theater')],
+    };
+    outlook = outlook.map((day) => ({ ...day, rotation: day.date >= '2026-08-10' ? 1 : 0 }));
+  }
+  hass.states[sensorId] = {
+    ...hass.states[sensorId],
+    attributes: { ...hass.states[sensorId].attributes, timetable, outlook },
+  };
+  window.__pushHass();
+};
+
 window.__setSick = (memberId, on) => {
   const sensorId = Object.keys(hass.states).find(
     (id) => hass.states[id].attributes?.member_id === memberId,

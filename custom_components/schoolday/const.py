@@ -7,7 +7,7 @@ from typing import Final
 DOMAIN: Final = "schoolday"
 
 # Keep in sync with manifest.json, package.json and src/lib/const.ts.
-VERSION: Final = "0.20.0"
+VERSION: Final = "0.21.0"
 
 # Where the bundled Lovelace cards are served from.
 FRONTEND_URL_BASE: Final = "/schoolday-frontend"
@@ -165,6 +165,31 @@ WEEK_START_DAYS: Final[tuple[str, ...]] = (
 #: Days in one week, and therefore the distance between week A's slots and week B's.
 SLOTS_PER_WEEK: Final = 7
 CYCLE_MAX_WEEKS: Final = 2
+
+# A period that takes turns, week by week: Art, then Music, then Drama, then Biology.
+# Stored on the period itself, next to the subject and room it always had, so a
+# school with an A/B/C/D structure — or a lesson that only comes round every third
+# week — needs no second dimension in the data and no cycle as long as its longest
+# rotation. The turns are counted from the same week as the A/B cycle (the cycle
+# anchor), so "week 1" means one thing in the whole household. With an A/B cycle a
+# rotation counts the weeks its own slot runs in: every other week.
+#
+# The subject and room next to it stay the first turn's. An older Schoolday reading
+# this sees an ordinary weekly lesson rather than nothing at all.
+CONF_ROTATION: Final = "rotation"
+ROTATION_MAX: Final = 8
+
+# What happens on one weekday for a stretch of the year: a pull-out day at another
+# school every Tuesday from November to February, a swimming course every Thursday
+# this term. member id -> a list of {weekday, from, until, label, periods}; the label
+# and periods mean exactly what they mean on a dated exception.
+#
+# Its own key rather than a pattern in CONF_EXCEPTIONS, so a household that never
+# uses it stores nothing new, and "what does the 18th do" stays one lookup.
+CONF_WEEKLY_EXCEPTIONS: Final = "weekly_exceptions"
+CONF_FROM: Final = "from"
+CONF_UNTIL: Final = "until"
+CONF_WEEKDAY: Final = "weekday"
 
 # What a subject needs brought along: subject -> list of things. Household-wide rather
 # than per child, because a PE bag is a PE bag whoever carries it.
@@ -460,6 +485,8 @@ SERVICE_SET_MATERIALS: Final = "set_materials"
 SERVICE_SET_EXCEPTION: Final = "set_exception"
 SERVICE_SET_CYCLE: Final = "set_cycle"
 SERVICE_CLEAR_EXCEPTION: Final = "clear_exception"
+SERVICE_SET_WEEKLY_EXCEPTION: Final = "set_weekly_exception"
+SERVICE_CLEAR_WEEKLY_EXCEPTION: Final = "clear_weekly_exception"
 
 ATTR_WEEKDAY_FIELD: Final = "weekday"
 ATTR_SUBJECT_FIELD: Final = "subject"
@@ -487,6 +514,11 @@ ATTR_CHANGES: Final = "changes"
 # Which week of the cycle a dated day falls in: 0 for A, 1 for B. Always present, and
 # always 0 while the cycle is one week — so a card never has to ask whether it applies.
 ATTR_WEEK: Final = "week"
+
+# Which turn a rotating period is on, on a dated day: the weeks since week 1, or with
+# an A/B cycle the A (or B) weeks since then. A card takes it modulo the rotation's
+# length. Only published for a member whose week has a rotation in it.
+ATTR_ROTATION: Final = "rotation"
 
 ATTR_WEEKS: Final = "weeks"
 ATTR_ANCHOR: Final = "anchor"

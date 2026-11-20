@@ -23,6 +23,7 @@ import {
   todoEntities,
   stepsFor,
   type AdminConfig,
+  type AdminException,
   type AdminMember,
 } from '../lib/admin';
 import { localeOf, WEEKDAY_NAMES, weekOrder } from '../lib/dates';
@@ -33,7 +34,10 @@ import {
   lessonAt,
   schoolDays,
   SLOTS_PER_WEEK,
+  turnOf,
   weekOf,
+  type TimetableGrid,
+  type TimetableLesson,
   type TimetableWeek,
 } from '../lib/timetable';
 import { findBoard, memberSensor } from '../lib/board';
@@ -95,6 +99,13 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
   @state() private _adding = false;
   @state() private _draftSubject = '';
   @state() private _draftRoom = '';
+  /**
+   * The turns of the cell being edited, when it takes turns week by week. Empty for
+   * an ordinary lesson, which is what the subject and room above are for.
+   */
+  @state() private _draftTurns: { subject: string; room: string }[] = [];
+  /** The weekly exception being edited: its weekday and first date say which one. */
+  @state() private _weekly?: { weekday: number; from: string; until: string };
   /**
    * What the pickers currently hold, by `member-field`.
    *
@@ -360,6 +371,13 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
    */
   private _renderCycle(config: AdminConfig): TemplateResult {
     const anchorWeek = config.cycleAnchor ? isoWeek(config.cycleAnchor) : null;
+    // A rotating lesson counts from the same week as week A, so the field is needed by
+    // a household that rotates without an A/B cycle too — and only by those.
+    const rotating = config.members.some((member) =>
+      Object.values(weekOf(memberSensor(this.hass!, member.id))).some((day) =>
+        day.some((lesson) => lesson.rotation),
+      ),
+    );
     return html`
       <div class="cycle">
         <div class="segmented">
@@ -375,10 +393,15 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
             `,
           )}
         </div>
-        ${config.cycleWeeks > 1
+        ${config.cycleWeeks > 1 || rotating
           ? html`
               <label class="field">
-                <span class="label">${t(this.hass, 'admin.cycle_start')}</span>
+                <span class="label"
+                  >${t(
+                    this.hass,
+                    config.cycleWeeks > 1 ? 'admin.cycle_start' : 'admin.rotation_start',
+                  )}</span
+                >
                 <input
                   id="cycle-week"
                   type="number"
@@ -389,7 +412,7 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
                     const value = Number((event.target as HTMLInputElement).value);
                     if (value >= 1 && value <= 53) {
                       this._call('set_cycle', {
-                        weeks: 2,
+                        weeks: config.cycleWeeks,
                         iso_week: value,
                         iso_year: anchorWeek?.year,
                       });
@@ -397,11 +420,13 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
                   }}
                 />
               </label>
-              <div class="notice quiet">
-                ${t(this.hass, 'admin.cycle_now', {
-                  week: config.cycleNow === 1 ? 'B' : 'A',
-                })}
-              </div>
+              ${config.cycleWeeks > 1
+                ? html`<div class="notice quiet">
+                    ${t(this.hass, 'admin.cycle_now', {
+                      week: config.cycleNow === 1 ? 'B' : 'A',
+                    })}
+                  </div>`
+                : nothing}
             `
           : nothing}
         <label class="field">
@@ -517,32 +542,123 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
                       const slot = day + SLOTS_PER_WEEK * cycleWeek;
                       const key = `${slot}:${period.index}`;
                       const lesson = lessonAt(week, slot, period.index);
+                      // A rotating period shows all its turns, so the grid says what
+                      // the cell holds rather than what one week of it happens to be.
+                      const turns = lesson?.rotation;
+                      const first = turns ? turns.find((turn) => turn) : lesson;
+                      const shown = turns
+                        ? turns.map((turn) => turn?.subject ?? '–').join(' / ')
+                        : lesson?.subject;
                       return html`
                         <button
-                          class="slot ${lesson ? 'filled' : ''} ${this._cell === key ? 'open' : ''}"
-                          style=${lesson
-                            ? `--subject:${grid.subjects[lesson.subject] ?? 'var(--schoolday-line)'}`
+                          class="slot ${lesson ? 'filled' : ''} ${turns ? 'rotating' : ''} ${this._cell === key ? 'open' : ''}"
+                          style=${first
+                            ? `--subject:${grid.subjects[first.subject] ?? 'var(--schoolday-line)'}`
                             : ''}
                           @click=${() => {
                             this._cell = this._cell === key ? undefined : key;
                             this._draftSubject = lesson?.subject ?? '';
                             this._draftRoom = lesson?.room ?? '';
+                            this._draftTurns = (turns ?? []).map((turn) => ({
+                              subject: turn?.subject ?? '',
+                              room: turn?.room ?? '',
+                            }));
                           }}
                         >
-                          <span class="subject"><bdi>${lesson?.subject ?? '+'}</bdi></span>
-                          ${lesson?.room ? html`<span class="room"><bdi>${lesson.room}</bdi></span>` : nothing}
+                          <span class="subject"><bdi>${shown ?? '+'}</bdi></span>
+                          ${!turns && lesson?.room
+                            ? html`<span class="room"><bdi>${lesson.room}</bdi></span>`
+                            : nothing}
                         </button>
                       `;
                     })}
                   `,
                 )}
               </div>
-              ${this._cell ? this._renderCellEditor(member) : nothing}
+              ${this._cell ? this._renderCellEditor(config, member) : nothing}
             `}
     `;
   }
 
-  private _renderCellEditor(member: AdminMember): TemplateResult {
+  /**
+   * The turns of a rotating cell, one row per week.
+   *
+   * Which row is this week's is marked, because "week 3" means nothing to somebody
+   * standing at the board; "this week" does. Only where the cell is in use this week:
+   * a week B cell in an A week has no turn running now.
+   */
+  private _renderTurns(config: AdminConfig, week: number, known: string[]): TemplateResult {
+    const turns = this._draftTurns;
+    const live = config.cycleWeeks < 2 || week === config.cycleNow;
+    // With no week 1 yet, saving makes this week week 1, so the first row is this week's.
+    const now = config.cycleAnchor ? this._turn(config, config.rotationNow) : 0;
+    const current = live ? ((now % turns.length) + turns.length) % turns.length : -1;
+    const update = (index: number, field: 'subject' | 'room', value: string) => {
+      this._draftTurns = turns.map((turn, at) => (at === index ? { ...turn, [field]: value } : turn));
+    };
+    return html`
+      <div class="notice quiet">${t(this.hass, 'admin.rotation_hint')}</div>
+      ${turns.map(
+        (turn, index) => html`
+          <div class="row turn">
+            <span class="label turn-no ${index === current ? 'now' : ''}">
+              ${t(this.hass, 'admin.rotation_week', { week: String(index + 1) })}${index === current
+                ? html` · ${t(this.hass, 'admin.rotation_this')}`
+                : nothing}
+            </span>
+            <input
+              class="grow"
+              list="schoolday-subjects"
+              aria-label=${t(this.hass, 'admin.subject')}
+              placeholder=${t(this.hass, 'admin.rotation_free')}
+              .value=${turn.subject}
+              @input=${(e: Event) => update(index, 'subject', (e.target as HTMLInputElement).value)}
+            />
+            <input
+              class="grow"
+              aria-label=${t(this.hass, 'admin.room')}
+              placeholder=${t(this.hass, 'admin.room')}
+              .value=${turn.room}
+              @input=${(e: Event) => update(index, 'room', (e.target as HTMLInputElement).value)}
+            />
+            <button
+              class="link"
+              aria-label=${t(this.hass, 'admin.weekly_remove')}
+              @click=${() => {
+                const left = turns.filter((_, at) => at !== index);
+                // One turn left is an ordinary lesson again, in the ordinary fields.
+                if (left.length < 2) {
+                  this._draftSubject = left[0]?.subject ?? '';
+                  this._draftRoom = left[0]?.room ?? '';
+                  this._draftTurns = [];
+                } else {
+                  this._draftTurns = left;
+                }
+              }}
+            >
+              ×
+            </button>
+          </div>
+        `,
+      )}
+      <datalist id="schoolday-subjects">
+        ${known.map((subject) => html`<option value=${subject}></option>`)}
+      </datalist>
+      ${turns.length < 8
+        ? html`<button
+            class="link"
+            id="rotation-more"
+            @click=${() => {
+              this._draftTurns = [...turns, { subject: '', room: '' }];
+            }}
+          >
+            ${t(this.hass, 'admin.rotation_more')}
+          </button>`
+        : nothing}
+    `;
+  }
+
+  private _renderCellEditor(config: AdminConfig, member: AdminMember): TemplateResult {
     // The cell is keyed by slot, so the weekday and the week of the cycle both fall
     // out of it — one number to carry around rather than two to keep in step.
     const [slot, period] = this._cell!.split(':').map(Number);
@@ -557,7 +673,9 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
             ? ` ${t(this.hass, week === 1 ? 'admin.week_b' : 'admin.week_a')}`
             : ''} · ${period}.
         </div>
-        <div class="row">
+        ${this._draftTurns.length > 1
+          ? this._renderTurns(config, week, known)
+          : html`<div class="row">
           <label class="field grow">
             <span class="label">${t(this.hass, 'admin.subject')}</span>
             <input
@@ -581,19 +699,45 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
             />
           </label>
         </div>
+        <button
+          class="link"
+          id="rotation-add"
+          @click=${() => {
+            this._draftTurns = [
+              { subject: this._draftSubject, room: this._draftRoom },
+              { subject: '', room: '' },
+            ];
+          }}
+        >
+          ${t(this.hass, 'admin.rotation_add')}
+        </button>`}
         <div class="row">
           <button
             class="apply"
             ?disabled=${this._busy}
             @click=${async () => {
-              await this._call('set_lesson', {
-                member: member.id,
-                weekday,
-                week,
-                period,
-                subject: this._draftSubject,
-                room: this._draftRoom,
-              });
+              await this._call(
+                'set_lesson',
+                this._draftTurns.length > 1
+                  ? {
+                      member: member.id,
+                      weekday,
+                      week,
+                      period,
+                      rotation: this._draftTurns.map((turn) => ({
+                        subject: turn.subject.trim(),
+                        room: turn.room.trim(),
+                      })),
+                    }
+                  : {
+                      member: member.id,
+                      weekday,
+                      week,
+                      period,
+                      subject: this._draftSubject,
+                      room: this._draftRoom,
+                    },
+              );
               this._cell = undefined;
             }}
           >
@@ -1065,11 +1209,103 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
   }
 
   /**
-   * What one date does differently.
+   * What the timetable plans for one date and period, rotation and A/B week included.
+   *
+   * Counted from this week, whose place in the cycle the integration publishes, so the
+   * card only has to know how many weeks away the date is — not where week 1 is.
+   */
+  private _plannedOn(
+    config: AdminConfig,
+    week: TimetableWeek,
+    day: string,
+    period: number,
+  ): TimetableLesson | null {
+    const first = (date: Date) => {
+      const back = (date.getDay() - config.weekStart + 7) % 7;
+      return new Date(date.getFullYear(), date.getMonth(), date.getDate() - back);
+    };
+    const [y, m, d] = day.split('-').map(Number);
+    const target = new Date(y, m - 1, d);
+    // Rounded, because a week with a clock change in it is an hour short or long.
+    const ahead = Math.round((first(target).getTime() - first(new Date()).getTime()) / (7 * 86400000));
+    const cycled =
+      config.cycleWeeks > 1 ? (((config.cycleNow + ahead) % config.cycleWeeks) + config.cycleWeeks) % config.cycleWeeks : 0;
+    const weekday = (target.getDay() + 6) % 7;
+    const lesson = lessonAt(week, weekday + SLOTS_PER_WEEK * cycled, period);
+    return lesson ? turnOf(lesson, this._turn(config, config.rotationNow + ahead)) : null;
+  }
+
+  /**
+   * The turn a number of weeks after week 1 is on. Mirrors `turn_for`: with an A/B
+   * cycle a cell runs every other week, so its turns count A weeks, or B weeks.
+   */
+  private _turn(config: AdminConfig, weeks: number): number {
+    return config.cycleWeeks > 1 && config.cycleAnchor
+      ? Math.floor(weeks / config.cycleWeeks)
+      : weeks;
+  }
+
+  /**
+   * One row per period: what is planned, what replaces it, and whether it is off.
+   *
+   * Shared by a single date and a weekday-for-a-while, because they say the same
+   * things about a period and must not drift into saying them differently.
+   */
+  private _periodRows(
+    grid: TimetableGrid,
+    current: AdminException | undefined,
+    planned: (period: number) => TimetableLesson | null,
+    save: (data: Record<string, unknown>) => void,
+  ): TemplateResult {
+    return html`
+      <div class="exception-periods">
+        ${grid.periods.map((period) => {
+          const override = current?.periods?.[String(period.index)];
+          // `in` rather than a truthiness test: a cancelled period is stored as
+          // null, and "cancelled" and "not mentioned" are the two answers this
+          // whole row has to tell apart.
+          const overridden = current ? String(period.index) in current.periods : false;
+          const plan = planned(period.index);
+          const shown = overridden ? (override?.subject ?? null) : (plan?.subject ?? null);
+          return html`
+            <div class="exception-row">
+              <span class="no">${period.index}</span>
+              <span class="planned ${overridden && !override ? 'gone' : ''}">
+                ${shown ?? '—'}
+              </span>
+              <input
+                class="replacement"
+                placeholder=${t(this.hass, 'admin.subject')}
+                .value=${override?.subject ?? ''}
+                @change=${(event: Event) =>
+                  save({
+                    period: period.index,
+                    subject: (event.target as HTMLInputElement).value,
+                  })}
+              />
+              <button
+                class="link ${overridden && !override ? 'on' : ''}"
+                ?disabled=${this._busy || !plan}
+                @click=${() =>
+                  save({ period: period.index, cancelled: !(overridden && !override) })}
+              >
+                ${t(this.hass, 'admin.exception_cancel')}
+              </button>
+            </div>
+          `;
+        })}
+      </div>
+    `;
+  }
+
+  /**
+   * What a date does differently.
    *
    * A date at a time, not a week: the timetable is worth typing in once because it
    * repeats, and the moment it can be edited per week it stops repeating and becomes
    * fifty-two timetables. This says "on the 18th, third period is off" and nothing more.
+   * The one exception is a weekday that is different *for a while* — a pull-out day
+   * until February — which ends by itself and so cannot turn into a second timetable.
    */
   private _renderExceptions(config: AdminConfig): TemplateResult {
     const member = this._selected(config);
@@ -1089,7 +1325,6 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
     const day = this._exceptionDate || today;
     const current = stored[day];
     const week = weekOf(memberSensor(this.hass!, member.id));
-    const weekday = (new Date(`${day}T00:00:00`).getDay() + 6) % 7;
 
     return html`
       <div class="notice quiet">${t(this.hass, 'admin.exceptions_hint')}</div>
@@ -1153,52 +1388,12 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
 
       ${current?.label
         ? nothing
-        : html`
-            <div class="exception-periods">
-              ${grid.periods.map((period) => {
-                const override = current?.periods?.[String(period.index)];
-                // `in` rather than a truthiness test: a cancelled period is stored as
-                // null, and "cancelled" and "not mentioned" are the two answers this
-                // whole row has to tell apart.
-                const overridden = current ? String(period.index) in current.periods : false;
-                const planned = lessonAt(week, weekday, period.index);
-                const shown = overridden ? (override?.subject ?? null) : (planned?.subject ?? null);
-                return html`
-                  <div class="exception-row">
-                    <span class="no">${period.index}</span>
-                    <span class="planned ${overridden && !override ? 'gone' : ''}">
-                      ${shown ?? '—'}
-                    </span>
-                    <input
-                      class="replacement"
-                      placeholder=${t(this.hass, 'admin.subject')}
-                      .value=${override?.subject ?? ''}
-                      @change=${(event: Event) =>
-                        this._call('set_exception', {
-                          member: member.id,
-                          date: day,
-                          period: period.index,
-                          subject: (event.target as HTMLInputElement).value,
-                        })}
-                    />
-                    <button
-                      class="link ${overridden && !override ? 'on' : ''}"
-                      ?disabled=${this._busy || !planned}
-                      @click=${() =>
-                        this._call('set_exception', {
-                          member: member.id,
-                          date: day,
-                          period: period.index,
-                          cancelled: !(overridden && !override),
-                        })}
-                    >
-                      ${t(this.hass, 'admin.exception_cancel')}
-                    </button>
-                  </div>
-                `;
-              })}
-            </div>
-          `}
+        : this._periodRows(
+            grid,
+            current,
+            (period) => this._plannedOn(config, week, day, period),
+            (data) => this._call('set_exception', { member: member.id, date: day, ...data }),
+          )}
       ${current
         ? html`<button
             class="link"
@@ -1208,6 +1403,163 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
             ${t(this.hass, 'admin.exception_reset')}
           </button>`
         : html`<div class="notice quiet">${t(this.hass, 'admin.exception_none')}</div>`}
+      ${this._renderWeekly(config, member, grid, week)}
+    `;
+  }
+
+  /**
+   * A weekday that is different until a date: chips for the ones there are, and a
+   * form for the one picked or a new one.
+   *
+   * Known to the integration by weekday and first date, so the draft holds exactly
+   * those; changing either is starting a different one, and the old one stays until
+   * it is removed.
+   */
+  private _renderWeekly(
+    config: AdminConfig,
+    member: AdminMember,
+    grid: TimetableGrid,
+    week: TimetableWeek,
+  ): TemplateResult {
+    const today = SchooldayAdminCard._todayKey();
+    const entries = config.weeklyExceptions[member.id] ?? [];
+    const draft = this._weekly ?? {
+      weekday: (new Date().getDay() + 6) % 7,
+      from: today,
+      until: '',
+    };
+    const current = entries.find(
+      (entry) => entry.weekday === draft.weekday && entry.from === draft.from,
+    );
+    const key = { member: member.id, weekday: draft.weekday, from: draft.from };
+    const short = (iso: string) => `${iso.slice(8)}.${iso.slice(5, 7)}.`;
+    const save = (data: Record<string, unknown>) =>
+      this._call('set_weekly_exception', { ...key, until: draft.until, ...data });
+    // The next date this weekday falls on, for showing what it would replace.
+    const sample = () => {
+      const [y, m, d] = draft.from.split('-').map(Number);
+      const start = new Date(y, m - 1, d);
+      start.setDate(start.getDate() + ((draft.weekday - ((start.getDay() + 6) % 7) + 7) % 7));
+      const month = String(start.getMonth() + 1).padStart(2, '0');
+      return `${start.getFullYear()}-${month}-${String(start.getDate()).padStart(2, '0')}`;
+    };
+
+    return html`
+      <h3 class="subhead">${t(this.hass, 'admin.weekly_title')}</h3>
+      <div class="notice quiet">${t(this.hass, 'admin.weekly_hint')}</div>
+      <div class="chips">
+        ${entries.map(
+          (entry) => html`
+            <button
+              class="chip ${entry === current ? 'on' : ''}"
+              @click=${() => {
+                this._weekly = { weekday: entry.weekday, from: entry.from, until: entry.until };
+              }}
+            >
+              ${this._weekdayName(entry.weekday, 'short')} · ${short(entry.from)}–${short(entry.until)}
+            </button>
+          `,
+        )}
+        ${entries.length
+          ? html`<button
+              class="chip ${current ? '' : 'on'}"
+              @click=${() => {
+                this._weekly = undefined;
+              }}
+            >
+              ${t(this.hass, 'admin.weekly_new')}
+            </button>`
+          : nothing}
+      </div>
+      <div class="row">
+        <label class="field grow">
+          <span class="label">${t(this.hass, 'admin.weekly_weekday')}</span>
+          <select
+            id="weekly-weekday"
+            .value=${String(draft.weekday)}
+            @change=${(event: Event) => {
+              this._weekly = { ...draft, weekday: Number((event.target as HTMLSelectElement).value) };
+            }}
+          >
+            ${weekOrder(config.weekStart).map(
+              (day) => html`
+                <option value=${String(day)} ?selected=${draft.weekday === day}>
+                  ${this._weekdayName(day, 'long')}
+                </option>
+              `,
+            )}
+          </select>
+        </label>
+        <label class="field grow">
+          <span class="label">${t(this.hass, 'admin.weekly_from')}</span>
+          <input
+            id="weekly-from"
+            type="date"
+            .value=${draft.from}
+            @change=${(event: Event) => {
+              this._weekly = { ...draft, from: (event.target as HTMLInputElement).value };
+            }}
+          />
+        </label>
+        <label class="field grow">
+          <span class="label">${t(this.hass, 'admin.weekly_until')}</span>
+          <input
+            id="weekly-until"
+            type="date"
+            min=${today}
+            .value=${draft.until}
+            @change=${(event: Event) => {
+              const until = (event.target as HTMLInputElement).value;
+              this._weekly = { ...draft, until };
+              // An existing one moves its end at once; a new one waits for its label.
+              if (current && until) {
+                this._call('set_weekly_exception', { ...key, until });
+              }
+            }}
+          />
+        </label>
+      </div>
+      <label class="field">
+        <span class="label">${t(this.hass, 'admin.exception_label')}</span>
+        <input
+          id="weekly-label"
+          placeholder=${t(this.hass, 'admin.weekly_label_hint')}
+          .value=${current?.label ?? ''}
+        />
+        <button
+          class="apply"
+          id="weekly-save"
+          ?disabled=${this._busy || !draft.until || !draft.from}
+          @click=${(event: Event) => {
+            const root = (event.target as HTMLElement).closest('.field');
+            const field = root?.querySelector('input') as HTMLInputElement | null;
+            save({ label: field?.value ?? '' });
+          }}
+        >
+          ${t(this.hass, 'admin.save')}
+        </button>
+      </label>
+      ${current?.label || !draft.until || !draft.from
+        ? nothing
+        : this._periodRows(
+            grid,
+            current,
+            (period) => this._plannedOn(config, week, sample(), period),
+            save,
+          )}
+      ${current
+        ? html`<button
+            class="link"
+            id="weekly-remove"
+            ?disabled=${this._busy}
+            @click=${async () => {
+              await this._call('clear_weekly_exception', key);
+              this._weekly = undefined;
+            }}
+          >
+            ${t(this.hass, 'admin.weekly_remove')}
+          </button>`
+        : nothing}
     `;
   }
 
@@ -1543,6 +1895,35 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
         font-size: 0.75rem;
         font-weight: 400;
         color: var(--schoolday-muted);
+      }
+
+      /* A cell that takes turns lists them all, smaller, so four short subjects fit. */
+      .slot.rotating .subject {
+        font-size: 0.75rem;
+        line-height: 1.2;
+      }
+
+      .turn {
+        align-items: center;
+      }
+
+      .turn input {
+        min-width: 0;
+      }
+
+      /* Fixed, so the row marked "this week" lines its fields up with the others. */
+      .turn-no {
+        flex: 0 0 8.5em;
+      }
+
+      .turn-no.now {
+        color: var(--schoolday-today);
+        font-weight: 700;
+      }
+
+      .subhead {
+        margin: 12px 0 0;
+        font-size: 1rem;
       }
 
       .editor,

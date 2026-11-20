@@ -32,6 +32,8 @@ from .const import (
     CONF_WEEK_START,
     WEEK_START_DAYS,
     CONF_EXCEPTIONS,
+    CONF_WEEKLY_EXCEPTIONS,
+    ROTATION_MAX,
     CONF_MATERIALS,
     CONF_MEMBER_ID,
     CONF_MEMBERS,
@@ -60,7 +62,9 @@ from .models import (
     InvalidPeriod,
     Lesson,
     Timetable,
+    WeeklyException,
     clock,
+    rotating,
     monday_of_week,
     parse_week_start,
     color_to_hex,
@@ -148,6 +152,46 @@ def _slot(weekday: int, week: int) -> int:
     return weekday + SLOTS_PER_WEEK * week
 
 
+def _turns(period: int, rotation: list[Any]) -> Lesson | None:
+    """A period's turns from what a card or a script sent, folded down.
+
+    Each turn is a {subject, room}, or just a subject; an empty one or "-" is a week
+    the period is free. Refused past ROTATION_MAX rather than cut, because silently
+    dropping the ninth week would leave a rotation that is shorter than it was typed.
+    """
+    if len(rotation) > ROTATION_MAX:
+        raise SchooldayValueError(
+            f"A lesson can take turns over at most {ROTATION_MAX} weeks, not {len(rotation)}."
+        )
+    turns: list[Lesson | None] = []
+    for entry in rotation:
+        if isinstance(entry, dict):
+            subject = str(entry.get("subject") or "").strip()
+            room = str(entry.get("room") or "").strip() or None
+        else:
+            subject, room = str(entry or "").strip(), None
+        if subject and subject != "-":
+            turns.append(Lesson(period=period, subject=subject, room=room))
+        else:
+            turns.append(None)
+    return rotating(period, turns)
+
+
+def rotation_anchor(
+    options: dict[str, Any], timetable: Timetable, today: date | None
+) -> dict[str, Any]:
+    """Week 1 for the rotations, when the first one is saved and nothing set it yet.
+
+    This week, for the same reason switching the A/B cycle on makes this week A: it is
+    the only guess that cannot be wrong today, and it means the first turn somebody
+    typed is the one they see on the board.
+    """
+    if options.get(CONF_CYCLE_ANCHOR) or not timetable.uses_rotation:
+        return {}
+    starts = parse_week_start(options.get(CONF_WEEK_START))
+    return {CONF_CYCLE_ANCHOR: monday_of_week(today or _today(), starts).isoformat()}
+
+
 def set_lesson(
     options: dict[str, Any],
     member_id: str,
@@ -156,6 +200,8 @@ def set_lesson(
     subject: str | None,
     room: str | None = None,
     week: int = 0,
+    rotation: list[Any] | None = None,
+    today: date | None = None,
 ) -> dict[str, Any]:
     """Put one lesson in one period of one day, or clear it.
 
@@ -165,6 +211,9 @@ def set_lesson(
     `week` is 0 for week A and 1 for week B, and is accepted whether or not the
     two-week cycle is switched on — so turning it off and on again does not lose the
     B week somebody already typed.
+
+    `rotation`, when given, is the turns the period takes week by week and wins over
+    `subject` and `room`. A rotation of one is an ordinary lesson.
     """
     timetable = _timetable(options)
     slot = _slot(weekday, week)
@@ -176,7 +225,10 @@ def set_lesson(
 
     cycle = {existing: list(lessons) for existing, lessons in timetable.week(member_id).items()}
     day = [lesson for lesson in cycle.get(slot, []) if lesson.period != period]
-    if subject := (subject or "").strip():
+    if rotation is not None:
+        if lesson := _turns(period, rotation):
+            day.append(lesson)
+    elif subject := (subject or "").strip():
         day.append(Lesson(period=period, subject=subject, room=(room or "").strip() or None))
     day.sort(key=lambda lesson: lesson.period)
 
@@ -192,7 +244,7 @@ def set_lesson(
         timetable.lessons[member_id] = cycle
     else:
         timetable.lessons.pop(member_id, None)
-    return {CONF_TIMETABLE: timetable.as_options()}
+    return {CONF_TIMETABLE: timetable.as_options(), **rotation_anchor(options, timetable, today)}
 
 
 def set_day(
@@ -201,11 +253,12 @@ def set_day(
     weekday: int,
     lessons: list[dict[str, Any]],
     week: int = 0,
+    today: date | None = None,
 ) -> dict[str, Any]:
     """Replace a whole weekday for one member.
 
-    For pasting a day in one go. Each entry needs a period and a subject; anything
-    without a subject is a free period and is simply left out.
+    For pasting a day in one go. Each entry needs a period and a subject, or a
+    `rotation`; anything without either is a free period and is simply left out.
     """
     timetable = _timetable(options)
     slot = _slot(weekday, week)
@@ -214,7 +267,8 @@ def set_day(
     day: list[Lesson] = []
     for entry in lessons:
         subject = str((entry or {}).get("subject") or "").strip()
-        if not subject:
+        rotation = (entry or {}).get("rotation")
+        if not subject and not rotation:
             continue
         try:
             period = int((entry or {}).get("period"))
@@ -227,6 +281,10 @@ def set_day(
                 f"There is no period {period}. Configured periods: "
                 f"{', '.join(str(index) for index in sorted(known)) or 'none configured'}."
             )
+        if rotation:
+            if lesson := _turns(period, list(rotation)):
+                day.append(lesson)
+            continue
         day.append(
             Lesson(
                 period=period,
@@ -246,7 +304,7 @@ def set_day(
         timetable.lessons[member_id] = cycle
     else:
         timetable.lessons.pop(member_id, None)
-    return {CONF_TIMETABLE: timetable.as_options()}
+    return {CONF_TIMETABLE: timetable.as_options(), **rotation_anchor(options, timetable, today)}
 
 
 def set_subject_color(options: dict[str, Any], subject: str, color: Any) -> dict[str, Any]:
@@ -604,6 +662,128 @@ def clear_exception(
     else:
         stored.pop(member_id, None)
     return {CONF_EXCEPTIONS: stored}
+
+
+def _weekly(options: dict[str, Any], today: date) -> dict[str, list[WeeklyException]]:
+    """The stored weekly exceptions, with every one that has ended dropped.
+
+    Pruned on a write for the reason `_exceptions` is: last year's pull-out day is
+    nothing anybody will come back to, and it should not sit in the options for ever.
+    """
+    pruned: dict[str, list[WeeklyException]] = {}
+    for member_id, entries in (options.get(CONF_WEEKLY_EXCEPTIONS) or {}).items():
+        kept = [
+            parsed
+            for entry in (entries if isinstance(entries, list) else [])
+            if (parsed := WeeklyException.from_dict(entry)) is not None
+            and parsed.until >= today
+        ]
+        if kept:
+            pruned[str(member_id)] = kept
+    return pruned
+
+
+def _weekly_options(stored: dict[str, list[WeeklyException]]) -> dict[str, Any]:
+    return {
+        CONF_WEEKLY_EXCEPTIONS: {
+            member_id: [entry.as_options() for entry in entries]
+            for member_id, entries in stored.items()
+            if entries
+        }
+    }
+
+
+def set_weekly_exception(
+    options: dict[str, Any],
+    member_id: str,
+    weekday: int,
+    start: str,
+    until: str,
+    period: int | None = None,
+    subject: str | None = None,
+    room: str | None = None,
+    cancelled: bool = False,
+    label: str | None = None,
+    today: date | None = None,
+) -> dict[str, Any]:
+    """Say what one weekday does differently, every week from `start` until `until`.
+
+    Known by its weekday and its first date, so the same call again moves the end or
+    changes a period of that one rather than adding a second. Otherwise much like
+    `set_exception`: without a period a label takes the day over, an empty one hands
+    it back, and no label at all leaves it as it was; with one, `cancelled` drops that period and a subject replaces it.
+
+    An end is required. A weekly change without one is a new timetable, and that is
+    better typed as one than hidden here where nobody looks for it in September.
+    """
+    if not 0 <= weekday <= 6:
+        raise SchooldayValueError(f"{weekday} is not a weekday. Use 0 for Monday to 6 for Sunday.")
+    first = _parse_date(start)
+    last = _parse_date(until)
+    if last < first:
+        raise SchooldayValueError(
+            f"It cannot end on {last.isoformat()} before it starts on {first.isoformat()}."
+        )
+    if last < (today or _today()):
+        raise SchooldayValueError(
+            f"{last.isoformat()} has already been. A weekly change has to end today or later."
+        )
+
+    stored = _weekly(options, today or _today())
+    entries = stored.setdefault(member_id, [])
+    entry = next(
+        (item for item in entries if item.weekday == weekday and item.start == first),
+        None,
+    )
+    if entry is None:
+        entry = WeeklyException(weekday=weekday, start=first, until=last)
+        entries.append(entry)
+    entry.until = last
+
+    change = entry.change
+    if period is None:
+        # Left alone when not given, so moving the end is one call that cannot also
+        # wipe what the day was called. An empty label is the way to hand it back.
+        if label is not None:
+            change.label = label.strip() or None
+    else:
+        timetable = _timetable(options)
+        if not any(item.index == period for item in timetable.periods):
+            known = ", ".join(str(item.index) for item in timetable.periods) or "none configured"
+            raise SchooldayValueError(
+                f"There is no period {period}. Configured periods: {known}."
+            )
+        name = (subject or "").strip()
+        if cancelled:
+            change.periods[period] = None
+        elif name:
+            change.periods[period] = Lesson(
+                period=period, subject=name, room=(room or "").strip() or None
+            )
+        else:
+            change.periods.pop(period, None)
+
+    if change.is_empty:
+        entries.remove(entry)
+    return _weekly_options(stored)
+
+
+def clear_weekly_exception(
+    options: dict[str, Any],
+    member_id: str,
+    weekday: int,
+    start: str,
+    today: date | None = None,
+) -> dict[str, Any]:
+    """Drop a weekly exception, so that weekday goes back to the timetable."""
+    first = _parse_date(start)
+    stored = _weekly(options, today or _today())
+    stored[member_id] = [
+        item
+        for item in stored.get(member_id, [])
+        if not (item.weekday == weekday and item.start == first)
+    ]
+    return _weekly_options(stored)
 
 
 def set_materials(

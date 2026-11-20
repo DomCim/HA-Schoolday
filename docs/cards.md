@@ -232,6 +232,12 @@ The lesson times live at the top of this section, and under them any
 whose children are at two that do not ring at the same minute. A child is put on one in
 the **Family** section.
 
+**Takes turns with another week**, in an open cell, turns it into a
+[period that takes turns](timetable.md#lessons-that-take-turns): one row per week, this
+week's marked, and **Add a week** for the next one. Such a cell lists all its turns in
+the grid. Once one exists, the field for week 1 appears at the top, even without a
+two-week timetable.
+
 ### Routines
 
 ![One block, one day at a time — including the two kinds of day off](images/admin-routines.png)
@@ -253,8 +259,13 @@ An empty way to school means no [leaving time](automations.md#time-to-leave); 0 
 
 ### Exceptions
 
-![One date at a time: a name takes the whole day, or a single period is cancelled or covered](images/admin-exceptions.png)
-*One date at a time: a name takes the whole day, or a single period is cancelled or covered*
+![One date at a time: a name takes the whole day, or a single period is cancelled or covered. Below, a weekday that is different for a while.](images/admin-exceptions.png)
+*One date at a time: a name takes the whole day, or a single period is cancelled or
+covered. Below, a weekday that is different for a while.*
+
+Under the single dates, **Every week, for a while** holds the
+[weekly ones](exceptions.md#every-week-for-a-while): a chip for each, and a weekday, a
+first and a last date for a new one.
 
 ### Days off
 

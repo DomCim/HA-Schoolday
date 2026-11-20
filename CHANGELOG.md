@@ -5,6 +5,39 @@ version you are updating to; the [manual](https://domcim.github.io/HA-Schoolday/
 details. Releases before 0.14.0 are listed on
 [GitHub](https://github.com/DomCim/HA-Schoolday/releases).
 
+## 0.21.0
+
+### Lessons that take turns
+
+A single period can now take turns, week by week: art, then music, then drama, then
+biology, and round again. That is the A/B/C/D timetable some schools run, without typing
+four whole weeks. It also covers a lab that comes round every third week (`Labor / - / -`).
+Every period has its own length, and every other period stays the same every week.
+
+Open a cell in the admin card and press **Takes turns with another week**. In the
+options dialog, put a slash with a space on each side between the weeks:
+`Kunst / Musik | R2 / -`. Every rotation counts from the same week 1, which is week A
+of a two-week timetable. Without one, the field is at the top of the timetable section
+as soon as a period takes turns. The first rotation you save makes this week week 1.
+With an A/B timetable, a rotation in week A counts the A weeks and one in week B counts
+the B weeks.
+
+### A weekday that is different for a while
+
+A child at another school every Tuesday until February, or a course every Thursday this
+term, is now one entry instead of a date at a time. Under **Exceptions → Every week, for
+a while**, pick the weekday, the first and the last date, and name the day, or change
+single periods instead. It ends by itself. What you say about a single date still wins
+over it.
+
+Two new services do the same from a script: `schoolday.set_weekly_exception` and
+`schoolday.clear_weekly_exception`.
+
+### Fixed
+
+Saving a child's week in the options dialog no longer throws away a week B typed in
+the admin card.
+
 ## 0.20.0
 
 ### The exams still to come

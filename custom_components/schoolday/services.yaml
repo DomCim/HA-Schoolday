@@ -94,6 +94,13 @@ set_lesson:
       example: 1.OG 5
       selector:
         text:
+    # The turns this period takes week by week, counted from week 1 (the cycle
+    # anchor). Wins over subject and room.
+    rotation:
+      required: false
+      example: ["Kunst", "Musik", "-"]
+      selector:
+        object:
 
 set_day:
   fields:
@@ -351,6 +358,80 @@ clear_exception:
     date:
       required: true
       example: "2026-09-18"
+      selector:
+        date:
+
+set_weekly_exception:
+  fields:
+    member:
+      required: true
+      example: Ben
+      selector:
+        text:
+    weekday:
+      required: true
+      example: 1
+      selector:
+        number:
+          min: 0
+          max: 6
+          mode: box
+    from:
+      required: true
+      example: "2026-11-03"
+      selector:
+        date:
+    until:
+      required: true
+      example: "2027-02-23"
+      selector:
+        date:
+    period:
+      required: false
+      example: 3
+      selector:
+        number:
+          min: 1
+          max: 20
+          mode: box
+    subject:
+      required: false
+      example: Sport
+      selector:
+        text:
+    room:
+      required: false
+      selector:
+        text:
+    cancelled:
+      required: false
+      default: false
+      selector:
+        boolean:
+    label:
+      required: false
+      example: Pull-out day
+      selector:
+        text:
+
+clear_weekly_exception:
+  fields:
+    member:
+      required: true
+      example: Ben
+      selector:
+        text:
+    weekday:
+      required: true
+      example: 1
+      selector:
+        number:
+          min: 0
+          max: 6
+          mode: box
+    from:
+      required: true
+      example: "2026-11-03"
       selector:
         date:
 

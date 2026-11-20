@@ -90,6 +90,9 @@ Deutsch
 - `Fach | Raum` or `Fach @ Raum` puts the room next to the subject
 - `5. Sport` names its period outright, so a day that starts at the third period does
   not need two placeholder lines first
+- `Kunst / Musik | R2 / -` is a period that [takes turns](#lessons-that-take-turns): a
+  slash with a space on each side between the weeks. `Deutsch/Englisch`, without the
+  spaces, stays one subject
 
 {: .warning }
 > **Subject names are exact strings** everywhere downstream: the sensor state, the colour,
@@ -132,6 +135,57 @@ action: schoolday.set_cycle
 data:
   weeks: 2
   iso_week: 37
+```
+
+## Lessons that take turns
+
+Some schools do not stop at A and B. Art, music, drama and biology share one period and
+take it in turn, a week each. A lab session comes round every third week. Typing four
+whole weeks to say that would be four copies of everything that does not change.
+
+So a single period can **take turns** instead. Open the cell in the
+[admin card](cards.md#admin-card), press **Takes turns with another week**, and type a
+subject for each week. **Add a week** adds one more, up to eight. Leave a week's subject
+empty for a free period. After the last week the first one comes round again.
+
+![A period that takes turns, open in the editor: one row per week, this week's marked. The cell in the grid lists every turn.](images/admin-rotation.png)
+*A period that takes turns, open in the editor: one row per week, this week's marked. The
+cell in the grid lists every turn.*
+
+Every period has its own length, and they can sit side by side:
+
+| What the school says | What to type |
+|---|---|
+| Art, music, drama and biology take turns (A/B/C/D) | `Kunst / Musik / Theater / Bio` |
+| Lab every third week, a free period otherwise | `Labor / - / -` |
+| Choir every other week, orchestra in between | `Chor / Orchester` |
+
+Every other period stays as it was, the same every week. A household that never uses
+this does not see it.
+
+**Week 1 is the same week for everything.** Every rotation counts from the week that is
+week A of a [two-week timetable](#two-week-timetables), so the first turn of every
+period is always in the same week. Without a two-week timetable the field is still at
+the top of the timetable section, as **Week 1 of every rotation is calendar week**, as
+soon as a period takes turns. If nothing set it yet, saving the first rotation makes
+this week week 1, so the turn you typed first is the one the board shows now.
+
+A two-week timetable and rotations work together. A cell in week A only runs every
+other week, so its turns count **A weeks**: `Chor / Orchester` in week A is choir in one
+A week and orchestra in the next A week, with the B week in between. A cell in week B
+counts B weeks the same way.
+
+The sensor and the cards always show the turn of the week a column stands for. The
+running lesson, today's and tomorrow's subjects, the evening packing list and the
+`schoolday_lesson_started` event all follow it.
+
+```yaml
+action: schoolday.set_lesson
+data:
+  member: Ben
+  weekday: 0
+  period: 3
+  rotation: ["Kunst", {"subject": "Musik", "room": "R2"}, "-", "Bio"]
 ```
 
 ## When the week begins
@@ -180,5 +234,6 @@ Turn that off with `roll_days: false` on the card to see the week as it stands, 
 included.
 
 Because a column is a date, everything dated follows from it without any extra option:
-holidays, holiday care, a child at home ill, a cancelled period, and which week of an A/B
-cycle you are looking at.
+holidays, holiday care, a child at home ill, a cancelled period, which week of an A/B
+cycle you are looking at, and which turn a [rotating period](#lessons-that-take-turns)
+is on.

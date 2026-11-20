@@ -2434,6 +2434,182 @@ check(
   `${cycledButEmpty} mit Zyklus, ${withoutCycle} ohne`,
 );
 
+// --------------------------------------------------------------- taking turns
+
+// Monday's third period takes turns: art, music, nothing, theatre. This week is week 1,
+// so with the columns rolled on Monday is next week's — music — and as it stands it
+// is this week's art.
+await page.evaluate(() => window.__setRotation(true));
+const turnSubjects = async (roll) => {
+  await page.evaluate((roll) => {
+    window.__mount(
+      { type: 'custom:schoolday-timetable-card', member: 'm1', layout: 'week', roll_days: roll },
+      'schoolday-timetable-card',
+    );
+  }, roll);
+  await page.waitForTimeout(300);
+  return page.evaluate(() =>
+    [...document.querySelector('schoolday-timetable-card').shadowRoot.querySelectorAll('.cell .subject')].map(
+      (node) => node.textContent.trim(),
+    ),
+  );
+};
+const rolledTurns = await turnSubjects(true);
+const standingTurns = await turnSubjects(false);
+check(
+  'a rotating period shows the turn of the week its column stands for',
+  !rolledTurns.includes('Kunst') &&
+    rolledTurns.filter((name) => name === 'Musik').length === 2 &&
+    standingTurns.includes('Kunst'),
+  `gerollt: ${rolledTurns.filter((n) => ['Kunst', 'Musik'].includes(n)).join(',')} / stehend: ${standingTurns
+    .filter((n) => ['Kunst', 'Musik'].includes(n))
+    .join(',')}`,
+);
+
+await page.evaluate(() =>
+  window.__mount({ type: 'custom:schoolday-admin-card', section: 'timetable' }, 'schoolday-admin-card'),
+);
+await page.waitForTimeout(300);
+const rotatingCell = await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  const cell = root.querySelector('.slot.rotating');
+  cell?.click();
+  return cell?.textContent.trim() ?? null;
+});
+await page.waitForTimeout(300);
+const turnRows = await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  return [...root.querySelectorAll('.editor .turn')].map((row) => ({
+    subject: row.querySelectorAll('input')[0].value,
+    room: row.querySelectorAll('input')[1].value,
+    now: row.querySelector('.turn-no')?.classList.contains('now') ?? false,
+  }));
+});
+check(
+  'the editor shows every turn of a rotating cell, and which one is this week',
+  rotatingCell === 'Kunst / Musik / – / Theater' &&
+    turnRows.length === 4 &&
+    turnRows[0].now &&
+    !turnRows[1].now &&
+    turnRows[0].room === '1.OG 5' &&
+    turnRows[2].subject === '',
+  `${rotatingCell} · ${JSON.stringify(turnRows)}`,
+);
+check(
+  'a rotation is the week 1 field without an A/B cycle',
+  await page.evaluate(() => Boolean(document.querySelector('schoolday-admin-card').shadowRoot.querySelector('#cycle-week'))),
+);
+
+await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  root.querySelector('#rotation-more').click();
+});
+await page.waitForTimeout(200);
+await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  const rows = root.querySelectorAll('.editor .turn');
+  const input = rows[rows.length - 1].querySelector('input');
+  input.value = 'Chor';
+  input.dispatchEvent(new Event('input'));
+});
+await page.waitForTimeout(100);
+await page.locator('schoolday-admin-card .editor .apply').click();
+await page.waitForTimeout(300);
+const rotationCall = await page.evaluate(
+  () => window.__calls.services.filter((c) => c.service === 'set_lesson').pop() ?? null,
+);
+check(
+  'saving a rotating cell sends every turn, a free one included',
+  JSON.stringify(rotationCall?.data.rotation?.map((turn) => turn.subject)) ===
+    JSON.stringify(['Kunst', 'Musik', '', 'Theater', 'Chor']) &&
+    rotationCall?.data.subject === undefined &&
+    rotationCall?.data.period === 3,
+  JSON.stringify(rotationCall?.data ?? null),
+);
+
+// An ordinary cell becomes one that takes turns with one tap, keeping what it held.
+await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  root.querySelector('.slot.filled:not(.rotating)').click();
+});
+await page.waitForTimeout(200);
+await page.evaluate(() =>
+  document.querySelector('schoolday-admin-card').shadowRoot.querySelector('#rotation-add').click(),
+);
+await page.waitForTimeout(200);
+const startedTurns = await page.evaluate(() =>
+  [...document.querySelector('schoolday-admin-card').shadowRoot.querySelectorAll('.editor .turn')].map(
+    (row) => row.querySelector('input').value,
+  ),
+);
+check(
+  'taking turns starts from the lesson that was there',
+  startedTurns.length === 2 && startedTurns[0] !== '' && startedTurns[1] === '',
+  JSON.stringify(startedTurns),
+);
+
+// The weekly exception: a chip per one there is, opening it with its label.
+await page.locator('schoolday-admin-card .tab', { hasText: 'Ausnahmen' }).click();
+await page.waitForTimeout(300);
+const weeklyChip = await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  const chip = [...root.querySelectorAll('.chip')].find((node) => node.textContent.includes('04.08.'));
+  chip?.click();
+  return chip?.textContent.replace(/\s+/g, ' ').trim() ?? null;
+});
+await page.waitForTimeout(300);
+const weeklyForm = await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  return {
+    weekday: root.querySelector('#weekly-weekday').value,
+    from: root.querySelector('#weekly-from').value,
+    until: root.querySelector('#weekly-until').value,
+    label: root.querySelector('#weekly-label').value,
+  };
+});
+check(
+  'a weekly exception opens with its weekday, dates and label',
+  Boolean(weeklyChip) &&
+    weeklyForm.weekday === '1' &&
+    weeklyForm.from === '2026-08-04' &&
+    weeklyForm.until === '2026-12-22' &&
+    weeklyForm.label === 'Drehtürtag',
+  `${weeklyChip} · ${JSON.stringify(weeklyForm)}`,
+);
+
+await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  const until = root.querySelector('#weekly-until');
+  until.value = '2027-02-23';
+  until.dispatchEvent(new Event('change'));
+});
+await page.waitForTimeout(300);
+const moveCall = await page.evaluate(
+  () => window.__calls.services.filter((c) => c.service === 'set_weekly_exception').pop() ?? null,
+);
+check(
+  'moving the end of a weekly exception sends only the dates, so the label stays',
+  moveCall?.data.until === '2027-02-23' &&
+    moveCall?.data.from === '2026-08-04' &&
+    moveCall?.data.weekday === 1 &&
+    !('label' in (moveCall?.data ?? {})),
+  JSON.stringify(moveCall?.data ?? null),
+);
+
+await page.evaluate(() =>
+  document.querySelector('schoolday-admin-card').shadowRoot.querySelector('#weekly-remove').click(),
+);
+await page.waitForTimeout(300);
+const weeklyRemoveCall = await page.evaluate(
+  () => window.__calls.services.filter((c) => c.service === 'clear_weekly_exception').pop() ?? null,
+);
+check(
+  'removing a weekly exception names it by weekday and first date',
+  weeklyRemoveCall?.data.weekday === 1 && weeklyRemoveCall?.data.from === '2026-08-04',
+  JSON.stringify(weeklyRemoveCall?.data ?? null),
+);
+await page.evaluate(() => window.__setRotation(false));
+
 // --------------------------------------------------------------- card registry
 
 const registered = await page.evaluate(() => window.customCards.map((c) => c.type).sort());

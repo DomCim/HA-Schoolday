@@ -13,7 +13,7 @@ them apart because they mean different things and are drawn differently.
 |---|---|---|
 | **Holiday** | Everyone's | A calendar you name |
 | **Holiday care** | One child's | A keyword on that child's own calendar |
-| **A day the school took over** | One child's | Typed in, per date |
+| **A day the school took over** | One child's | Typed in, per date — or [per weekday, for a while](#every-week-for-a-while) |
 | **Off ill** | One child's | A switch |
 
 Three more things change a day without closing it — a cancelled lesson, a substitution
@@ -129,6 +129,48 @@ data:
 
 ![Thursday: second period covered by another subject and marked as changed, third period cancelled. Friday taken over by a school trip.](images/timetable-exceptions.png)
 *Thursday: second period covered by another subject and marked as changed, third period cancelled. Friday taken over by a school trip.*
+
+### Every week, for a while
+
+Some changes repeat every week, but only for part of the year. A child spends every
+Tuesday at another school from November to February (a pull-out day, *יום שליפה*). A
+swimming course takes the last two periods every Thursday this term. Typing that date by
+date would be sixteen entries to get right, and sixteen to delete when the plan changes.
+
+Under **Exceptions**, below the single dates, **Every week, for a while** takes the same
+change once: a **weekday**, a **from** date and an **until** date. Then, exactly as for a
+single date:
+
+- **a name for the day** takes the whole day over, every one of those weekdays: "Pull-out
+  day". The column shows it in place of the lessons.
+- **leave the name empty**, save, and change **single periods** instead: cancel the last
+  two, or put "Schwimmen" in them.
+
+![A weekday that is different for a while: picked from its chip, with its weekday, its dates and what the day is.](images/admin-weekly.png)
+*A weekday that is different for a while: picked from its chip, with its weekday, its
+dates and what the day is.*
+
+It ends by itself after the **until** date, and drops out of the list after that. An end
+date is required. A weekly change with no end is a new timetable, and is better typed in
+as one.
+
+A single date still works on top of it. If the 18th is a pull-out day and its third period
+is also cancelled, say that about the 18th: what you say about one date wins over what
+you said about the weekday. Holidays win over both, as they do over every exception.
+
+A weekly change is known by its weekday and its first date. Changing **until** moves the
+end of the one that is open. Changing the weekday or the first date starts a new one, and
+the old one stays until you **Remove** it.
+
+```yaml
+action: schoolday.set_weekly_exception
+data:
+  member: Ben
+  weekday: 1          # Tuesday
+  from: "2026-11-03"
+  until: "2027-02-23"
+  label: Pull-out day
+```
 
 ## From the school's own system
 

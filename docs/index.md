@@ -35,8 +35,8 @@ It is built for one thing: a tablet on the kitchen wall that a family walks past
   <a class="tile" href="timetable.html">
     <span class="tile-title">Timetable</span>
     <p>The week per child, coloured by subject, with the running lesson marked. Schools on a
-    two-week A/B rhythm included, down to which calendar week A starts in — and weeks that
-    begin on Sunday.</p>
+    two-week A/B rhythm included, down to which calendar week A starts in, periods that take
+    turns week by week — A/B/C/D — and weeks that begin on Sunday.</p>
   </a>
   <a class="tile orange" href="routines.html">
     <span class="tile-title">Routines</span>
@@ -56,7 +56,8 @@ It is built for one thing: a tablet on the kitchen wall that a family walks past
   </a>
   <a class="tile yellow" href="exceptions.html">
     <span class="tile-title">Days that differ</span>
-    <p>Holidays, holiday care, school trips, a cancelled lesson, a substitution, an exam — and
+    <p>Holidays, holiday care, school trips, a weekday that differs until a set date — a
+    pull-out day at another school — a cancelled lesson, a substitution, an exam — and
     a child at home ill, which expires by itself instead of waiting to be switched off.
     Cancellations, substitutions and exams can come from WebUntis, Schulmanager Online or
     any school calendar.</p>

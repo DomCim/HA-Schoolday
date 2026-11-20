@@ -386,6 +386,10 @@ set_weekly_exception:
       example: "2027-02-23"
       selector:
         date:
+    replace:
+      required: false
+      selector:
+        boolean:
     period:
       required: false
       example: 3

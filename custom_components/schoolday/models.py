@@ -27,6 +27,7 @@ from .const import (
     CONF_CYCLE_ANCHOR,
     CONF_CYCLE_WEEKS,
     CONF_FROM,
+    CONF_REPLACE,
     CONF_ROTATION,
     CONF_UNTIL,
     CONF_WEEK_START,
@@ -856,31 +857,6 @@ class Timetable:
             None,
         )
 
-    def lesson_at(
-        self, member_id: str, weekday: int, minutes: int, periods: list[Period]
-    ) -> tuple[Lesson, Period] | None:
-        """The lesson a member has at a point in the day, if any."""
-        period = self.period_at(minutes, periods)
-        if period is None:
-            return None
-        lesson = next(
-            (item for item in self.day(member_id, weekday) if item.period == period.index),
-            None,
-        )
-        return (lesson, period) if lesson else None
-
-    def next_lesson(
-        self, member_id: str, weekday: int, minutes: int, periods: list[Period]
-    ) -> tuple[Lesson, Period] | None:
-        """The member's next lesson that day, skipping free periods."""
-        day = {item.period: item for item in self.day(member_id, weekday)}
-        for period in periods:
-            if period.start_minutes <= minutes:
-                continue
-            if lesson := day.get(period.index):
-                return lesson, period
-        return None
-
     @staticmethod
     def boundaries_in(periods: list[Period]) -> list[int]:
         """Every minute of the day at which a lesson starts or ends, sorted.
@@ -976,6 +952,10 @@ class DayException:
     label: str | None = None
     #: period -> the replacement lesson, or None when the period is cancelled.
     periods: dict[int, Lesson | None] = field(default_factory=dict)
+    #: The periods above are the whole day, and every other one is free. Still a school
+    #: day — a pull-out day at another school is somewhere to be by the first bell, with
+    #: a bag to pack — so the label is only its name and does not take the day over.
+    replace: bool = False
 
     @classmethod
     def from_dict(cls, data: dict[str, Any] | None) -> DayException:
@@ -996,11 +976,12 @@ class DayException:
         return cls(
             label=str(raw.get(CONF_LABEL) or "").strip() or None,
             periods=periods,
+            replace=bool(raw.get(CONF_REPLACE)),
         )
 
     def as_options(self) -> dict[str, Any]:
-        """The stored shape."""
-        return {
+        """The stored shape. `replace` only when set, so nothing else changes shape."""
+        shape: dict[str, Any] = {
             CONF_LABEL: self.label,
             CONF_PERIODS: {
                 str(period): (
@@ -1009,11 +990,19 @@ class DayException:
                 for period, lesson in sorted(self.periods.items())
             },
         }
+        if self.replace:
+            shape[CONF_REPLACE] = True
+        return shape
 
     @property
     def closed(self) -> bool:
-        """True when the whole day is taken over, which a label is what says."""
-        return self.label is not None
+        """True when the whole day is taken over, which a label is what says.
+
+        Except on a day whose lessons are replaced: there the label names a school day
+        somewhere else, and closing it would take away the leaving time, the packing
+        list and the announcement for a child who very much has school.
+        """
+        return self.label is not None and not self.replace
 
     @property
     def is_empty(self) -> bool:
@@ -1031,7 +1020,7 @@ class DayException:
         """This day's lessons, once the exception has had its say."""
         if self.closed:
             return []
-        by_period = {lesson.period: lesson for lesson in lessons}
+        by_period = {} if self.replace else {lesson.period: lesson for lesson in lessons}
         for period, replacement in self.periods.items():
             if replacement is None:
                 by_period.pop(period, None)
@@ -1516,6 +1505,7 @@ class SchooldayConfig:
         return DayException(
             label=dated.label or weekly.label,
             periods={**weekly.periods, **dated.periods},
+            replace=weekly.replace or dated.replace,
         )
 
     def lessons_on(self, member_id: str, day: date) -> list[Lesson]:
@@ -1525,14 +1515,19 @@ class SchooldayConfig:
         like; only a date knows whether this Tuesday's third period was cancelled, and
         the two answers must never be worked out in two places.
         """
+        lessons = self.planned_on(member_id, day)
+        change = self.exception(member_id, day)
+        return change.applied_to(lessons) if change else lessons
+
+    def planned_on(self, member_id: str, day: date) -> list[Lesson]:
+        """What the timetable alone holds on a date: its week of the cycle, its turn of
+        every rotating period, and no exception yet."""
         turn = self.turn_for(day)
-        lessons = [
+        return [
             lesson
             for planned in self.timetable.day(member_id, self.slot_for(day))
             if (lesson := planned.on_turn(turn)) is not None
         ]
-        change = self.exception(member_id, day)
-        return change.applied_to(lessons) if change else lessons
 
     def packing_list(self, subjects: Iterable[str]) -> list[tuple[str, str]]:
         """What a day of these subjects needs packed, as (item, subject) pairs.

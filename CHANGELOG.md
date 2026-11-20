@@ -22,13 +22,22 @@ as soon as a period takes turns. The first rotation you save makes this week wee
 With an A/B timetable, a rotation in week A counts the A weeks and one in week B counts
 the B weeks.
 
+The admin card's grid shows each rotating period's turn for the week on screen, marked
+↻ 2/4, and **‹ This week ›** steps through the weeks. Moving week 1, or switching the
+two-week timetable on or off, moves every rotation, so check a few weeks after doing
+either.
+
 ### A weekday that is different for a while
 
 A child at another school every Tuesday until February, or a course every Thursday this
 term, is now one entry instead of a date at a time. Under **Exceptions → Every week, for
-a while**, pick the weekday, the first and the last date, and name the day, or change
-single periods instead. It ends by itself. What you say about a single date still wins
-over it.
+a while**, pick the weekday, the first and the last date, and the kind of day:
+
+- **Other lessons**: only the periods you fill in take place, and it stays a school day
+  with its time to leave, packing list and announcement. Use this for a pull-out day.
+- **No school here**: the day is taken over, like a school trip.
+
+It ends by itself. What you say about a single date still wins over it.
 
 Two new services do the same from a script: `schoolday.set_weekly_exception` and
 `schoolday.clear_weekly_exception`.

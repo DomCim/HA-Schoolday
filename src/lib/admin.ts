@@ -80,6 +80,8 @@ export interface AdminException {
   label: string | null;
   /** period -> the replacement, or null for a period that is cancelled. */
   periods: Record<string, { subject: string; room: string | null } | null>;
+  /** The periods above are the whole day, the rest are free, and it is still a school day. */
+  replace: boolean;
 }
 
 export interface AdminWeeklyException extends AdminException {
@@ -102,7 +104,11 @@ function parseException(raw: Record<string, unknown>): AdminException {
           }
         : null;
   }
-  return { label: typeof raw.label === 'string' && raw.label ? raw.label : null, periods };
+  return {
+    label: typeof raw.label === 'string' && raw.label ? raw.label : null,
+    periods,
+    replace: raw.replace === true,
+  };
 }
 
 const EMPTY: AdminConfig = {

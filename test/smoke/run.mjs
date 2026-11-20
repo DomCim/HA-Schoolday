@@ -2470,11 +2470,43 @@ await page.evaluate(() =>
   window.__mount({ type: 'custom:schoolday-admin-card', section: 'timetable' }, 'schoolday-admin-card'),
 );
 await page.waitForTimeout(300);
+// The editor's grid shows the week on screen, like the board: this week's turn of a
+// rotating period, never all of them at once. Stepping a week on shows the next turn.
+const rotatingCellText = () =>
+  page.evaluate(() => {
+    const cell = document.querySelector('schoolday-admin-card').shadowRoot.querySelector('.slot.rotating');
+    return {
+      subject: cell?.querySelector('.subject')?.textContent.trim() ?? null,
+      mark: cell?.querySelector('.turn-mark')?.textContent.trim() ?? null,
+    };
+  });
+const thisWeekCell = await rotatingCellText();
+await page.evaluate(() =>
+  document.querySelector('schoolday-admin-card').shadowRoot.querySelector('#week-next').click(),
+);
+await page.waitForTimeout(200);
+const nextWeekCell = await rotatingCellText();
+const shownWeek = await page.evaluate(
+  () => document.querySelector('schoolday-admin-card').shadowRoot.querySelector('#week-shown')?.textContent.trim(),
+);
+await page.evaluate(() =>
+  document.querySelector('schoolday-admin-card').shadowRoot.querySelector('#week-prev').click(),
+);
+await page.waitForTimeout(200);
+check(
+  "the editor's grid shows only the turn of the week on screen, and steps through them",
+  thisWeekCell.subject === 'Kunst' &&
+    thisWeekCell.mark === '↻ 1/4' &&
+    nextWeekCell.subject === 'Musik' &&
+    nextWeekCell.mark === '↻ 2/4' &&
+    shownWeek === 'Nächste Woche',
+  `${JSON.stringify(thisWeekCell)} → ${shownWeek} ${JSON.stringify(nextWeekCell)}`,
+);
 const rotatingCell = await page.evaluate(() => {
   const root = document.querySelector('schoolday-admin-card').shadowRoot;
   const cell = root.querySelector('.slot.rotating');
   cell?.click();
-  return cell?.textContent.trim() ?? null;
+  return cell?.querySelector('.subject')?.textContent.trim() ?? null;
 });
 await page.waitForTimeout(300);
 const turnRows = await page.evaluate(() => {
@@ -2487,7 +2519,7 @@ const turnRows = await page.evaluate(() => {
 });
 check(
   'the editor shows every turn of a rotating cell, and which one is this week',
-  rotatingCell === 'Kunst / Musik / – / Theater' &&
+  rotatingCell === 'Kunst' &&
     turnRows.length === 4 &&
     turnRows[0].now &&
     !turnRows[1].now &&
@@ -2496,8 +2528,11 @@ check(
   `${rotatingCell} · ${JSON.stringify(turnRows)}`,
 );
 check(
-  'a rotation is the week 1 field without an A/B cycle',
-  await page.evaluate(() => Boolean(document.querySelector('schoolday-admin-card').shadowRoot.querySelector('#cycle-week'))),
+  'without an A/B cycle, a rotation asks for the date week 1 begins, not a calendar week',
+  await page.evaluate(() => {
+    const root = document.querySelector('schoolday-admin-card').shadowRoot;
+    return root.querySelector('#rotation-start')?.value === '2026-08-03' && !root.querySelector('#cycle-week');
+  }),
 );
 
 await page.evaluate(() => {
@@ -2594,6 +2629,39 @@ check(
     moveCall?.data.weekday === 1 &&
     !('label' in (moveCall?.data ?? {})),
   JSON.stringify(moveCall?.data ?? null),
+);
+
+// A pull-out day: other lessons, still a school day. Switching the kind of an existing
+// one saves at once, and then the period rows have no "cancelled" — an unfilled period
+// is already free.
+await page.evaluate(() =>
+  document.querySelector('schoolday-admin-card').shadowRoot.querySelector('#weekly-replace').click(),
+);
+await page.waitForTimeout(300);
+const replaceCall = await page.evaluate(
+  () => window.__calls.services.filter((c) => c.service === 'set_weekly_exception').pop() ?? null,
+);
+check(
+  'choosing other lessons for a weekly change saves it as replacing the day',
+  replaceCall?.data.replace === true && replaceCall?.data.from === '2026-08-04',
+  JSON.stringify(replaceCall?.data ?? null),
+);
+
+// A date covered by a weekly change says so, instead of "nothing is different".
+await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  const field = root.querySelector('input[type="date"]');
+  field.value = '2026-08-11';
+  field.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+});
+await page.waitForTimeout(300);
+const appliesNotice = await page.evaluate(
+  () => document.querySelector('schoolday-admin-card').shadowRoot.querySelector('#weekly-applies')?.textContent.replace(/\s+/g, ' ').trim() ?? null,
+);
+check(
+  'a date that a weekly change covers names it in the date editor',
+  Boolean(appliesNotice?.includes('Drehtürtag') && appliesNotice.includes('22.12.')),
+  appliesNotice ?? 'kein Hinweis',
 );
 
 await page.evaluate(() =>

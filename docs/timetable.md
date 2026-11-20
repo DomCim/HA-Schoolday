@@ -148,9 +148,15 @@ So a single period can **take turns** instead. Open the cell in the
 subject for each week. **Add a week** adds one more, up to eight. Leave a week's subject
 empty for a free period. After the last week the first one comes round again.
 
-![A period that takes turns, open in the editor: one row per week, this week's marked. The cell in the grid lists every turn.](images/admin-rotation.png)
-*A period that takes turns, open in the editor: one row per week, this week's marked. The
-cell in the grid lists every turn.*
+![A period that takes turns, open in the editor: one row per week, this week's marked. In the grid the cell shows only this week's turn, with ↻ 1/4 beside it.](images/admin-rotation.png)
+*A period that takes turns, open in the editor: one row per week, this week's marked. In
+the grid the cell shows only this week's turn, with ↻ 1/4 beside it.*
+
+The grid shows one week at a time, as the board does. Each rotating cell shows its
+turn for that week and which turn of how many it is. Once a period takes turns,
+**‹ This week ›** above the grid steps through the weeks, so you can check next week's
+turn before Monday. The editor of an open cell lists all the turns, because that is
+where you change them.
 
 Every period has its own length, and they can sit side by side:
 
@@ -165,9 +171,9 @@ this does not see it.
 
 **Week 1 is the same week for everything.** Every rotation counts from the week that is
 week A of a [two-week timetable](#two-week-timetables), so the first turn of every
-period is always in the same week. Without a two-week timetable the field is still at
-the top of the timetable section, as **Week 1 of every rotation is calendar week**, as
-soon as a period takes turns. If nothing set it yet, saving the first rotation makes
+period is always in the same week. Without a two-week timetable, **Week 1 of every
+rotation begins** appears at the top of the timetable section as soon as a period takes
+turns. Pick any day in that week. If nothing set it yet, saving the first rotation makes
 this week week 1, so the turn you typed first is the one the board shows now.
 
 A two-week timetable and rotations work together. A cell in week A only runs every
@@ -178,6 +184,13 @@ counts B weeks the same way.
 The sensor and the cards always show the turn of the week a column stands for. The
 running lesson, today's and tomorrow's subjects, the evening packing list and the
 `schoolday_lesson_started` event all follow it.
+
+{: .warning }
+> **Everything counts from week 1, so moving it moves every rotation.** Changing week 1,
+> or the week A of a two-week timetable, shifts every period that takes turns. So does
+> switching the two-week timetable on or off, because a rotation in an A/B timetable
+> counts A weeks or B weeks rather than every week. After either change, step through a
+> few weeks above the grid and check that the turns are where the school has them.
 
 ```yaml
 action: schoolday.set_lesson

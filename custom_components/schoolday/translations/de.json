@@ -312,6 +312,10 @@
           "name": "Bis",
           "description": "Das letzte Datum, an dem sie gilt."
         },
+        "replace": {
+          "name": "Ersetzt den Tag",
+          "description": "Die angegebenen Stunden sind der ganze Tag, alle anderen sind frei; es bleibt ein Schultag, mit Zeit zum Losgehen und Packliste. Für einen Tag an einer anderen Schule."
+        },
         "period": {
           "name": "Stunde",
           "description": "Leer lassen, um etwas über den ganzen Tag zu sagen."

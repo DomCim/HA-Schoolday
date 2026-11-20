@@ -138,13 +138,25 @@ swimming course takes the last two periods every Thursday this term. Typing that
 date would be sixteen entries to get right, and sixteen to delete when the plan changes.
 
 Under **Exceptions**, below the single dates, **Every week, for a while** takes the same
-change once: a **weekday**, a **from** date and an **until** date. Then, exactly as for a
-single date:
+change once: a **weekday**, a **from** date and an **until** date. Then pick which kind
+of day it is, because they behave differently all day long:
 
-- **a name for the day** takes the whole day over, every one of those weekdays: "Pull-out
-  day". The column shows it in place of the lessons.
-- **leave the name empty**, save, and change **single periods** instead: cancel the last
-  two, or put "Schwimmen" in them.
+- **Other lessons**: the child is at school, somewhere else. Only the periods you fill
+  in take place, every other period is free, and it stays a school day: the child still
+  gets a [time to leave](automations.md#time-to-leave), a packing list and the morning
+  announcement, and those lessons are marked as changed on the card. This is the one for
+  a pull-out day. Fill the periods the child is away with "יום שליפה", or with the
+  subjects of the day there. The name is optional and only labels the entry.
+- **No school here**: like a school trip. **A name for the day** takes the whole day
+  over, every one of those weekdays, and the column shows it in place of the lessons.
+  There is no leaving time and nothing to pack. Leave the name empty, save, and you can
+  change **single periods** instead: cancel the last two, or put "Schwimmen" in them.
+
+A day of other lessons uses the child's own lesson times. If the other school rings at
+different times, the periods still show your school's bell times. A date covered by a
+weekly change also ignores what your own school's
+[calendar](#from-the-schools-own-system) says about that day, because the child is not
+there.
 
 ![A weekday that is different for a while: picked from its chip, with its weekday, its dates and what the day is.](images/admin-weekly.png)
 *A weekday that is different for a while: picked from its chip, with its weekday, its
@@ -156,11 +168,17 @@ as one.
 
 A single date still works on top of it. If the 18th is a pull-out day and its third period
 is also cancelled, say that about the 18th: what you say about one date wins over what
-you said about the weekday. Holidays win over both, as they do over every exception.
+you said about the weekday. Picking the 18th in the date editor says that a weekly change
+covers it. Holidays win over both, as they do over every exception.
+
+A single date cannot hand one week back to the normal timetable. If the pull-out day is
+off one Tuesday, set that date's periods by hand, or end the weekly change the day before
+and start a new one after it.
 
 A weekly change is known by its weekday and its first date. Changing **until** moves the
 end of the one that is open. Changing the weekday or the first date starts a new one, and
-the old one stays until you **Remove** it.
+the old one stays until you **Remove** it. Two weekly changes on the same weekday cannot
+overlap: Schoolday refuses the second, because only one of them could apply.
 
 ```yaml
 action: schoolday.set_weekly_exception
@@ -169,7 +187,9 @@ data:
   weekday: 1          # Tuesday
   from: "2026-11-03"
   until: "2027-02-23"
-  label: Pull-out day
+  replace: true       # other lessons, still a school day
+  period: 1
+  subject: יום שליפה
 ```
 
 ## From the school's own system

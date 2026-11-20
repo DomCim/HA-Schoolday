@@ -25,6 +25,7 @@ import {
   type AdminConfig,
   type AdminException,
   type AdminMember,
+  type AdminWeeklyException,
 } from '../lib/admin';
 import { localeOf, WEEKDAY_NAMES, weekOrder } from '../lib/dates';
 import { isRtl, t } from '../lib/i18n';
@@ -104,8 +105,17 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
    * an ordinary lesson, which is what the subject and room above are for.
    */
   @state() private _draftTurns: { subject: string; room: string }[] = [];
-  /** The weekly exception being edited: its weekday and first date say which one. */
-  @state() private _weekly?: { weekday: number; from: string; until: string };
+  /**
+   * The weekly exception being edited: its weekday and first date say which one, and
+   * whether it replaces the day's lessons or takes the day off school.
+   */
+  @state() private _weekly?: { weekday: number; from: string; until: string; replace: boolean };
+  /**
+   * Which week the timetable editor shows, in weeks from this one. Only offered once a
+   * period takes turns: then a week is a dated thing, and the grid shows each rotating
+   * period's turn for it rather than every turn at once.
+   */
+  @state() private _weekOffset = 0;
   /**
    * What the pickers currently hold, by `member-field`.
    *
@@ -393,15 +403,28 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
             `,
           )}
         </div>
-        ${config.cycleWeeks > 1 || rotating
+        ${config.cycleWeeks === 1 && rotating
           ? html`
               <label class="field">
-                <span class="label"
-                  >${t(
-                    this.hass,
-                    config.cycleWeeks > 1 ? 'admin.cycle_start' : 'admin.rotation_start',
-                  )}</span
-                >
+                <span class="label">${t(this.hass, 'admin.rotation_start')}</span>
+                <input
+                  id="rotation-start"
+                  type="date"
+                  .value=${config.cycleAnchor ?? ''}
+                  @change=${(event: Event) => {
+                    const value = (event.target as HTMLInputElement).value;
+                    if (value) {
+                      this._call('set_cycle', { weeks: 1, anchor: value });
+                    }
+                  }}
+                />
+              </label>
+            `
+          : nothing}
+        ${config.cycleWeeks > 1
+          ? html`
+              <label class="field">
+                <span class="label">${t(this.hass, 'admin.cycle_start')}</span>
                 <input
                   id="cycle-week"
                   type="number"
@@ -420,13 +443,11 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
                   }}
                 />
               </label>
-              ${config.cycleWeeks > 1
-                ? html`<div class="notice quiet">
-                    ${t(this.hass, 'admin.cycle_now', {
-                      week: config.cycleNow === 1 ? 'B' : 'A',
-                    })}
-                  </div>`
-                : nothing}
+              <div class="notice quiet">
+                ${t(this.hass, 'admin.cycle_now', {
+                  week: config.cycleNow === 1 ? 'B' : 'A',
+                })}
+              </div>
             `
           : nothing}
         <label class="field">
@@ -473,7 +494,19 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
       : {};
     // Which week is being edited. Opens on the one the household is in, because that
     // is the one somebody standing at the board is thinking about.
-    const cycleWeek = config.cycleWeeks > 1 ? (this._week ?? config.cycleNow) : 0;
+    const rotating = Object.values(week).some((day) => day.some((lesson) => lesson.rotation));
+    const offset = rotating ? this._weekOffset : 0;
+    const mod = (value: number, by: number) => ((value % by) + by) % by;
+    // With a rotation the week shown is a dated one, and its A or B follows from the
+    // date rather than from a switch that could disagree with it.
+    const cycleWeek =
+      config.cycleWeeks > 1
+        ? rotating
+          ? mod(config.cycleNow + offset, config.cycleWeeks)
+          : (this._week ?? config.cycleNow)
+        : 0;
+    // Before anybody set week 1, saving makes this week week 1, so count from here.
+    const turn = this._turn(config, (config.cycleAnchor ? config.rotationNow : 0) + offset);
     // The same days as the timetable card: the first five of the household's week, and
     // any later day up to the last one with a lesson in either week.
     const order = weekOrder(config.weekStart);
@@ -495,7 +528,8 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
           ? html`<div class="notice">${t(this.hass, 'admin.no_members')}</div>`
           : html`
               ${this._memberChips(config, member)}
-              ${config.cycleWeeks > 1
+              ${rotating ? this._renderWeekStep(config, offset, cycleWeek) : nothing}
+              ${config.cycleWeeks > 1 && !rotating
                 ? html`<div class="segmented week-pick">
                     ${[0, 1].map(
                       (index) => html`
@@ -542,18 +576,17 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
                       const slot = day + SLOTS_PER_WEEK * cycleWeek;
                       const key = `${slot}:${period.index}`;
                       const lesson = lessonAt(week, slot, period.index);
-                      // A rotating period shows all its turns, so the grid says what
-                      // the cell holds rather than what one week of it happens to be.
+                      // A rotating period shows the turn of the week on screen, like the
+                      // board does, with which turn of how many it is beside it. All the
+                      // turns are in the editor, where they are being changed.
                       const turns = lesson?.rotation;
-                      const first = turns ? turns.find((turn) => turn) : lesson;
-                      const shown = turns
-                        ? turns.map((turn) => turn?.subject ?? '–').join(' / ')
-                        : lesson?.subject;
+                      const shownLesson = lesson ? turnOf(lesson, turn) : null;
+                      const shown = shownLesson?.subject ?? (turns ? '–' : undefined);
                       return html`
                         <button
-                          class="slot ${lesson ? 'filled' : ''} ${turns ? 'rotating' : ''} ${this._cell === key ? 'open' : ''}"
-                          style=${first
-                            ? `--subject:${grid.subjects[first.subject] ?? 'var(--schoolday-line)'}`
+                          class="slot ${shownLesson ? 'filled' : ''} ${turns ? 'rotating' : ''} ${this._cell === key ? 'open' : ''}"
+                          style=${shownLesson
+                            ? `--subject:${grid.subjects[shownLesson.subject] ?? 'var(--schoolday-line)'}`
                             : ''}
                           @click=${() => {
                             this._cell = this._cell === key ? undefined : key;
@@ -566,8 +599,13 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
                           }}
                         >
                           <span class="subject"><bdi>${shown ?? '+'}</bdi></span>
-                          ${!turns && lesson?.room
-                            ? html`<span class="room"><bdi>${lesson.room}</bdi></span>`
+                          ${shownLesson?.room
+                            ? html`<span class="room"><bdi>${shownLesson.room}</bdi></span>`
+                            : nothing}
+                          ${turns
+                            ? html`<span class="turn-mark"
+                                >↻ ${mod(turn, turns.length) + 1}/${turns.length}</span
+                              >`
                             : nothing}
                         </button>
                       `;
@@ -575,24 +613,65 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
                   `,
                 )}
               </div>
-              ${this._cell ? this._renderCellEditor(config, member) : nothing}
+              ${this._cell ? this._renderCellEditor(member, turn, offset) : nothing}
             `}
+    `;
+  }
+
+  /** The first day of the household's week `offset` weeks from this one, as `dd.mm.`. */
+  private _weekStartLabel(config: AdminConfig, offset: number): string {
+    const now = new Date();
+    const back = (now.getDay() - config.weekStart + 7) % 7;
+    const first = new Date(now.getFullYear(), now.getMonth(), now.getDate() - back + 7 * offset);
+    return `${String(first.getDate()).padStart(2, '0')}.${String(first.getMonth() + 1).padStart(2, '0')}.`;
+  }
+
+  /** Back and forward a week, and which week is on screen. */
+  private _renderWeekStep(config: AdminConfig, offset: number, cycleWeek: number): TemplateResult {
+    const rtl = isRtl(this.hass);
+    const name =
+      offset === 0
+        ? t(this.hass, 'admin.this_week')
+        : offset === 1
+          ? t(this.hass, 'admin.next_week')
+          : t(this.hass, 'admin.week_of', { date: this._weekStartLabel(config, offset) });
+    const step = (by: number) => {
+      this._weekOffset = offset + by;
+      this._cell = undefined;
+    };
+    return html`
+      <div class="week-step">
+        <button class="link" id="week-prev" aria-label=${t(this.hass, 'admin.week_prev')} @click=${() => step(-1)}>
+          ${rtl ? '›' : '‹'}
+        </button>
+        <span id="week-shown">
+          ${name}${config.cycleWeeks > 1
+            ? ` · ${t(this.hass, cycleWeek === 1 ? 'admin.week_b' : 'admin.week_a')}`
+            : ''}
+        </span>
+        <button class="link" id="week-next" aria-label=${t(this.hass, 'admin.week_next')} @click=${() => step(1)}>
+          ${rtl ? '‹' : '›'}
+        </button>
+        ${offset !== 0
+          ? html`<button class="link" id="week-now" @click=${() => step(-offset)}>
+              ${t(this.hass, 'admin.this_week')}
+            </button>`
+          : nothing}
+      </div>
     `;
   }
 
   /**
    * The turns of a rotating cell, one row per week.
    *
-   * Which row is this week's is marked, because "week 3" means nothing to somebody
-   * standing at the board; "this week" does. Only where the cell is in use this week:
-   * a week B cell in an A week has no turn running now.
+   * The row of the week on screen is marked — "this week" when that is the one —
+   * because "week 3" means nothing to somebody standing at the board. A rotation that
+   * has just been started is counted from that week too, which is where saving puts
+   * week 1 when nothing set it yet.
    */
-  private _renderTurns(config: AdminConfig, week: number, known: string[]): TemplateResult {
+  private _renderTurns(turn: number, offset: number, known: string[]): TemplateResult {
     const turns = this._draftTurns;
-    const live = config.cycleWeeks < 2 || week === config.cycleNow;
-    // With no week 1 yet, saving makes this week week 1, so the first row is this week's.
-    const now = config.cycleAnchor ? this._turn(config, config.rotationNow) : 0;
-    const current = live ? ((now % turns.length) + turns.length) % turns.length : -1;
+    const current = ((turn % turns.length) + turns.length) % turns.length;
     const update = (index: number, field: 'subject' | 'room', value: string) => {
       this._draftTurns = turns.map((turn, at) => (at === index ? { ...turn, [field]: value } : turn));
     };
@@ -603,11 +682,12 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
           <div class="row turn">
             <span class="label turn-no ${index === current ? 'now' : ''}">
               ${t(this.hass, 'admin.rotation_week', { week: String(index + 1) })}${index === current
-                ? html` · ${t(this.hass, 'admin.rotation_this')}`
+                ? html` · ${t(this.hass, offset === 0 ? 'admin.rotation_this' : 'admin.rotation_shown')}`
                 : nothing}
             </span>
             <input
-              class="grow"
+              class="grow subject-in"
+              dir="auto"
               list="schoolday-subjects"
               aria-label=${t(this.hass, 'admin.subject')}
               placeholder=${t(this.hass, 'admin.rotation_free')}
@@ -616,6 +696,7 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
             />
             <input
               class="grow"
+              dir="auto"
               aria-label=${t(this.hass, 'admin.room')}
               placeholder=${t(this.hass, 'admin.room')}
               .value=${turn.room}
@@ -658,7 +739,7 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
     `;
   }
 
-  private _renderCellEditor(config: AdminConfig, member: AdminMember): TemplateResult {
+  private _renderCellEditor(member: AdminMember, turn: number, offset: number): TemplateResult {
     // The cell is keyed by slot, so the weekday and the week of the cycle both fall
     // out of it — one number to carry around rather than two to keep in step.
     const [slot, period] = this._cell!.split(':').map(Number);
@@ -674,7 +755,7 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
             : ''} · ${period}.
         </div>
         ${this._draftTurns.length > 1
-          ? this._renderTurns(config, week, known)
+          ? this._renderTurns(turn, offset, known)
           : html`<div class="row">
           <label class="field grow">
             <span class="label">${t(this.hass, 'admin.subject')}</span>
@@ -1256,6 +1337,7 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
     current: AdminException | undefined,
     planned: (period: number) => TimetableLesson | null,
     save: (data: Record<string, unknown>) => void,
+    replacing = false,
   ): TemplateResult {
     return html`
       <div class="exception-periods">
@@ -1275,6 +1357,7 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
               </span>
               <input
                 class="replacement"
+                dir="auto"
                 placeholder=${t(this.hass, 'admin.subject')}
                 .value=${override?.subject ?? ''}
                 @change=${(event: Event) =>
@@ -1283,14 +1366,18 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
                     subject: (event.target as HTMLInputElement).value,
                   })}
               />
-              <button
-                class="link ${overridden && !override ? 'on' : ''}"
-                ?disabled=${this._busy || !plan}
-                @click=${() =>
-                  save({ period: period.index, cancelled: !(overridden && !override) })}
-              >
-                ${t(this.hass, 'admin.exception_cancel')}
-              </button>
+              ${replacing
+                ? // On a day that replaces the lessons, a period nobody filled in is
+                  // already free; "cancelled" would be a second way to say nothing.
+                  nothing
+                : html`<button
+                    class="link ${overridden && !override ? 'on' : ''}"
+                    ?disabled=${this._busy || !plan}
+                    @click=${() =>
+                      save({ period: period.index, cancelled: !(overridden && !override) })}
+                  >
+                    ${t(this.hass, 'admin.exception_cancel')}
+                  </button>`}
             </div>
           `;
         })}
@@ -1325,6 +1412,17 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
     const day = this._exceptionDate || today;
     const current = stored[day];
     const week = weekOf(memberSensor(this.hass!, member.id));
+    // A weekly exception on this date is what the date starts from, so the rows show
+    // its lessons and the notice says it is there rather than "nothing is different".
+    const weekly = SchooldayAdminCard._weeklyOn(config.weeklyExceptions[member.id] ?? [], day);
+    const weeklyClosed = Boolean(weekly?.label && !weekly.replace);
+    const planned = (period: number) => {
+      if (weeklyClosed) {
+        return null;
+      }
+      const fromWeekly = weekly ? SchooldayAdminCard._weeklyPeriod(weekly, period) : undefined;
+      return fromWeekly !== undefined ? fromWeekly : this._plannedOn(config, week, day, period);
+    };
 
     return html`
       <div class="notice quiet">${t(this.hass, 'admin.exceptions_hint')}</div>
@@ -1386,12 +1484,21 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
         </button>
       </label>
 
-      ${current?.label
+      ${weekly
+        ? html`<div class="notice" id="weekly-applies">
+            ${t(this.hass, 'admin.weekly_applies', {
+              weekday: this._weekdayName(weekly.weekday, 'long'),
+              until: `${weekly.until.slice(8)}.${weekly.until.slice(5, 7)}.`,
+              label: weekly.label ?? t(this.hass, 'admin.weekly_kind_replace'),
+            })}
+          </div>`
+        : nothing}
+      ${current?.label || weeklyClosed
         ? nothing
         : this._periodRows(
             grid,
             current,
-            (period) => this._plannedOn(config, week, day, period),
+            planned,
             (data) => this._call('set_exception', { member: member.id, date: day, ...data }),
           )}
       ${current
@@ -1402,14 +1509,48 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
           >
             ${t(this.hass, 'admin.exception_reset')}
           </button>`
-        : html`<div class="notice quiet">${t(this.hass, 'admin.exception_none')}</div>`}
+        : weekly
+          ? nothing
+          : html`<div class="notice quiet">${t(this.hass, 'admin.exception_none')}</div>`}
       ${this._renderWeekly(config, member, grid, week)}
     `;
+  }
+
+  /** The weekly exception that covers a date, if any. */
+  private static _weeklyOn(
+    entries: AdminWeeklyException[],
+    day: string,
+  ): AdminWeeklyException | undefined {
+    const [y, m, d] = day.split('-').map(Number);
+    const weekday = (new Date(y, m - 1, d).getDay() + 6) % 7;
+    return entries.find((entry) => entry.weekday === weekday && entry.from <= day && day <= entry.until);
+  }
+
+  /**
+   * What a period holds once a weekly exception has had its say: what it names, else
+   * nothing on a day it replaces, else the timetable. Undefined when it says nothing.
+   */
+  private static _weeklyPeriod(
+    weekly: AdminException,
+    period: number,
+  ): TimetableLesson | null | undefined {
+    const key = String(period);
+    if (key in weekly.periods) {
+      const lesson = weekly.periods[key];
+      return lesson ? { period, subject: lesson.subject, room: lesson.room } : null;
+    }
+    return weekly.replace ? null : undefined;
   }
 
   /**
    * A weekday that is different until a date: chips for the ones there are, and a
    * form for the one picked or a new one.
+   *
+   * Two kinds, asked first because they behave differently all day long. "No school
+   * there" takes the day over like a school trip: no lessons, no leaving time, no
+   * packing. "Other lessons" is a pull-out day at another school: only what is filled
+   * in below takes place, and it stays a school day, so the child still gets a time to
+   * leave, a packing list and the morning announcement.
    *
    * Known to the integration by weekday and first date, so the draft holds exactly
    * those; changing either is starting a different one, and the old one stays until
@@ -1427,15 +1568,17 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
       weekday: (new Date().getDay() + 6) % 7,
       from: today,
       until: '',
+      replace: false,
     };
     const current = entries.find(
       (entry) => entry.weekday === draft.weekday && entry.from === draft.from,
     );
+    const replace = current ? current.replace : draft.replace;
     const key = { member: member.id, weekday: draft.weekday, from: draft.from };
     const short = (iso: string) => `${iso.slice(8)}.${iso.slice(5, 7)}.`;
     const save = (data: Record<string, unknown>) =>
-      this._call('set_weekly_exception', { ...key, until: draft.until, ...data });
-    // The next date this weekday falls on, for showing what it would replace.
+      this._call('set_weekly_exception', { ...key, until: draft.until, replace, ...data });
+    // The first date this weekday falls on, for showing what it would replace.
     const sample = () => {
       const [y, m, d] = draft.from.split('-').map(Number);
       const start = new Date(y, m - 1, d);
@@ -1443,6 +1586,7 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
       const month = String(start.getMonth() + 1).padStart(2, '0');
       return `${start.getFullYear()}-${month}-${String(start.getDate()).padStart(2, '0')}`;
     };
+    const ready = Boolean(draft.until && draft.from);
 
     return html`
       <h3 class="subhead">${t(this.hass, 'admin.weekly_title')}</h3>
@@ -1453,10 +1597,16 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
             <button
               class="chip ${entry === current ? 'on' : ''}"
               @click=${() => {
-                this._weekly = { weekday: entry.weekday, from: entry.from, until: entry.until };
+                this._weekly = {
+                  weekday: entry.weekday,
+                  from: entry.from,
+                  until: entry.until,
+                  replace: entry.replace,
+                };
               }}
             >
-              ${this._weekdayName(entry.weekday, 'short')} · ${short(entry.from)}–${short(entry.until)}
+              ${this._weekdayName(entry.weekday, 'short')} ·
+              <bdi dir="ltr">${short(entry.from)}–${short(entry.until)}</bdi>
             </button>
           `,
         )}
@@ -1471,7 +1621,7 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
             </button>`
           : nothing}
       </div>
-      <div class="row">
+      <div class="row dates">
         <label class="field grow">
           <span class="label">${t(this.hass, 'admin.weekly_weekday')}</span>
           <select
@@ -1506,7 +1656,7 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
           <input
             id="weekly-until"
             type="date"
-            min=${today}
+            min=${draft.from > today ? draft.from : today}
             .value=${draft.until}
             @change=${(event: Event) => {
               const until = (event.target as HTMLInputElement).value;
@@ -1519,17 +1669,45 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
           />
         </label>
       </div>
+      ${ready
+        ? nothing
+        : html`<div class="notice quiet" id="weekly-needs">${t(this.hass, 'admin.weekly_needs_until')}</div>`}
+      <div class="segmented weekly-kind">
+        ${[false, true].map(
+          (kind) => html`
+            <button
+              id=${kind ? 'weekly-replace' : 'weekly-off'}
+              aria-pressed=${replace === kind}
+              ?disabled=${this._busy}
+              @click=${() => {
+                this._weekly = { ...draft, replace: kind };
+                if (current && current.replace !== kind) {
+                  this._call('set_weekly_exception', { ...key, until: current.until, replace: kind });
+                }
+              }}
+            >
+              ${t(this.hass, kind ? 'admin.weekly_kind_replace' : 'admin.weekly_kind_off')}
+            </button>
+          `,
+        )}
+      </div>
+      <div class="notice quiet">
+        ${t(this.hass, replace ? 'admin.weekly_replace_hint' : 'admin.weekly_off_hint')}
+      </div>
       <label class="field">
-        <span class="label">${t(this.hass, 'admin.exception_label')}</span>
+        <span class="label"
+          >${t(this.hass, replace ? 'admin.weekly_name' : 'admin.exception_label')}</span
+        >
         <input
           id="weekly-label"
-          placeholder=${t(this.hass, 'admin.weekly_label_hint')}
+          dir="auto"
+          placeholder=${t(this.hass, replace ? 'admin.weekly_name_hint' : 'admin.weekly_label_hint')}
           .value=${current?.label ?? ''}
         />
         <button
           class="apply"
           id="weekly-save"
-          ?disabled=${this._busy || !draft.until || !draft.from}
+          ?disabled=${this._busy || !ready}
           @click=${(event: Event) => {
             const root = (event.target as HTMLElement).closest('.field');
             const field = root?.querySelector('input') as HTMLInputElement | null;
@@ -1539,13 +1717,20 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
           ${t(this.hass, 'admin.save')}
         </button>
       </label>
-      ${current?.label || !draft.until || !draft.from
+      ${!ready || (!replace && current?.label)
         ? nothing
         : this._periodRows(
             grid,
             current,
-            (period) => this._plannedOn(config, week, sample(), period),
+            (period) => {
+              const weekly = current ? SchooldayAdminCard._weeklyPeriod(current, period) : undefined;
+              if (weekly !== undefined) {
+                return weekly;
+              }
+              return replace ? null : this._plannedOn(config, week, sample(), period);
+            },
             save,
+            replace,
           )}
       ${current
         ? html`<button
@@ -1897,23 +2082,51 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
         color: var(--schoolday-muted);
       }
 
-      /* A cell that takes turns lists them all, smaller, so four short subjects fit. */
-      .slot.rotating .subject {
-        font-size: 0.75rem;
-        line-height: 1.2;
-      }
-
       .turn {
         align-items: center;
       }
 
       .turn input {
         min-width: 0;
+        flex: 1 1 6em;
       }
 
-      /* Fixed, so the row marked "this week" lines its fields up with the others. */
+      .turn .subject-in {
+        flex-grow: 2;
+      }
+
+      /* Above its fields rather than beside them, so a phone keeps the width for the
+         subject and the row marked "this week" lines up with the others. */
       .turn-no {
-        flex: 0 0 8.5em;
+        flex: 1 0 100%;
+      }
+
+      .turn .link {
+        min-width: var(--schoolday-touch);
+      }
+
+      .slot .turn-mark {
+        font-size: 0.7rem;
+        font-weight: 400;
+        color: var(--schoolday-muted);
+      }
+
+      .week-step {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .week-step #week-shown {
+        font-weight: 700;
+        min-width: 8em;
+        text-align: center;
+      }
+
+      /* A date field squeezed below this width cuts its own year off. */
+      .dates .field {
+        min-width: 10em;
       }
 
       .turn-no.now {

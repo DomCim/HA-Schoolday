@@ -872,6 +872,34 @@ check("loeschen gibt den Wochentag zurueck",
 out4 = W.set_weekly_exception(merged(out3), MEMBER, 4, "2026-09-18", "2026-09-25", label="", today=MON)
 check("leere Bezeichnung raeumt sie weg", out4["weekly_exceptions"] == {}, str(out4))
 
+# A pull-out day: the child is at another school, so it stays a school day — a first
+# bell to leave for, a bag to pack — but only with what was typed for it.
+pull = merged(W.set_weekly_exception(BASE, MEMBER, 0, "2026-09-14", "2026-10-31",
+                                     label="Drehtuertag", replace=True, today=MON))
+pull = merged(W.set_weekly_exception(pull, MEMBER, 0, "2026-09-14", "2026-10-31", period=2,
+                                     subject="Begabtenzentrum", today=MON), pull)
+pulled = Models.SchooldayConfig.from_options(pull)
+check("ersetzter Tag bleibt Schultag, nur mit dem Eingetragenen",
+      not pulled.exception(MEMBER, MON).closed
+      and subjects_on(pull, MON) == [(2, "Begabtenzentrum", None)]
+      and subjects_on(pull, datetime.date(2026, 11, 2)) == [(1, "Deutsch", None)],
+      str(subjects_on(pull, MON)))
+check("ersetzt wird gespeichert, sonst bleibt die Form wie sie war",
+      pull["weekly_exceptions"][MEMBER][0].get("replace") is True
+      and "replace" not in W.set_exception(BASE, MEMBER, SOON, label="x", today=TODAY)["exceptions"][MEMBER][SOON],
+      str(pull["weekly_exceptions"]))
+check("ohne Angabe bleibt ersetzt, wie es war",
+      W.set_weekly_exception(pull, MEMBER, 0, "2026-09-14", "2026-11-30", today=MON)
+      ["weekly_exceptions"][MEMBER][0].get("replace") is True, "")
+try:
+    W.set_weekly_exception(pull, MEMBER, 0, "2026-10-05", "2026-12-21", label="zweite", today=MON)
+    check("ueberlappende woechentliche Ausnahme abgewiesen", False, "keine Ausnahme")
+except SchooldayValueError as e:
+    check("ueberlappende woechentliche Ausnahme abgewiesen", "already has" in str(e), str(e)[:70])
+check("anschliessend am selben Wochentag geht",
+      len(W.set_weekly_exception(pull, MEMBER, 0, "2026-11-02", "2026-12-21", label="danach", today=MON)
+          ["weekly_exceptions"][MEMBER]) == 2, "")
+
 # --- the base must never be mutated ---------------------------------------
 check("Ausgangs-Optionen bleiben unveraendert",
       BASE["timetable"]["lessons"][MEMBER]["0"] == {"1": {"subject": "Deutsch", "room": None}}

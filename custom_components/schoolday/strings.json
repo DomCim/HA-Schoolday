@@ -312,6 +312,10 @@
           "name": "Until",
           "description": "The last date this applies to."
         },
+        "replace": {
+          "name": "Replaces the day",
+          "description": "The periods given are the whole day and every other one is free; it stays a school day, with its leaving time and packing list. For a pull-out day at another school."
+        },
         "period": {
           "name": "Period",
           "description": "Leave empty to say something about the whole day."

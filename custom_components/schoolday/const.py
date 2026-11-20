@@ -190,6 +190,9 @@ CONF_WEEKLY_EXCEPTIONS: Final = "weekly_exceptions"
 CONF_FROM: Final = "from"
 CONF_UNTIL: Final = "until"
 CONF_WEEKDAY: Final = "weekday"
+# On an exception: the periods it names are the whole day, every other one is free,
+# and it stays a school day. What a pull-out day at another school is.
+CONF_REPLACE: Final = "replace"
 
 # What a subject needs brought along: subject -> list of things. Household-wide rather
 # than per child, because a PE bag is a PE bag whoever carries it.

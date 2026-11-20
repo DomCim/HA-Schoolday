@@ -73,6 +73,7 @@ from .const import (
     SERVICE_CLEAR_WEEKLY_EXCEPTION,
     SERVICE_SET_WEEKLY_EXCEPTION,
     CONF_FROM,
+    CONF_REPLACE,
     SERVICE_REMOVE_MEMBER,
     SERVICE_RESET_ROUTINE,
     SERVICE_SET_ABSENT,
@@ -248,6 +249,7 @@ SET_WEEKLY_EXCEPTION_SCHEMA = vol.Schema(
         vol.Required(ATTR_WEEKDAY_FIELD): _WEEKDAY,
         vol.Required(CONF_FROM): cv.string,
         vol.Required(ATTR_UNTIL): cv.string,
+        vol.Optional(CONF_REPLACE): cv.boolean,
         vol.Optional(ATTR_PERIOD): vol.Coerce(int),
         vol.Optional(ATTR_SUBJECT_FIELD): vol.Any(cv.string, None),
         vol.Optional(ATTR_ROOM_FIELD): vol.Any(cv.string, None),
@@ -547,6 +549,7 @@ def async_register_services(hass: HomeAssistant) -> None:
                 call.data.get(ATTR_ROOM_FIELD),
                 call.data[ATTR_CANCELLED],
                 call.data.get(ATTR_LABEL_FIELD),
+                replace=call.data.get(CONF_REPLACE),
             ),
         )
 

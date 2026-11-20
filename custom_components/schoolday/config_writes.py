@@ -705,6 +705,7 @@ def set_weekly_exception(
     cancelled: bool = False,
     label: str | None = None,
     today: date | None = None,
+    replace: bool | None = None,
 ) -> dict[str, Any]:
     """Say what one weekday does differently, every week from `start` until `until`.
 
@@ -713,8 +714,16 @@ def set_weekly_exception(
     `set_exception`: without a period a label takes the day over, an empty one hands
     it back, and no label at all leaves it as it was; with one, `cancelled` drops that period and a subject replaces it.
 
+    `replace` makes the periods it names the whole day, every other one free, and
+    keeps it a school day: a pull-out day at another school, with a first bell to
+    leave for and a bag to pack. Without it a label takes the day over as on a date.
+    Left alone when not given.
+
     An end is required. A weekly change without one is a new timetable, and that is
     better typed as one than hidden here where nobody looks for it in September.
+
+    Two on the same weekday may not overlap: only one of them could apply, and which
+    would be an accident of the order they were saved in.
     """
     if not 0 <= weekday <= 6:
         raise SchooldayValueError(f"{weekday} is not a weekday. Use 0 for Monday to 6 for Sunday.")
@@ -735,10 +744,28 @@ def set_weekly_exception(
         (item for item in entries if item.weekday == weekday and item.start == first),
         None,
     )
+    clash = next(
+        (
+            item
+            for item in entries
+            if item is not entry
+            and item.weekday == weekday
+            and item.start <= last
+            and first <= item.until
+        ),
+        None,
+    )
+    if clash is not None:
+        raise SchooldayValueError(
+            f"That weekday already has a weekly change from {clash.start.isoformat()} "
+            f"until {clash.until.isoformat()}. Change that one, or let it end first."
+        )
     if entry is None:
         entry = WeeklyException(weekday=weekday, start=first, until=last)
         entries.append(entry)
     entry.until = last
+    if replace is not None:
+        entry.change.replace = replace
 
     change = entry.change
     if period is None:

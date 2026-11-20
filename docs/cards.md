@@ -234,9 +234,10 @@ the **Family** section.
 
 **Takes turns with another week**, in an open cell, turns it into a
 [period that takes turns](timetable.md#lessons-that-take-turns): one row per week, this
-week's marked, and **Add a week** for the next one. Such a cell lists all its turns in
-the grid. Once one exists, the field for week 1 appears at the top, even without a
-two-week timetable.
+week's marked, and **Add a week** for the next one. In the grid such a cell shows the
+turn of the week on screen with ↻ and its number, and **‹ This week ›** above the grid
+steps through the weeks. Once one exists, the field for week 1 appears at the top, even
+without a two-week timetable.
 
 ### Routines
 
@@ -265,7 +266,8 @@ covered. Below, a weekday that is different for a while.*
 
 Under the single dates, **Every week, for a while** holds the
 [weekly ones](exceptions.md#every-week-for-a-while): a chip for each, and a weekday, a
-first and a last date for a new one.
+first and a last date for a new one, and whether that day has **Other lessons** or
+**No school here**.
 
 ### Days off
 

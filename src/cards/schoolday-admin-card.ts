@@ -110,6 +110,7 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
    * whether it replaces the day's lessons or takes the day off school.
    */
   @state() private _weekly?: { weekday: number; from: string; until: string; replace: boolean };
+  // `until` is '' for no end, which is also what the date field holds when empty.
   /**
    * Which week the timetable editor shows, in weeks from this one. Only offered once a
    * period takes turns: then a week is a dated thing, and the grid shows each rotating
@@ -1486,11 +1487,16 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
 
       ${weekly
         ? html`<div class="notice" id="weekly-applies">
-            ${t(this.hass, 'admin.weekly_applies', {
-              weekday: this._weekdayName(weekly.weekday, 'long'),
-              until: `${weekly.until.slice(8)}.${weekly.until.slice(5, 7)}.`,
-              label: weekly.label ?? t(this.hass, 'admin.weekly_kind_replace'),
-            })}
+            ${weekly.until
+              ? t(this.hass, 'admin.weekly_applies', {
+                  weekday: this._weekdayName(weekly.weekday, 'long'),
+                  until: `${weekly.until.slice(8)}.${weekly.until.slice(5, 7)}.`,
+                  label: weekly.label ?? t(this.hass, 'admin.weekly_kind_replace'),
+                })
+              : t(this.hass, 'admin.weekly_applies_open', {
+                  weekday: this._weekdayName(weekly.weekday, 'long'),
+                  label: weekly.label ?? t(this.hass, 'admin.weekly_kind_replace'),
+                })}
           </div>`
         : nothing}
       ${current?.label || weeklyClosed
@@ -1523,7 +1529,12 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
   ): AdminWeeklyException | undefined {
     const [y, m, d] = day.split('-').map(Number);
     const weekday = (new Date(y, m - 1, d).getDay() + 6) % 7;
-    return entries.find((entry) => entry.weekday === weekday && entry.from <= day && day <= entry.until);
+    return entries.find(
+      (entry) =>
+        entry.weekday === weekday &&
+        entry.from <= day &&
+        (entry.until === null || day <= entry.until),
+    );
   }
 
   /**
@@ -1554,7 +1565,7 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
    *
    * Known to the integration by weekday and first date, so the draft holds exactly
    * those; changing either is starting a different one, and the old one stays until
-   * it is removed.
+   * it is removed. The last date is optional: without one it runs until it is removed.
    */
   private _renderWeekly(
     config: AdminConfig,
@@ -1586,7 +1597,9 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
       const month = String(start.getMonth() + 1).padStart(2, '0');
       return `${start.getFullYear()}-${month}-${String(start.getDate()).padStart(2, '0')}`;
     };
-    const ready = Boolean(draft.until && draft.from);
+    // A form nobody has touched yet shows no period rows: seven empty rows under the
+    // single dates, on every visit, would bury the one thing most people came for.
+    const ready = Boolean(draft.from) && (this._weekly !== undefined || current !== undefined);
 
     return html`
       <h3 class="subhead">${t(this.hass, 'admin.weekly_title')}</h3>
@@ -1600,13 +1613,15 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
                 this._weekly = {
                   weekday: entry.weekday,
                   from: entry.from,
-                  until: entry.until,
+                  until: entry.until ?? '',
                   replace: entry.replace,
                 };
               }}
             >
               ${this._weekdayName(entry.weekday, 'short')} ·
-              <bdi dir="ltr">${short(entry.from)}–${short(entry.until)}</bdi>
+              ${entry.until
+                ? html`<bdi dir="ltr">${short(entry.from)}–${short(entry.until)}</bdi>`
+                : t(this.hass, 'admin.weekly_open', { from: short(entry.from) })}
             </button>
           `,
         )}
@@ -1661,17 +1676,15 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
             @change=${(event: Event) => {
               const until = (event.target as HTMLInputElement).value;
               this._weekly = { ...draft, until };
-              // An existing one moves its end at once; a new one waits for its label.
-              if (current && until) {
+              // An existing one moves its end at once — or loses it, when the field is
+              // emptied — and a new one waits for its label.
+              if (current) {
                 this._call('set_weekly_exception', { ...key, until });
               }
             }}
           />
         </label>
       </div>
-      ${ready
-        ? nothing
-        : html`<div class="notice quiet" id="weekly-needs">${t(this.hass, 'admin.weekly_needs_until')}</div>`}
       <div class="segmented weekly-kind">
         ${[false, true].map(
           (kind) => html`
@@ -1682,7 +1695,7 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
               @click=${() => {
                 this._weekly = { ...draft, replace: kind };
                 if (current && current.replace !== kind) {
-                  this._call('set_weekly_exception', { ...key, until: current.until, replace: kind });
+                  this._call('set_weekly_exception', { ...key, replace: kind });
                 }
               }}
             >
@@ -1707,7 +1720,7 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
         <button
           class="apply"
           id="weekly-save"
-          ?disabled=${this._busy || !ready}
+          ?disabled=${this._busy || !draft.from}
           @click=${(event: Event) => {
             const root = (event.target as HTMLElement).closest('.field');
             const field = root?.querySelector('input') as HTMLInputElement | null;

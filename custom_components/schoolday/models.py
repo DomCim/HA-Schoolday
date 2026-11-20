@@ -1036,8 +1036,9 @@ class WeeklyException:
     The pull-out day at another school every Tuesday from November to February. Typing
     that as sixteen dated exceptions would be sixteen things to get wrong and sixteen
     to delete when the plan changes; one weekday and two dates is the fact as the
-    school states it. It ends on its own, which is the point: the timetable is still
-    the year's, and this is only a while.
+    school states it. With a last date it ends on its own. Without one it runs until
+    somebody removes it — "every Tuesday until further notice" is how a pull-out day
+    is often announced, and inventing an end would be the date nobody updates.
 
     What it does on each of those days is a :class:`DayException`, so a label takes the
     day over and periods are cancelled or replaced exactly as on a single date.
@@ -1045,12 +1046,21 @@ class WeeklyException:
 
     weekday: int
     start: date
-    until: date
+    #: The last date it applies to, or None for no end.
+    until: date | None
     change: DayException = field(default_factory=DayException)
 
     def covers(self, day: date) -> bool:
         """True when this applies to `day`."""
-        return day.weekday() == self.weekday and self.start <= day <= self.until
+        return (
+            day.weekday() == self.weekday
+            and self.start <= day
+            and (self.until is None or day <= self.until)
+        )
+
+    def running_on(self, day: date) -> bool:
+        """True when it has not ended by `day` — what decides whether it is kept."""
+        return self.until is None or self.until >= day
 
     @classmethod
     def from_dict(cls, data: dict[str, Any] | None) -> WeeklyException | None:
@@ -1059,11 +1069,12 @@ class WeeklyException:
         try:
             weekday = int(raw.get(CONF_WEEKDAY))
             start = date.fromisoformat(str(raw.get(CONF_FROM)))
-            until = date.fromisoformat(str(raw.get(CONF_UNTIL)))
+            raw_until = raw.get(CONF_UNTIL)
+            until = date.fromisoformat(str(raw_until)) if raw_until else None
         except (TypeError, ValueError):
             return None
         change = DayException.from_dict(raw)
-        if not 0 <= weekday <= 6 or until < start or change.is_empty:
+        if not 0 <= weekday <= 6 or (until is not None and until < start) or change.is_empty:
             return None
         return cls(weekday=weekday, start=start, until=until, change=change)
 
@@ -1072,7 +1083,7 @@ class WeeklyException:
         return {
             CONF_WEEKDAY: self.weekday,
             CONF_FROM: self.start.isoformat(),
-            CONF_UNTIL: self.until.isoformat(),
+            CONF_UNTIL: self.until.isoformat() if self.until else None,
             **self.change.as_options(),
         }
 
@@ -1613,7 +1624,7 @@ class SchooldayConfig:
             },
             # Same cut as above: a pull-out day that ended in February is not one to edit.
             CONF_WEEKLY_EXCEPTIONS: {
-                member_id: [entry.as_options() for entry in entries if entry.until >= today()]
+                member_id: [entry.as_options() for entry in entries if entry.running_on(today())]
                 for member_id, entries in self.weekly_exceptions.items()
             },
             "cycle_weeks": self.cycle_weeks,

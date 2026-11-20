@@ -294,7 +294,7 @@
     },
     "set_weekly_exception": {
       "name": "Set what a weekday does differently for a while",
-      "description": "Every week on one weekday, from one date until another: a pull-out day at another school, a course this term. With a period this changes that period alone; without one, a label takes the whole day over. It ends on its own.",
+      "description": "Every week on one weekday, from one date, until another or until it is removed: a pull-out day at another school, a course this term. With a period this changes that period alone; without one, a label takes the whole day over.",
       "fields": {
         "member": {
           "name": "Family member",
@@ -310,7 +310,7 @@
         },
         "until": {
           "name": "Until",
-          "description": "The last date this applies to."
+          "description": "Optional: the last date this applies to. Leave it out to keep the end it has; an empty value means no end, so it runs until it is removed."
         },
         "replace": {
           "name": "Replaces the day",

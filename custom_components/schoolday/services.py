@@ -248,7 +248,8 @@ SET_WEEKLY_EXCEPTION_SCHEMA = vol.Schema(
         vol.Required(ATTR_MEMBER): cv.string,
         vol.Required(ATTR_WEEKDAY_FIELD): _WEEKDAY,
         vol.Required(CONF_FROM): cv.string,
-        vol.Required(ATTR_UNTIL): cv.string,
+        # Left out keeps the end it has; an empty string takes it away.
+        vol.Optional(ATTR_UNTIL): vol.Any(cv.string, None),
         vol.Optional(CONF_REPLACE): cv.boolean,
         vol.Optional(ATTR_PERIOD): vol.Coerce(int),
         vol.Optional(ATTR_SUBJECT_FIELD): vol.Any(cv.string, None),
@@ -543,7 +544,7 @@ def async_register_services(hass: HomeAssistant) -> None:
                 _resolve_member_id(hass, call.data[ATTR_MEMBER]),
                 call.data[ATTR_WEEKDAY_FIELD],
                 call.data[CONF_FROM],
-                call.data[ATTR_UNTIL],
+                call.data.get(ATTR_UNTIL),
                 call.data.get(ATTR_PERIOD),
                 call.data.get(ATTR_SUBJECT_FIELD),
                 call.data.get(ATTR_ROOM_FIELD),

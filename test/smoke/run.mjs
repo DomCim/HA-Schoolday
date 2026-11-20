@@ -2647,6 +2647,45 @@ check(
   JSON.stringify(replaceCall?.data ?? null),
 );
 
+// The last date is optional: a new one saved without it runs until it is removed.
+await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  [...root.querySelectorAll('.chip')].find((node) => node.textContent.trim() === 'Neu')?.click();
+});
+await page.waitForTimeout(200);
+await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  const weekday = root.querySelector('#weekly-weekday');
+  weekday.value = '3';
+  weekday.dispatchEvent(new Event('change'));
+});
+await page.waitForTimeout(200);
+const openSave = await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  root.querySelector('#weekly-label').value = 'Begabtenkurs';
+  const save = root.querySelector('#weekly-save');
+  const disabled = save.disabled;
+  save.click();
+  return disabled;
+});
+await page.waitForTimeout(300);
+const openCall = await page.evaluate(
+  () => window.__calls.services.filter((c) => c.service === 'set_weekly_exception').pop() ?? null,
+);
+check(
+  'a weekly change can be saved without a last date, and then has no end',
+  openSave === false &&
+    openCall?.data.until === '' &&
+    openCall?.data.weekday === 3 &&
+    openCall?.data.label === 'Begabtenkurs',
+  JSON.stringify(openCall?.data ?? null),
+);
+await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  [...root.querySelectorAll('.chip')].find((node) => node.textContent.includes('04.08.'))?.click();
+});
+await page.waitForTimeout(200);
+
 // A date covered by a weekly change says so, instead of "nothing is different".
 await page.evaluate(() => {
   const root = document.querySelector('schoolday-admin-card').shadowRoot;

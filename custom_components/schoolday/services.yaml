@@ -382,7 +382,7 @@ set_weekly_exception:
       selector:
         date:
     until:
-      required: true
+      required: false
       example: "2027-02-23"
       selector:
         date:

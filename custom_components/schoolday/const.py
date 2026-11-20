@@ -182,7 +182,8 @@ ROTATION_MAX: Final = 8
 # What happens on one weekday for a stretch of the year: a pull-out day at another
 # school every Tuesday from November to February, a swimming course every Thursday
 # this term. member id -> a list of {weekday, from, until, label, periods}; the label
-# and periods mean exactly what they mean on a dated exception.
+# and periods mean exactly what they mean on a dated exception, and an `until` of null
+# is a change with no end, until somebody removes it.
 #
 # Its own key rather than a pattern in CONF_EXCEPTIONS, so a household that never
 # uses it stores nothing new, and "what does the 18th do" stays one lookup.

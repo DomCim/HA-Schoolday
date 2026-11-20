@@ -132,14 +132,15 @@ data:
 
 ### Every week, for a while
 
-Some changes repeat every week, but only for part of the year. A child spends every
-Tuesday at another school from November to February (a pull-out day, *יום שליפה*). A
+Some changes repeat every week without being part of the timetable. A child spends every
+Tuesday at another school from November to February, or until further notice (a pull-out
+day, *יום שליפה*). A
 swimming course takes the last two periods every Thursday this term. Typing that date by
 date would be sixteen entries to get right, and sixteen to delete when the plan changes.
 
 Under **Exceptions**, below the single dates, **Every week, for a while** takes the same
-change once: a **weekday**, a **from** date and an **until** date. Then pick which kind
-of day it is, because they behave differently all day long:
+change once: a **weekday**, a **from** date and, if it has one, an **until** date. Then
+pick which kind of day it is, because they behave differently all day long:
 
 - **Other lessons**: the child is at school, somewhere else. Only the periods you fill
   in take place, every other period is free, and it stays a school day: the child still
@@ -162,9 +163,10 @@ there.
 *A weekday that is different for a while: picked from its chip, with its weekday, its
 dates and what the day is.*
 
-It ends by itself after the **until** date, and drops out of the list after that. An end
-date is required. A weekly change with no end is a new timetable, and is better typed in
-as one.
+With an **until** date it ends by itself after that day and drops out of the list.
+Without one it carries on until you **Remove** it, and its chip says "from" and the first
+date. Leave the end empty only when the school really has not said: a change nobody
+remembers to remove is still there next school year.
 
 A single date still works on top of it. If the 18th is a pull-out day and its third period
 is also cancelled, say that about the 18th: what you say about one date wins over what
@@ -176,9 +178,11 @@ off one Tuesday, set that date's periods by hand, or end the weekly change the d
 and start a new one after it.
 
 A weekly change is known by its weekday and its first date. Changing **until** moves the
-end of the one that is open. Changing the weekday or the first date starts a new one, and
-the old one stays until you **Remove** it. Two weekly changes on the same weekday cannot
-overlap: Schoolday refuses the second, because only one of them could apply.
+end of the one that is open, and emptying it takes the end away. Changing the weekday or
+the first date starts a new one, and the old one stays until you **Remove** it. Two
+weekly changes on the same weekday cannot overlap: Schoolday refuses the second, because
+only one of them could apply. One with no end overlaps everything after it on its
+weekday, so give it an end before you add the next one.
 
 ```yaml
 action: schoolday.set_weekly_exception
@@ -186,7 +190,7 @@ data:
   member: Ben
   weekday: 1          # Tuesday
   from: "2026-11-03"
-  until: "2027-02-23"
+  until: "2027-02-23"   # leave out for no end
   replace: true       # other lessons, still a school day
   period: 1
   subject: יום שליפה

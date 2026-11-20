@@ -900,6 +900,38 @@ check("anschliessend am selben Wochentag geht",
       len(W.set_weekly_exception(pull, MEMBER, 0, "2026-11-02", "2026-12-21", label="danach", today=MON)
           ["weekly_exceptions"][MEMBER]) == 2, "")
 
+# Without a last date it runs until somebody removes it — "every Tuesday until further
+# notice" — and is never pruned.
+open_end = merged(W.set_weekly_exception(BASE, MEMBER, 3, "2026-09-17", None,
+                                         label="Begabtenkurs", today=MON))
+opened = Models.SchooldayConfig.from_options(open_end)
+check("ohne Ende gilt sie weiter, auch in Jahren",
+      open_end["weekly_exceptions"][MEMBER][0]["until"] is None
+      and opened.exception(MEMBER, datetime.date(2029, 6, 7)) is not None
+      and opened.exception(MEMBER, datetime.date(2026, 9, 10)) is None,
+      str(open_end["weekly_exceptions"]))
+check("ohne Ende wird nie als abgelaufen verworfen",
+      len(W.set_weekly_exception(open_end, MEMBER, 4, "2031-01-03", "2031-02-28", label="x",
+                                 today=datetime.date(2031, 1, 1))["weekly_exceptions"][MEMBER]) == 2, "")
+check("ohne Angabe behaelt eine bestehende ihr Ende",
+      W.set_weekly_exception(merged(W.set_weekly_exception(BASE, MEMBER, 3, "2026-09-17", "2026-12-17",
+                                                           label="a", today=MON)),
+                             MEMBER, 3, "2026-09-17", label="b", today=MON)
+      ["weekly_exceptions"][MEMBER][0]["until"] == "2026-12-17", "")
+check("ein leeres Ende nimmt es weg",
+      W.set_weekly_exception(merged(W.set_weekly_exception(BASE, MEMBER, 3, "2026-09-17", "2026-12-17",
+                                                           label="a", today=MON)),
+                             MEMBER, 3, "2026-09-17", "", today=MON)
+      ["weekly_exceptions"][MEMBER][0]["until"] is None, "")
+try:
+    W.set_weekly_exception(open_end, MEMBER, 3, "2027-05-06", "2027-06-24", label="spaeter", today=MON)
+    check("eine ohne Ende ueberlappt alles danach", False, "keine Ausnahme")
+except SchooldayValueError as e:
+    check("eine ohne Ende ueberlappt alles danach", "with no end" in str(e), str(e)[:80])
+check("davor am selben Wochentag geht",
+      len(W.set_weekly_exception(open_end, MEMBER, 3, "2026-09-10", "2026-09-16", label="vorher",
+                                 today=datetime.date(2026, 9, 9))["weekly_exceptions"][MEMBER]) == 2, "")
+
 # --- the base must never be mutated ---------------------------------------
 check("Ausgangs-Optionen bleiben unveraendert",
       BASE["timetable"]["lessons"][MEMBER]["0"] == {"1": {"subject": "Deutsch", "room": None}}

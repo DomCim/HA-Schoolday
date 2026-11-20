@@ -294,7 +294,7 @@
     },
     "set_weekly_exception": {
       "name": "Wöchentliche Ausnahme für eine Zeit",
-      "description": "Jede Woche an einem Wochentag, von einem Datum bis zu einem anderen: ein Tag an einer anderen Schule, ein Kurs in diesem Halbjahr. Mit Stunde betrifft es nur diese Stunde; ohne nimmt eine Bezeichnung den ganzen Tag ein. Sie endet von selbst.",
+      "description": "Jede Woche an einem Wochentag, ab einem Datum, bis zu einem anderen oder bis sie entfernt wird: ein Tag an einer anderen Schule, ein Kurs in diesem Halbjahr. Mit Stunde betrifft es nur diese Stunde; ohne nimmt eine Bezeichnung den ganzen Tag ein.",
       "fields": {
         "member": {
           "name": "Familienmitglied",
@@ -310,7 +310,7 @@
         },
         "until": {
           "name": "Bis",
-          "description": "Das letzte Datum, an dem sie gilt."
+          "description": "Optional: das letzte Datum, an dem sie gilt. Weglassen behält das bisherige Ende; ein leerer Wert heißt ohne Ende, bis sie entfernt wird."
         },
         "replace": {
           "name": "Ersetzt den Tag",

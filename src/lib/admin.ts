@@ -87,9 +87,10 @@ export interface AdminException {
 export interface AdminWeeklyException extends AdminException {
   /** 0 = Monday … 6 = Sunday. */
   weekday: number;
-  /** `YYYY-MM-DD`, both inclusive. The first date and the weekday say which one it is. */
+  /** `YYYY-MM-DD`, inclusive. The first date and the weekday say which one it is. */
   from: string;
-  until: string;
+  /** The last date, inclusive, or null for no end: it runs until it is removed. */
+  until: string | null;
 }
 
 function parseException(raw: Record<string, unknown>): AdminException {
@@ -233,13 +234,13 @@ export function parseAdmin(raw: unknown): AdminConfig {
         (entry) =>
           Number.isInteger(entry.weekday) &&
           typeof entry.from === 'string' &&
-          typeof entry.until === 'string',
+          (typeof entry.until === 'string' || entry.until === null || entry.until === undefined),
       )
       .map((entry) => ({
         ...parseException(entry),
         weekday: Number(entry.weekday),
         from: String(entry.from),
-        until: String(entry.until),
+        until: typeof entry.until === 'string' && entry.until ? entry.until : null,
       }));
     if (kept.length) {
       weeklyExceptions[memberId] = kept;

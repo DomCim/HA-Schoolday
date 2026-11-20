@@ -676,7 +676,7 @@ def _weekly(options: dict[str, Any], today: date) -> dict[str, list[WeeklyExcept
             parsed
             for entry in (entries if isinstance(entries, list) else [])
             if (parsed := WeeklyException.from_dict(entry)) is not None
-            and parsed.until >= today
+            and parsed.running_on(today)
         ]
         if kept:
             pruned[str(member_id)] = kept
@@ -698,7 +698,7 @@ def set_weekly_exception(
     member_id: str,
     weekday: int,
     start: str,
-    until: str,
+    until: str | None = None,
     period: int | None = None,
     subject: str | None = None,
     room: str | None = None,
@@ -719,8 +719,8 @@ def set_weekly_exception(
     leave for and a bag to pack. Without it a label takes the day over as on a date.
     Left alone when not given.
 
-    An end is required. A weekly change without one is a new timetable, and that is
-    better typed as one than hidden here where nobody looks for it in September.
+    `until` is the last date. Not given, an existing one keeps its end and a new one
+    has none; an empty string takes the end away, so it runs until it is removed.
 
     Two on the same weekday may not overlap: only one of them could apply, and which
     would be an accident of the order they were saved in.
@@ -728,15 +728,6 @@ def set_weekly_exception(
     if not 0 <= weekday <= 6:
         raise SchooldayValueError(f"{weekday} is not a weekday. Use 0 for Monday to 6 for Sunday.")
     first = _parse_date(start)
-    last = _parse_date(until)
-    if last < first:
-        raise SchooldayValueError(
-            f"It cannot end on {last.isoformat()} before it starts on {first.isoformat()}."
-        )
-    if last < (today or _today()):
-        raise SchooldayValueError(
-            f"{last.isoformat()} has already been. A weekly change has to end today or later."
-        )
 
     stored = _weekly(options, today or _today())
     entries = stored.setdefault(member_id, [])
@@ -744,21 +735,42 @@ def set_weekly_exception(
         (item for item in entries if item.weekday == weekday and item.start == first),
         None,
     )
+
+    if until is None:
+        last = entry.until if entry else None
+    else:
+        last = _parse_date(until) if until.strip() else None
+    if last is not None and last < first:
+        raise SchooldayValueError(
+            f"It cannot end on {last.isoformat()} before it starts on {first.isoformat()}."
+        )
+    if last is not None and last < (today or _today()):
+        raise SchooldayValueError(
+            f"{last.isoformat()} has already been. A weekly change has to end today or later."
+        )
+
+    # No end reaches as far as any date can; compared as such, an open-ended one
+    # overlaps everything after its start on its weekday, which is exactly true.
+    def _end(value: date | None) -> date:
+        return value or date.max
+
     clash = next(
         (
             item
             for item in entries
             if item is not entry
             and item.weekday == weekday
-            and item.start <= last
-            and first <= item.until
+            and item.start <= _end(last)
+            and first <= _end(item.until)
         ),
         None,
     )
     if clash is not None:
+        since = f"from {clash.start.isoformat()}"
+        till = f" until {clash.until.isoformat()}" if clash.until else ", with no end"
         raise SchooldayValueError(
-            f"That weekday already has a weekly change from {clash.start.isoformat()} "
-            f"until {clash.until.isoformat()}. Change that one, or let it end first."
+            f"That weekday already has a weekly change {since}{till}. "
+            "Change that one, or let it end first."
         )
     if entry is None:
         entry = WeeklyException(weekday=weekday, start=first, until=last)

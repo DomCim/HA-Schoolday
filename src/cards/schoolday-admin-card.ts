@@ -598,7 +598,7 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
                             }));
                           }}
                         >
-                          <span class="subject"><bdi>${shown ?? '+'}</bdi></span>
+                          <span class="subject" dir="auto" title=${shown ?? ''}>${shown ?? '+'}</span>
                           ${shownLesson?.room
                             ? html`<span class="room"><bdi>${shownLesson.room}</bdi></span>`
                             : nothing}
@@ -2103,6 +2103,24 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
 
       .turn .link {
         min-width: var(--schoolday-touch);
+      }
+
+      /* A narrow column cuts a long subject off. It ends in an ellipsis at the end of
+         its own script — "Deuts…", not "eutsch" — and the cell's title has the rest. */
+      .slot .subject {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      /* On a phone five columns leave a cell about sixty pixels: give the subject the
+         padding back and a slightly smaller face, so "Musik" fits instead of "Mu…". */
+      @media (max-width: 500px) {
+        .slot {
+          padding: 4px 3px;
+          font-size: 0.8rem;
+        }
       }
 
       .slot .turn-mark {

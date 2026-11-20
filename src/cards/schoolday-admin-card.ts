@@ -36,6 +36,7 @@ import {
   schoolDays,
   SLOTS_PER_WEEK,
   turnOf,
+  usesSecondWeek,
   weekOf,
   type TimetableGrid,
   type TimetableLesson,
@@ -1310,8 +1311,13 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
     const target = new Date(y, m - 1, d);
     // Rounded, because a week with a clock change in it is an hour short or long.
     const ahead = Math.round((first(target).getTime() - first(new Date()).getTime()) / (7 * 86400000));
+    // A week B that was switched on but never filled is drawn as week A on the board
+    // (see `lessonsOn`), so the editor plans from week A then too: a row saying "—"
+    // next to a board that shows Maths would be the editor contradicting the wall.
     const cycled =
-      config.cycleWeeks > 1 ? (((config.cycleNow + ahead) % config.cycleWeeks) + config.cycleWeeks) % config.cycleWeeks : 0;
+      config.cycleWeeks > 1 && usesSecondWeek(week)
+        ? (((config.cycleNow + ahead) % config.cycleWeeks) + config.cycleWeeks) % config.cycleWeeks
+        : 0;
     const weekday = (target.getDay() + 6) % 7;
     const lesson = lessonAt(week, weekday + SLOTS_PER_WEEK * cycled, period);
     return lesson ? turnOf(lesson, this._turn(config, config.rotationNow + ahead)) : null;

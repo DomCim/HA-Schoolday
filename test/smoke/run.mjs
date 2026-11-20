@@ -2717,6 +2717,52 @@ check(
 );
 await page.evaluate(() => window.__setRotation(false));
 
+// An A/B timetable in the date editor: a B date plans from week B, and while week B is
+// still empty it plans from week A, as the board draws it.
+await page.evaluate(() => window.__setCycle(2));
+await page.evaluate(() =>
+  window.__mount({ type: 'custom:schoolday-admin-card', section: 'exceptions' }, 'schoolday-admin-card'),
+);
+await page.waitForTimeout(300);
+const plannedOn = async (date) => {
+  await page.evaluate((date) => {
+    const root = document.querySelector('schoolday-admin-card').shadowRoot;
+    const field = root.querySelector('input[type="date"]');
+    field.value = date;
+    field.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+  }, date);
+  await page.waitForTimeout(250);
+  return page.evaluate(() =>
+    [...document.querySelector('schoolday-admin-card').shadowRoot.querySelectorAll('.exception-row .planned')]
+      .slice(0, 2)
+      .map((node) => node.textContent.trim()),
+  );
+};
+// Monday 10 August is a B week: Physik, Chemie. Monday 17 August is an A week again.
+const plannedB = await plannedOn('2026-08-10');
+const plannedA = await plannedOn('2026-08-17');
+check(
+  'the date editor plans a B date from week B and an A date from week A',
+  JSON.stringify(plannedB) === JSON.stringify(['Physik', 'Chemie']) &&
+    JSON.stringify(plannedA) === JSON.stringify(['Deutsch', 'Mathe']),
+  `B: ${plannedB.join(',')} · A: ${plannedA.join(',')}`,
+);
+await page.evaluate(() => {
+  const sensor = window.__hass.states['sensor.schoolday_ben'];
+  const timetable = Object.fromEntries(
+    Object.entries(sensor.attributes.timetable).filter(([slot]) => Number(slot) < 7),
+  );
+  window.__hass.states['sensor.schoolday_ben'] = { ...sensor, attributes: { ...sensor.attributes, timetable } };
+  window.__pushHass();
+});
+const plannedEmptyB = await plannedOn('2026-08-10');
+check(
+  'with week B still empty, the date editor plans from week A, as the board shows it',
+  JSON.stringify(plannedEmptyB) === JSON.stringify(['Deutsch', 'Mathe']),
+  plannedEmptyB.join(','),
+);
+await page.evaluate(() => window.__setCycle(1));
+
 // --------------------------------------------------------------- card registry
 
 const registered = await page.evaluate(() => window.customCards.map((c) => c.type).sort());

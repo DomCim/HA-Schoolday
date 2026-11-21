@@ -67,6 +67,8 @@ export interface AdminConfig {
   cycleAnchor: string | null;
   /** Which week the household is in right now: 0 for A, 1 for B. */
   cycleNow: number;
+  /** How many weeks this week is after week 1, which every rotating period counts from. */
+  rotationNow: number;
   /** The first day of the household's week, 0 = Monday … 6 = Sunday. */
   weekStart: number;
 }
@@ -94,6 +96,7 @@ const EMPTY: AdminConfig = {
   cycleWeeks: 1,
   cycleAnchor: null,
   cycleNow: 0,
+  rotationNow: 0,
   weekStart: 0,
 };
 
@@ -225,6 +228,7 @@ export function parseAdmin(raw: unknown): AdminConfig {
     cycleWeeks: Number(data.cycle_weeks ?? 1) === 2 ? 2 : 1,
     cycleAnchor: typeof data.cycle_anchor === 'string' ? data.cycle_anchor : null,
     cycleNow: Number(data.cycle_now ?? 0) === 1 ? 1 : 0,
+    rotationNow: Number.isInteger(data.rotation_now) ? Number(data.rotation_now) : 0,
     weekStart: weekStartOf(data.week_start),
   };
 }

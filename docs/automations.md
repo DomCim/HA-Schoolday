@@ -33,8 +33,8 @@ sensor.schoolday_ben        →  Sport
 | `schedule` | Which named [set of lesson times](timetable.md#two-schools-that-do-not-ring-together) this child's school rings to, or `null` for the household's |
 | `day_mode` | `school`, `care`, `free`, `event` or `sick` — which routine is showing, and why |
 | `sick_until` | The last day of an illness, or `null` |
-| `outlook` | This week, starting on the household's [first day of the week](timetable.md#when-the-week-begins) (Monday by default), and the next seven days, each with its date, mode and week of the cycle — plus `changes` where a period is covered or cancelled, and `exams` where there are any |
-| `timetable` | The whole week, for the card |
+| `outlook` | This week, starting on the household's [first day of the week](timetable.md#when-the-week-begins) (Monday by default), and the next seven days, each with its date, mode and week of the cycle — plus `changes` where a period is covered or cancelled, `exams` where there are any, and `rotation`, the turn a [period that takes turns](timetable.md#lessons-that-take-turns) is on, for a child who has one |
+| `timetable` | The whole week, for the card. A period that [takes turns](timetable.md#lessons-that-take-turns) carries every turn in `rotation`; its `subject` is only the first one, so read `today_subjects` for what is on |
 | `routine_morning` / `routine_evening` | Today's steps, each with `done` |
 | `routine_stats` | [The record](routines.md#the-record) of the last 30 days: `rate`, `streak`, `best_streak`, `blocks`, `steps` and `days` |
 
@@ -393,10 +393,10 @@ validates: a card must not be able to write a timetable the sensors can no longe
 | `schoolday.reset_routine` | Clear today's ticks |
 | `schoolday.set_absent` | Mark a child ill, optionally through a date |
 | `schoolday.set_periods` | Replace the lesson times — the household's, or one named school's |
-| `schoolday.set_lesson` | One cell of one week |
-| `schoolday.set_day` | A whole weekday at once |
+| `schoolday.set_lesson` | One cell of one week — or, with `rotation`, the [turns it takes](timetable.md#lessons-that-take-turns) week by week |
+| `schoolday.set_day` | A whole weekday at once; an entry may carry a `rotation` instead of a subject |
 | `schoolday.set_routine` | Replace one member's steps for one block on one day |
-| `schoolday.set_cycle` | One-week or two-week timetable, where week A starts, and which day a week begins on (`week_start`, `monday` to `sunday`) |
+| `schoolday.set_cycle` | One-week or two-week timetable, where week A starts — which is also week 1 of every rotation — and which day a week begins on (`week_start`, `monday` to `sunday`) |
 | `schoolday.set_subject_color` | Recolour a subject, or hand it back its derived colour |
 | `schoolday.set_exception` | What one date does differently |
 | `schoolday.clear_exception` | Put a date back |

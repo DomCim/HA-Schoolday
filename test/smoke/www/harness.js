@@ -572,6 +572,38 @@ window.__setWeekStart = (first, language = 'de') => {
   window.__pushHass();
 };
 
+// A period that takes turns, published the way the integration does: the rotation on
+// the lesson, and on every outlook day the turn it is on.
+window.__setRotation = (on) => {
+  const board = hass.states['sensor.schoolday_board'];
+  hass.states['sensor.schoolday_board'] = {
+    ...board,
+    attributes: {
+      ...board.attributes,
+      admin: {
+        ...board.attributes.admin,
+        cycle_anchor: on ? '2026-08-03' : null,
+        rotation_now: 0,
+      },
+    },
+  };
+  const sensorId = 'sensor.schoolday_ben';
+  const timetable = JSON.parse(JSON.stringify(WEEKS.m1));
+  let outlook = JSON.parse(JSON.stringify(OUTLOOK));
+  if (on) {
+    timetable[0][2] = {
+      ...lesson(3, 'Kunst', '1.OG 5'),
+      rotation: [lesson(3, 'Kunst', '1.OG 5'), lesson(3, 'Musik'), null, lesson(3, 'Theater')],
+    };
+    outlook = outlook.map((day) => ({ ...day, rotation: day.date >= '2026-08-10' ? 1 : 0 }));
+  }
+  hass.states[sensorId] = {
+    ...hass.states[sensorId],
+    attributes: { ...hass.states[sensorId].attributes, timetable, outlook },
+  };
+  window.__pushHass();
+};
+
 window.__setSick = (memberId, on) => {
   const sensorId = Object.keys(hass.states).find(
     (id) => hass.states[id].attributes?.member_id === memberId,

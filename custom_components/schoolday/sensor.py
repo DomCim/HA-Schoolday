@@ -40,6 +40,7 @@ from .const import (
     ATTR_DAY_MODE,
     ATTR_EXAMS,
     ATTR_FROM_SUBJECT,
+    ATTR_ROTATION,
     ATTR_LABEL,
     ATTR_LEAVE_AT,
     ATTR_LEAVE_UNTIL,
@@ -623,6 +624,11 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
             }
             for day in days
         }
+        # Only for a child whose week takes turns somewhere, so a household that never
+        # rotates a lesson publishes exactly what it did before.
+        if self._config.timetable.rotates(self._member.id):
+            for day, entry in entries.items():
+                entry[ATTR_ROTATION] = self._config.turn_for(day)
 
         start = dt_util.start_of_local_day(first)
         end = dt_util.start_of_local_day(last) + timedelta(days=1)

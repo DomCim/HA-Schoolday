@@ -173,7 +173,7 @@
       },
       "timetable_week": {
         "title": "{name} – timetable",
-        "description": "One lesson per line, in the order of the periods:\n\n{periods}\n\nThe room goes after a vertical bar, a dash leaves a period free, and a line may name its own period so a late start needs no filler:\n\nGerman\nMaths | 1.OG 5\n-\n6. PE | Gym\n\nSubjects pick their own colour. Days you leave empty simply have no school.",
+        "description": "One lesson per line, in the order of the periods:\n\n{periods}\n\nThe room goes after a vertical bar, a dash leaves a period free, and a line may name its own period so a late start needs no filler:\n\nGerman\nMaths | 1.OG 5\n-\n6. PE | Gym\n\nA period that takes turns week by week lists the turns with a slash between them: Art / Music / - is art, then music, then free, then art again, counted from week 1 of the cycle.\n\nSubjects pick their own colour. Days you leave empty simply have no school.",
         "data": {
           "0": "Monday",
           "1": "Tuesday",
@@ -392,7 +392,7 @@
         },
         "lessons": {
           "name": "Lessons",
-          "description": "A list of entries with period, subject and optional room."
+          "description": "A list of entries with period, subject and optional room, or period and rotation for a period that takes turns."
         },
         "week": {
           "name": "Week of the cycle",
@@ -461,6 +461,10 @@
         "week": {
           "name": "Week of the cycle",
           "description": "0 for week A, 1 for week B. Only meaningful with a two-week timetable."
+        },
+        "rotation": {
+          "name": "Taking turns",
+          "description": "Optional. The turns this period takes week by week, counted from week 1 of the cycle: [\"Art\", \"Music\", \"-\"] is art, then music, then a free period, and round again. Wins over subject and room."
         }
       }
     },

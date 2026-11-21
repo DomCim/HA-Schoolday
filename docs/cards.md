@@ -232,6 +232,13 @@ The lesson times live at the top of this section, and under them any
 whose children are at two that do not ring at the same minute. A child is put on one in
 the **Family** section.
 
+**Takes turns with another week**, in an open cell, turns it into a
+[period that takes turns](timetable.md#lessons-that-take-turns): one row per week, this
+week's marked, and **Add a week** for the next one. In the grid such a cell shows the
+turn of the week on screen with ↻ and its number, and **‹ This week ›** above the grid
+steps through the weeks. Once one exists, the field for week 1 appears at the top, even
+without a two-week timetable.
+
 ### Routines
 
 ![One block, one day at a time — including the two kinds of day off](images/admin-routines.png)

@@ -46,6 +46,12 @@ export interface TimetableLesson {
   period: number;
   subject: string;
   room: string | null;
+  /**
+   * The turns this period takes, one per week from week 1, null for a week it is free.
+   * Absent on a weekly lesson. When present, `subject` and `room` are only the first
+   * turn's: `turnOf` is how a date gets its lesson.
+   */
+  rotation?: (TimetableLesson | null)[];
 }
 
 /**
@@ -100,6 +106,12 @@ export interface OutlookDay {
    * household runs a two-week timetable, so nothing has to ask whether it applies.
    */
   week: number;
+  /**
+   * Which turn a rotating period is on, on this date: the weeks since week 1, or with
+   * an A/B cycle the A (or B) weeks since then. 0 when the sensor does not say, which
+   * only happens where nothing rotates.
+   */
+  rotation: number;
 }
 
 /**
@@ -255,11 +267,27 @@ export function parseWeek(raw: unknown): TimetableWeek {
     const lessons = value
       .map((entry) => entry as Record<string, unknown>)
       .filter((entry) => Boolean(entry) && typeof entry.subject === 'string')
-      .map((entry) => ({
-        period: Number(entry.period ?? 0),
-        subject: String(entry.subject),
-        room: typeof entry.room === 'string' && entry.room ? entry.room : null,
-      }))
+      .map((entry) => {
+        const period = Number(entry.period ?? 0);
+        const lesson: TimetableLesson = {
+          period,
+          subject: String(entry.subject),
+          room: typeof entry.room === 'string' && entry.room ? entry.room : null,
+        };
+        if (Array.isArray(entry.rotation) && entry.rotation.length > 1) {
+          lesson.rotation = entry.rotation.map((turn) => {
+            const raw = (turn ?? {}) as Record<string, unknown>;
+            return typeof raw.subject === 'string' && raw.subject
+              ? {
+                  period,
+                  subject: raw.subject,
+                  room: typeof raw.room === 'string' && raw.room ? raw.room : null,
+                }
+              : null;
+          });
+        }
+        return lesson;
+      })
       .sort((a, b) => a.period - b.period);
     if (lessons.length) {
       week[slot] = lessons;
@@ -289,6 +317,7 @@ export function parseOutlook(raw: unknown): Outlook {
         : 'school',
       label: typeof entry.label === 'string' && entry.label ? entry.label : null,
       week: Number(entry.week ?? 0) === 1 ? 1 : 0,
+      rotation: Number.isInteger(entry.rotation) ? Number(entry.rotation) : 0,
       ...(entry.changes && typeof entry.changes === 'object'
         ? { changes: parseChanges(entry.changes) }
         : {}),
@@ -338,6 +367,22 @@ function parseChanges(raw: unknown): Record<string, TimetableLesson | null> {
 }
 
 /**
+ * A period's lesson on turn `weeks`, or null when that turn is free.
+ *
+ * The modulo is the only arithmetic here; the integration counts the turns, so the
+ * card never has to know where week 1 is, which day a week begins on, or whether an
+ * A/B cycle halves the count. Negative
+ * counts — a date before week 1 — still land on a turn rather than off the end.
+ */
+export function turnOf(lesson: TimetableLesson, weeks: number): TimetableLesson | null {
+  const turns = lesson.rotation;
+  if (!turns?.length) {
+    return lesson;
+  }
+  return turns[((weeks % turns.length) + turns.length) % turns.length] ?? null;
+}
+
+/**
  * One dated day's lessons: the week it belongs to, with that date's changes applied.
  *
  * Returned with a flag rather than as a plain list, because "Maths, replaced" and
@@ -364,7 +409,9 @@ export function lessonsOn(
   // Only the display falls back. The editor reads the slots directly, so week B still
   // shows up empty there — which is what lets anybody fill it in.
   const cycled = usesSecondWeek(week) ? (day?.week ?? 0) : 0;
-  const base = week[weekday + SLOTS_PER_WEEK * cycled] ?? [];
+  const base = (week[weekday + SLOTS_PER_WEEK * cycled] ?? [])
+    .map((lesson) => turnOf(lesson, day?.rotation ?? 0))
+    .filter((lesson): lesson is TimetableLesson => lesson !== null);
   const changes = day?.changes;
   if (!changes) {
     return base.map((lesson) => ({ lesson, changed: false }));

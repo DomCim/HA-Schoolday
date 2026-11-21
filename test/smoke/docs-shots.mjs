@@ -384,6 +384,29 @@ for (const [name, label, cap] of [
   await shot(name, 900, adminSection(label), cap);
 }
 
+// A period that takes turns, open in the editor: every week of it, and which is now.
+await shot('admin-rotation', 900, async (page) => {
+  await page.evaluate(() => window.__setRotation(true));
+  await adminSection('Stundenplan')(page);
+  await page.waitForTimeout(300);
+  await page.evaluate(() =>
+    document.querySelector('schoolday-admin-card').shadowRoot.querySelector('.slot.rotating').click(),
+  );
+  return 'schoolday-admin-card';
+});
+
+// A weekday that is different for a while, picked from its chip.
+await shot('admin-weekly', 900, async (page) => {
+  await page.evaluate(() => window.__setRotation(true));
+  await adminSection('Ausnahmen')(page);
+  await page.waitForTimeout(300);
+  await page.evaluate(() => {
+    const root = document.querySelector('schoolday-admin-card').shadowRoot;
+    [...root.querySelectorAll('.chip')].find((node) => node.textContent.includes('04.08.'))?.click();
+  });
+  return 'schoolday-admin-card';
+});
+
 await browser.close();
 server.close();
 console.log(`\n${made.length} Bilder in docs/images/`);

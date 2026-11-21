@@ -31,9 +31,11 @@ import { schooldayButtons, schooldayTokens } from '../lib/styles';
 import {
   gridFor,
   lessonAt,
+  usesSecondWeek,
   schoolDays,
   SLOTS_PER_WEEK,
   weekOf,
+  type TimetableLesson,
   type TimetableWeek,
 } from '../lib/timetable';
 import { findBoard, memberSensor } from '../lib/board';
@@ -529,7 +531,9 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
                             this._draftRoom = lesson?.room ?? '';
                           }}
                         >
-                          <span class="subject"><bdi>${lesson?.subject ?? '+'}</bdi></span>
+                          <span class="subject" dir="auto" title=${lesson?.subject ?? ''}
+                            >${lesson?.subject ?? '+'}</span
+                          >
                           ${lesson?.room ? html`<span class="room"><bdi>${lesson.room}</bdi></span>` : nothing}
                         </button>
                       `;
@@ -1065,6 +1069,37 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
   }
 
   /**
+   * What the timetable plans for one date and period, in that date's week of the cycle.
+   *
+   * Counted from this week, whose place in the cycle the integration publishes, so the
+   * card only has to know how many weeks away the date is — not where week A is.
+   */
+  private _plannedOn(
+    config: AdminConfig,
+    week: TimetableWeek,
+    day: string,
+    period: number,
+  ): TimetableLesson | null {
+    const first = (date: Date) => {
+      const back = (date.getDay() - config.weekStart + 7) % 7;
+      return new Date(date.getFullYear(), date.getMonth(), date.getDate() - back);
+    };
+    const [y, m, d] = day.split('-').map(Number);
+    const target = new Date(y, m - 1, d);
+    // Rounded, because a week with a clock change in it is an hour short or long.
+    const ahead = Math.round((first(target).getTime() - first(new Date()).getTime()) / (7 * 86400000));
+    // A week B that was switched on but never filled is drawn as week A on the board
+    // (see `lessonsOn`), so the editor plans from week A then too: a row saying "—"
+    // next to a board that shows Maths would be the editor contradicting the wall.
+    const cycled =
+      config.cycleWeeks > 1 && usesSecondWeek(week)
+        ? (((config.cycleNow + ahead) % config.cycleWeeks) + config.cycleWeeks) % config.cycleWeeks
+        : 0;
+    const weekday = (target.getDay() + 6) % 7;
+    return lessonAt(week, weekday + SLOTS_PER_WEEK * cycled, period) ?? null;
+  }
+
+  /**
    * What one date does differently.
    *
    * A date at a time, not a week: the timetable is worth typing in once because it
@@ -1089,7 +1124,6 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
     const day = this._exceptionDate || today;
     const current = stored[day];
     const week = weekOf(memberSensor(this.hass!, member.id));
-    const weekday = (new Date(`${day}T00:00:00`).getDay() + 6) % 7;
 
     return html`
       <div class="notice quiet">${t(this.hass, 'admin.exceptions_hint')}</div>
@@ -1161,7 +1195,7 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
                 // null, and "cancelled" and "not mentioned" are the two answers this
                 // whole row has to tell apart.
                 const overridden = current ? String(period.index) in current.periods : false;
-                const planned = lessonAt(week, weekday, period.index);
+                const planned = this._plannedOn(config, week, day, period.index);
                 const shown = overridden ? (override?.subject ?? null) : (planned?.subject ?? null);
                 return html`
                   <div class="exception-row">
@@ -1543,6 +1577,24 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
         font-size: 0.75rem;
         font-weight: 400;
         color: var(--schoolday-muted);
+      }
+
+      /* A narrow column cuts a long subject off. It ends in an ellipsis at the end of
+         its own script — "Deuts…", not "eutsch" — and the cell's title has the rest. */
+      .slot .subject {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      /* On a phone five columns leave a cell about sixty pixels: give the subject the
+         padding back and a slightly smaller face, so "Musik" fits instead of "Mu…". */
+      @media (max-width: 500px) {
+        .slot {
+          padding: 4px 3px;
+          font-size: 0.8rem;
+        }
       }
 
       .editor,

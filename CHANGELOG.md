@@ -5,6 +5,22 @@ version you are updating to; the [manual](https://domcim.github.io/HA-Schoolday/
 details. Releases before 0.14.0 are listed on
 [GitHub](https://github.com/DomCim/HA-Schoolday/releases).
 
+## 0.20.1
+
+Saving a child's week in the options dialog no longer throws away a week B typed in the
+admin card.
+
+In the admin card's **Exceptions**, what the timetable plans for a date is now taken from
+that date's week. On a B date it used to show week A's lessons. While week B is still
+empty it shows week A, as the board does.
+
+In the admin card's **Subjects** section, the button that hands a subject back its own
+colour showed `admin.reset_color` instead of a name. It now says **Reset colour**.
+
+On a phone, a subject too long for its cell in the admin card's timetable is cut off at
+its end with "…", so the start stays readable, and the cells give the text more room.
+Before, a Hebrew dashboard cut off the beginning of the word.
+
 ## 0.20.0
 
 ### The exams still to come

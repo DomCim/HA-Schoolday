@@ -5,6 +5,26 @@ version you are updating to; the [manual](https://domcim.github.io/HA-Schoolday/
 details. Releases before 0.14.0 are listed on
 [GitHub](https://github.com/DomCim/HA-Schoolday/releases).
 
+## 0.22.0
+
+### A weekday that is different for a while
+
+A child at another school every Tuesday until February or until further notice, or a
+course every Thursday this term, is now one entry instead of a date at a time. Under
+**Exceptions → Every week, for a while**, pick the weekday, the first date, the last date
+if there is one, and the kind of day:
+
+- **Other lessons**: only the periods you fill in take place, and it stays a school day
+  with its time to leave, packing list and announcement. Use this for a pull-out day.
+- **No school here**: the day is taken over, like a school trip.
+
+With a last date it ends by itself; without one it runs until you remove it. What you say
+about a single date still wins over it, and the date editor says when a weekly change
+covers the date.
+
+Two new services do the same from a script: `schoolday.set_weekly_exception` and
+`schoolday.clear_weekly_exception`.
+
 ## 0.21.0
 
 ### Lessons that take turns

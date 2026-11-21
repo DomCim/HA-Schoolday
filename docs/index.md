@@ -56,7 +56,8 @@ It is built for one thing: a tablet on the kitchen wall that a family walks past
   </a>
   <a class="tile yellow" href="exceptions.html">
     <span class="tile-title">Days that differ</span>
-    <p>Holidays, holiday care, school trips, a cancelled lesson, a substitution, an exam — and
+    <p>Holidays, holiday care, school trips, a weekday that differs for a while — a
+    pull-out day at another school — a cancelled lesson, a substitution, an exam — and
     a child at home ill, which expires by itself instead of waiting to be switched off.
     Cancellations, substitutions and exams can come from WebUntis, Schulmanager Online or
     any school calendar.</p>

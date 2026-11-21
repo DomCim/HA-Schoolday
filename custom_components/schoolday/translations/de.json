@@ -292,6 +292,70 @@
         }
       }
     },
+    "set_weekly_exception": {
+      "name": "Wöchentliche Ausnahme für eine Zeit",
+      "description": "Jede Woche an einem Wochentag, ab einem Datum, bis zu einem anderen oder bis sie entfernt wird: ein Tag an einer anderen Schule, ein Kurs in diesem Halbjahr. Mit Stunde betrifft es nur diese Stunde; ohne nimmt eine Bezeichnung den ganzen Tag ein.",
+      "fields": {
+        "member": {
+          "name": "Familienmitglied",
+          "description": "Name oder ID."
+        },
+        "weekday": {
+          "name": "Wochentag",
+          "description": "0 für Montag bis 6 für Sonntag."
+        },
+        "from": {
+          "name": "Ab",
+          "description": "Das erste Datum, an dem sie gilt. Zusammen mit dem Wochentag sagt es, welche wöchentliche Ausnahme gemeint ist."
+        },
+        "until": {
+          "name": "Bis",
+          "description": "Optional: das letzte Datum, an dem sie gilt. Weglassen behält das bisherige Ende; ein leerer Wert heißt ohne Ende, bis sie entfernt wird."
+        },
+        "replace": {
+          "name": "Ersetzt den Tag",
+          "description": "Die angegebenen Stunden sind der ganze Tag, alle anderen sind frei; es bleibt ein Schultag, mit Zeit zum Losgehen und Packliste. Für einen Tag an einer anderen Schule."
+        },
+        "period": {
+          "name": "Stunde",
+          "description": "Leer lassen, um etwas über den ganzen Tag zu sagen."
+        },
+        "subject": {
+          "name": "Fach",
+          "description": "Was stattdessen läuft. Leer und nicht entfallen gibt die Stunde an den Stundenplan zurück."
+        },
+        "room": {
+          "name": "Raum",
+          "description": "Wo die Vertretung ist."
+        },
+        "cancelled": {
+          "name": "Entfällt",
+          "description": "Die Stunde findet gar nicht statt."
+        },
+        "label": {
+          "name": "Was der Tag ist",
+          "description": "„Drehtürtag\", „Schwimmkurs\". Eine Bezeichnung nimmt den Tag ein; eine leere gibt ihn zurück; ohne werden nur die Daten geändert."
+        }
+      }
+    },
+    "clear_weekly_exception": {
+      "name": "Wöchentliche Ausnahme löschen",
+      "description": "Gibt diesen Wochentag an den Stundenplan zurück.",
+      "fields": {
+        "member": {
+          "name": "Familienmitglied",
+          "description": "Name oder ID."
+        },
+        "weekday": {
+          "name": "Wochentag",
+          "description": "0 für Montag bis 6 für Sonntag."
+        },
+        "from": {
+          "name": "Ab",
+          "description": "Das erste Datum, an dem sie gilt. Zusammen mit dem Wochentag sagt es, welche wöchentliche Ausnahme gemeint ist."
+        }
+      }
+    },
     "remove_member": {
       "name": "Familienmitglied entfernen",
       "description": "Entfernt ein Mitglied samt Stundenplan und Routinen.",

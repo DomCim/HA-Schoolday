@@ -700,8 +700,14 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
             if change.closed and entry[ATTR_MODE] == MODE_SCHOOL:
                 entry[ATTR_MODE] = MODE_EVENT
                 entry[ATTR_LABEL] = change.label
-            if change.periods:
-                entry[ATTR_CHANGES] = change.as_changes()
+            if change.periods or change.replace:
+                changes = change.as_changes()
+                if change.replace:
+                    # A card lays the changes over the usual week, so a day that
+                    # replaces the week has to say that every other lesson is gone.
+                    for lesson in self._config.planned_on(self._member.id, day):
+                        changes.setdefault(str(lesson.period), None)
+                entry[ATTR_CHANGES] = dict(sorted(changes.items(), key=lambda item: int(item[0])))
 
         # What the school system says, laid under what the household said: a period
         # somebody changed by hand is theirs, whatever the calendar thinks of it, and a
@@ -744,6 +750,10 @@ class SchooldayMemberSensor(SchooldayBaseSensor):
             ):
                 continue
             change = self._config.exception(self._member.id, day)
+            if change is not None and change.replace:
+                # The child is somewhere else that day, and what their usual school's
+                # system says about its own lessons is not about them.
+                continue
             said = set(change.periods if change else ())
             held = {
                 lesson.period: lesson

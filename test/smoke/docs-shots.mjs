@@ -395,6 +395,18 @@ await shot('admin-rotation', 900, async (page) => {
   return 'schoolday-admin-card';
 });
 
+// A weekday that is different for a while, picked from its chip.
+await shot('admin-weekly', 900, async (page) => {
+  await page.evaluate(() => window.__setRotation(true));
+  await adminSection('Ausnahmen')(page);
+  await page.waitForTimeout(300);
+  await page.evaluate(() => {
+    const root = document.querySelector('schoolday-admin-card').shadowRoot;
+    [...root.querySelectorAll('.chip')].find((node) => node.textContent.includes('04.08.'))?.click();
+  });
+  return 'schoolday-admin-card';
+});
+
 await browser.close();
 server.close();
 console.log(`\n${made.length} Bilder in docs/images/`);

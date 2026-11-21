@@ -70,6 +70,10 @@ from .const import (
     DOMAIN,
     ROUTINE_BLOCKS,
     SERVICE_CLEAR_EXCEPTION,
+    SERVICE_CLEAR_WEEKLY_EXCEPTION,
+    SERVICE_SET_WEEKLY_EXCEPTION,
+    CONF_FROM,
+    CONF_REPLACE,
     SERVICE_REMOVE_MEMBER,
     SERVICE_RESET_ROUTINE,
     SERVICE_SET_ABSENT,
@@ -236,6 +240,30 @@ CLEAR_EXCEPTION_SCHEMA = vol.Schema(
     {
         vol.Required(ATTR_MEMBER): cv.string,
         vol.Required(ATTR_DATE_FIELD): cv.string,
+    }
+)
+
+SET_WEEKLY_EXCEPTION_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_MEMBER): cv.string,
+        vol.Required(ATTR_WEEKDAY_FIELD): _WEEKDAY,
+        vol.Required(CONF_FROM): cv.string,
+        # Left out keeps the end it has; an empty string takes it away.
+        vol.Optional(ATTR_UNTIL): vol.Any(cv.string, None),
+        vol.Optional(CONF_REPLACE): cv.boolean,
+        vol.Optional(ATTR_PERIOD): vol.Coerce(int),
+        vol.Optional(ATTR_SUBJECT_FIELD): vol.Any(cv.string, None),
+        vol.Optional(ATTR_ROOM_FIELD): vol.Any(cv.string, None),
+        vol.Optional(ATTR_CANCELLED, default=False): cv.boolean,
+        vol.Optional(ATTR_LABEL_FIELD): vol.Any(cv.string, None),
+    }
+)
+
+CLEAR_WEEKLY_EXCEPTION_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_MEMBER): cv.string,
+        vol.Required(ATTR_WEEKDAY_FIELD): _WEEKDAY,
+        vol.Required(CONF_FROM): cv.string,
     }
 )
 
@@ -508,6 +536,37 @@ def async_register_services(hass: HomeAssistant) -> None:
         )
 
     @_guard
+    def _set_weekly_exception(call: ServiceCall) -> None:
+        _apply(
+            call,
+            config_writes.set_weekly_exception(
+                _options(call),
+                _resolve_member_id(hass, call.data[ATTR_MEMBER]),
+                call.data[ATTR_WEEKDAY_FIELD],
+                call.data[CONF_FROM],
+                call.data.get(ATTR_UNTIL),
+                call.data.get(ATTR_PERIOD),
+                call.data.get(ATTR_SUBJECT_FIELD),
+                call.data.get(ATTR_ROOM_FIELD),
+                call.data[ATTR_CANCELLED],
+                call.data.get(ATTR_LABEL_FIELD),
+                replace=call.data.get(CONF_REPLACE),
+            ),
+        )
+
+    @_guard
+    def _clear_weekly_exception(call: ServiceCall) -> None:
+        _apply(
+            call,
+            config_writes.clear_weekly_exception(
+                _options(call),
+                _resolve_member_id(hass, call.data[ATTR_MEMBER]),
+                call.data[ATTR_WEEKDAY_FIELD],
+                call.data[CONF_FROM],
+            ),
+        )
+
+    @_guard
     def _set_calendars(call: ServiceCall) -> None:
         _apply(
             call,
@@ -533,6 +592,12 @@ def async_register_services(hass: HomeAssistant) -> None:
         (SERVICE_SET_CYCLE, _set_cycle, SET_CYCLE_SCHEMA),
         (SERVICE_SET_EXCEPTION, _set_exception, SET_EXCEPTION_SCHEMA),
         (SERVICE_CLEAR_EXCEPTION, _clear_exception, CLEAR_EXCEPTION_SCHEMA),
+        (SERVICE_SET_WEEKLY_EXCEPTION, _set_weekly_exception, SET_WEEKLY_EXCEPTION_SCHEMA),
+        (
+            SERVICE_CLEAR_WEEKLY_EXCEPTION,
+            _clear_weekly_exception,
+            CLEAR_WEEKLY_EXCEPTION_SCHEMA,
+        ),
     ):
         # Admin only: these rewrite what the options flow keeps behind the admin's
         # Configure button, and a wall tablet is usually signed in as a child's account.

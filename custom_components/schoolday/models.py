@@ -26,8 +26,13 @@ from .const import (
     CONF_COLOR,
     CONF_CYCLE_ANCHOR,
     CONF_CYCLE_WEEKS,
+    CONF_FROM,
+    CONF_REPLACE,
     CONF_ROTATION,
+    CONF_UNTIL,
     CONF_WEEK_START,
+    CONF_WEEKDAY,
+    CONF_WEEKLY_EXCEPTIONS,
     CYCLE_MAX_WEEKS,
     CONF_EXCEPTIONS,
     CONF_LABEL,
@@ -947,6 +952,10 @@ class DayException:
     label: str | None = None
     #: period -> the replacement lesson, or None when the period is cancelled.
     periods: dict[int, Lesson | None] = field(default_factory=dict)
+    #: The periods above are the whole day, and every other one is free. Still a school
+    #: day — a pull-out day at another school is somewhere to be by the first bell, with
+    #: a bag to pack — so the label is only its name and does not take the day over.
+    replace: bool = False
 
     @classmethod
     def from_dict(cls, data: dict[str, Any] | None) -> DayException:
@@ -967,11 +976,12 @@ class DayException:
         return cls(
             label=str(raw.get(CONF_LABEL) or "").strip() or None,
             periods=periods,
+            replace=bool(raw.get(CONF_REPLACE)),
         )
 
     def as_options(self) -> dict[str, Any]:
-        """The stored shape."""
-        return {
+        """The stored shape. `replace` only when set, so nothing else changes shape."""
+        shape: dict[str, Any] = {
             CONF_LABEL: self.label,
             CONF_PERIODS: {
                 str(period): (
@@ -980,11 +990,19 @@ class DayException:
                 for period, lesson in sorted(self.periods.items())
             },
         }
+        if self.replace:
+            shape[CONF_REPLACE] = True
+        return shape
 
     @property
     def closed(self) -> bool:
-        """True when the whole day is taken over, which a label is what says."""
-        return self.label is not None
+        """True when the whole day is taken over, which a label is what says.
+
+        Except on a day whose lessons are replaced: there the label names a school day
+        somewhere else, and closing it would take away the leaving time, the packing
+        list and the announcement for a child who very much has school.
+        """
+        return self.label is not None and not self.replace
 
     @property
     def is_empty(self) -> bool:
@@ -1002,13 +1020,72 @@ class DayException:
         """This day's lessons, once the exception has had its say."""
         if self.closed:
             return []
-        by_period = {lesson.period: lesson for lesson in lessons}
+        by_period = {} if self.replace else {lesson.period: lesson for lesson in lessons}
         for period, replacement in self.periods.items():
             if replacement is None:
                 by_period.pop(period, None)
             else:
                 by_period[period] = replacement
         return [by_period[period] for period in sorted(by_period)]
+
+
+@dataclass(slots=True)
+class WeeklyException:
+    """What one weekday does differently, every week, for a stretch of the year.
+
+    The pull-out day at another school every Tuesday from November to February. Typing
+    that as sixteen dated exceptions would be sixteen things to get wrong and sixteen
+    to delete when the plan changes; one weekday and two dates is the fact as the
+    school states it. With a last date it ends on its own. Without one it runs until
+    somebody removes it — "every Tuesday until further notice" is how a pull-out day
+    is often announced, and inventing an end would be the date nobody updates.
+
+    What it does on each of those days is a :class:`DayException`, so a label takes the
+    day over and periods are cancelled or replaced exactly as on a single date.
+    """
+
+    weekday: int
+    start: date
+    #: The last date it applies to, or None for no end.
+    until: date | None
+    change: DayException = field(default_factory=DayException)
+
+    def covers(self, day: date) -> bool:
+        """True when this applies to `day`."""
+        return (
+            day.weekday() == self.weekday
+            and self.start <= day
+            and (self.until is None or day <= self.until)
+        )
+
+    def running_on(self, day: date) -> bool:
+        """True when it has not ended by `day` — what decides whether it is kept."""
+        return self.until is None or self.until >= day
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any] | None) -> WeeklyException | None:
+        """Build from the stored shape, or None when it is unreadable or says nothing."""
+        raw = data or {}
+        try:
+            weekday = int(raw.get(CONF_WEEKDAY))
+            start = date.fromisoformat(str(raw.get(CONF_FROM)))
+            raw_until = raw.get(CONF_UNTIL)
+            until = date.fromisoformat(str(raw_until)) if raw_until else None
+        except (TypeError, ValueError):
+            return None
+        change = DayException.from_dict(raw)
+        if not 0 <= weekday <= 6 or (until is not None and until < start) or change.is_empty:
+            return None
+        return cls(weekday=weekday, start=start, until=until, change=change)
+
+    def as_options(self) -> dict[str, Any]:
+        """The stored shape."""
+        return {
+            CONF_WEEKDAY: self.weekday,
+            CONF_FROM: self.start.isoformat(),
+            CONF_UNTIL: self.until.isoformat() if self.until else None,
+            **self.change.as_options(),
+        }
 
 
 @dataclass(slots=True, frozen=True)
@@ -1250,6 +1327,8 @@ class SchooldayConfig:
     materials: dict[str, list[str]] = field(default_factory=dict)
     #: member id -> "YYYY-MM-DD" -> what that date does differently.
     exceptions: dict[str, dict[str, DayException]] = field(default_factory=dict)
+    #: member id -> what a weekday does differently for a while, in the order saved.
+    weekly_exceptions: dict[str, list[WeeklyException]] = field(default_factory=dict)
     #: How many weeks the timetable takes to repeat: 1, or 2 for an A/B school.
     cycle_weeks: int = 1
     #: A day in a week A, stored as a Monday. The A/B weeks are counted from the week
@@ -1311,6 +1390,16 @@ class SchooldayConfig:
             if per_date:
                 exceptions[str(member_id)] = per_date
 
+        weekly: dict[str, list[WeeklyException]] = {}
+        for member_id, entries in (options.get(CONF_WEEKLY_EXCEPTIONS) or {}).items():
+            kept = [
+                parsed
+                for entry in (entries if isinstance(entries, list) else [])
+                if (parsed := WeeklyException.from_dict(entry)) is not None
+            ]
+            if kept:
+                weekly[str(member_id)] = kept
+
         return cls(
             members=members,
             school_calendars=list(options.get(CONF_SCHOOL_CALENDARS) or []),
@@ -1335,6 +1424,7 @@ class SchooldayConfig:
             timetable=Timetable.from_dict(options.get(CONF_TIMETABLE)),
             materials=materials,
             exceptions=exceptions,
+            weekly_exceptions=weekly,
             cycle_weeks=cycle_weeks,
             cycle_anchor=anchor,
             week_start=week_start,
@@ -1390,17 +1480,44 @@ class SchooldayConfig:
     @property
     def exception_subjects(self) -> set[str]:
         """Subjects that only ever appear as a replacement on one date."""
+        changes = [
+            *(change for dates in self.exceptions.values() for change in dates.values()),
+            *(
+                weekly.change
+                for entries in self.weekly_exceptions.values()
+                for weekly in entries
+            ),
+        ]
         return {
             lesson.subject
-            for dates in self.exceptions.values()
-            for change in dates.values()
+            for change in changes
             for lesson in change.periods.values()
             if lesson is not None
         }
 
     def exception(self, member_id: str, day: date) -> DayException | None:
-        """What this member's date does differently, if anything."""
-        return (self.exceptions.get(member_id) or {}).get(day.isoformat())
+        """What this member's date does differently, if anything.
+
+        A weekly exception first, then the date's own on top of it: the 18th can still
+        have its third period cancelled while it is a pull-out day, and what somebody
+        said about that one date is the more specific of the two.
+        """
+        dated = (self.exceptions.get(member_id) or {}).get(day.isoformat())
+        weekly = next(
+            (
+                entry.change
+                for entry in self.weekly_exceptions.get(member_id) or []
+                if entry.covers(day)
+            ),
+            None,
+        )
+        if weekly is None or dated is None:
+            return dated or weekly
+        return DayException(
+            label=dated.label or weekly.label,
+            periods={**weekly.periods, **dated.periods},
+            replace=weekly.replace or dated.replace,
+        )
 
     def lessons_on(self, member_id: str, day: date) -> list[Lesson]:
         """This member's lessons on one dated day, exception and all.
@@ -1409,14 +1526,19 @@ class SchooldayConfig:
         like; only a date knows whether this Tuesday's third period was cancelled, and
         the two answers must never be worked out in two places.
         """
+        lessons = self.planned_on(member_id, day)
+        change = self.exception(member_id, day)
+        return change.applied_to(lessons) if change else lessons
+
+    def planned_on(self, member_id: str, day: date) -> list[Lesson]:
+        """What the timetable alone holds on a date: its week of the cycle, its turn of
+        every rotating period, and no exception yet."""
         turn = self.turn_for(day)
-        lessons = [
+        return [
             lesson
             for planned in self.timetable.day(member_id, self.slot_for(day))
             if (lesson := planned.on_turn(turn)) is not None
         ]
-        change = self.exception(member_id, day)
-        return change.applied_to(lessons) if change else lessons
 
     def packing_list(self, subjects: Iterable[str]) -> list[tuple[str, str]]:
         """What a day of these subjects needs packed, as (item, subject) pairs.
@@ -1499,6 +1621,11 @@ class SchooldayConfig:
                     if day >= since
                 }
                 for member_id, dates in self.exceptions.items()
+            },
+            # Same cut as above: a pull-out day that ended in February is not one to edit.
+            CONF_WEEKLY_EXCEPTIONS: {
+                member_id: [entry.as_options() for entry in entries if entry.running_on(today())]
+                for member_id, entries in self.weekly_exceptions.items()
             },
             "cycle_weeks": self.cycle_weeks,
             "cycle_anchor": self.cycle_anchor.isoformat() if self.cycle_anchor else None,

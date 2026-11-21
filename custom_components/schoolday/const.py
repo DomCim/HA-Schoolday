@@ -7,7 +7,7 @@ from typing import Final
 DOMAIN: Final = "schoolday"
 
 # Keep in sync with manifest.json, package.json and src/lib/const.ts.
-VERSION: Final = "0.21.0"
+VERSION: Final = "0.22.0"
 
 # Where the bundled Lovelace cards are served from.
 FRONTEND_URL_BASE: Final = "/schoolday-frontend"
@@ -179,6 +179,21 @@ CYCLE_MAX_WEEKS: Final = 2
 CONF_ROTATION: Final = "rotation"
 ROTATION_MAX: Final = 8
 
+# What happens on one weekday for a stretch of the year: a pull-out day at another
+# school every Tuesday from November to February, a swimming course every Thursday
+# this term. member id -> a list of {weekday, from, until, label, periods}; the label
+# and periods mean exactly what they mean on a dated exception, and an `until` of null
+# is a change with no end, until somebody removes it.
+#
+# Its own key rather than a pattern in CONF_EXCEPTIONS, so a household that never
+# uses it stores nothing new, and "what does the 18th do" stays one lookup.
+CONF_WEEKLY_EXCEPTIONS: Final = "weekly_exceptions"
+CONF_FROM: Final = "from"
+CONF_UNTIL: Final = "until"
+CONF_WEEKDAY: Final = "weekday"
+# On an exception: the periods it names are the whole day, every other one is free,
+# and it stays a school day. What a pull-out day at another school is.
+CONF_REPLACE: Final = "replace"
 
 # What a subject needs brought along: subject -> list of things. Household-wide rather
 # than per child, because a PE bag is a PE bag whoever carries it.
@@ -474,6 +489,8 @@ SERVICE_SET_MATERIALS: Final = "set_materials"
 SERVICE_SET_EXCEPTION: Final = "set_exception"
 SERVICE_SET_CYCLE: Final = "set_cycle"
 SERVICE_CLEAR_EXCEPTION: Final = "clear_exception"
+SERVICE_SET_WEEKLY_EXCEPTION: Final = "set_weekly_exception"
+SERVICE_CLEAR_WEEKLY_EXCEPTION: Final = "clear_weekly_exception"
 
 ATTR_WEEKDAY_FIELD: Final = "weekday"
 ATTR_SUBJECT_FIELD: Final = "subject"

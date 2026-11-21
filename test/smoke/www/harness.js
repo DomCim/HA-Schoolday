@@ -572,8 +572,10 @@ window.__setWeekStart = (first, language = 'de') => {
   window.__pushHass();
 };
 
-// A period that takes turns, published the way the integration does: the rotation on
-// the lesson, and on every outlook day the turn it is on.
+// A period that takes turns, and a weekday that is different for a while, published
+// the way the integration does: the rotation on the lesson, the count of weeks from
+// week 1 on every outlook day, and the weekly exception on the admin attribute only —
+// the outlook already carries what it does to each date.
 window.__setRotation = (on) => {
   const board = hass.states['sensor.schoolday_board'];
   hass.states['sensor.schoolday_board'] = {
@@ -584,6 +586,19 @@ window.__setRotation = (on) => {
         ...board.attributes.admin,
         cycle_anchor: on ? '2026-08-03' : null,
         rotation_now: 0,
+        weekly_exceptions: on
+          ? {
+              m1: [
+                {
+                  weekday: 1,
+                  from: '2026-08-04',
+                  until: '2026-12-22',
+                  label: 'Drehtürtag',
+                  periods: {},
+                },
+              ],
+            }
+          : {},
       },
     },
   };

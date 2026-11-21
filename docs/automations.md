@@ -400,6 +400,8 @@ validates: a card must not be able to write a timetable the sensors can no longe
 | `schoolday.set_subject_color` | Recolour a subject, or hand it back its derived colour |
 | `schoolday.set_exception` | What one date does differently |
 | `schoolday.clear_exception` | Put a date back |
+| `schoolday.set_weekly_exception` | What one weekday does differently, every week `from` one date, `until` another or with no end (`until: ""` takes an end away) — with `replace: true`, the periods given are the whole day and it stays a school day: [a pull-out day](exceptions.md#every-week-for-a-while) |
+| `schoolday.clear_weekly_exception` | Put that weekday back, named by `weekday` and `from` |
 | `schoolday.set_materials` | What a subject needs brought along |
 | `schoolday.set_member` | Add or change a family member, including which school they ring to, their way to school, their times to leave on school days and in holiday care (`leave_time`, `care_leave_time`, `HH:MM`) and their school system's calendars and homework list (`lessons_calendar`, `exams_calendar`, `homework_list`) |
 | `schoolday.remove_member` | Remove one, and everything that only existed for them |

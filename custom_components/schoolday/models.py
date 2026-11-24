@@ -26,6 +26,7 @@ from .const import (
     CONF_COLOR,
     CONF_CYCLE_ANCHOR,
     CONF_CYCLE_WEEKS,
+    CONF_ROTATION,
     CONF_WEEK_START,
     CYCLE_MAX_WEEKS,
     CONF_EXCEPTIONS,
@@ -61,6 +62,7 @@ from .const import (
     ROUTINE_BLOCKS,
     ROUTINE_CARE,
     ROUTINE_HOLIDAY,
+    ROTATION_MAX,
     SLOTS_PER_WEEK,
     SUBJECT_COLORS,
 )
@@ -380,6 +382,9 @@ _PERIOD_RE = re.compile(r"^(\d{1,2})[:.h](\d{2})\s*[-–—]+\s*(\d{1,2})[:.h](\
 _INDEX_RE = re.compile(r"^(\d{1,2})\s*[.):]\s*(.*)$")
 #: The room is whatever follows the separator: "Mathe | 1.OG 5" or "Mathe @ Turnhalle".
 _ROOM_SPLIT_RE = re.compile(r"\s*[|@]\s*")
+#: The turns of a rotating period: "Kunst / Musik | R2 / -". Spaces on both sides, so
+#: a subject called "Deutsch/Englisch" stays one subject.
+_TURN_SPLIT_RE = re.compile(r"\s+/\s+")
 
 
 class InvalidPeriod(ValueError):
@@ -426,17 +431,109 @@ class Period:
         return {"index": self.index, "start": self.start, "end": self.end}
 
 
+#: Before anybody set a cycle anchor, rotations count from this Monday. Saving a
+#: rotation sets the anchor, so only hand-written options ever fall back on it — and
+#: they then still get a fixed answer rather than one that moves.
+ROTATION_EPOCH = date(2024, 1, 1)
+
+
 @dataclass(slots=True)
 class Lesson:
-    """One subject in one period, on one weekday."""
+    """One subject in one period, on one weekday.
+
+    Or, with `rotation`, the turns that period takes week by week: one entry per week,
+    None for a week it is free. The subject and room are then the first turn's, which
+    is also what an older Schoolday reads, and nothing should take them for this
+    week's: `on_turn` is how a date gets its lesson.
+    """
 
     period: int
     subject: str
     room: str | None = None
+    rotation: tuple[Lesson | None, ...] = ()
+
+    def on_turn(self, weeks: int) -> Lesson | None:
+        """This period's lesson `weeks` weeks after week 1, or None when it is free."""
+        if not self.rotation:
+            return self
+        return self.rotation[weeks % len(self.rotation)]
+
+    @property
+    def names(self) -> list[str]:
+        """Every subject this period can be, in every turn."""
+        if not self.rotation:
+            return [self.subject]
+        return [turn.subject for turn in self.rotation if turn is not None]
 
     def as_card_dict(self) -> dict[str, Any]:
         """Shape handed to the cards."""
-        return {"period": self.period, "subject": self.subject, "room": self.room}
+        shape: dict[str, Any] = {
+            "period": self.period,
+            "subject": self.subject,
+            "room": self.room,
+        }
+        if self.rotation:
+            shape[CONF_ROTATION] = [
+                turn.as_card_dict() if turn else None for turn in self.rotation
+            ]
+        return shape
+
+    def as_options(self) -> dict[str, Any]:
+        """The stored shape of one period."""
+        shape: dict[str, Any] = {"subject": self.subject, "room": self.room}
+        if self.rotation:
+            shape[CONF_ROTATION] = [
+                {"subject": turn.subject, "room": turn.room} if turn else {}
+                for turn in self.rotation
+            ]
+        return shape
+
+
+def rotating(period: int, turns: Iterable[Lesson | None]) -> Lesson | None:
+    """One period from its turns: a rotation, a plain lesson, or None for free.
+
+    Folded down wherever it can be. One turn is a weekly lesson, and turns that are all
+    the same lesson are one too: storing "Maths / Maths" as a rotation would make the
+    editor show a rotation nobody meant, for ever.
+    """
+    cleaned = [
+        Lesson(period=period, subject=turn.subject, room=turn.room) if turn else None
+        for turn in list(turns)[:ROTATION_MAX]
+    ]
+    if not any(cleaned):
+        return None
+    first = cleaned[0]
+    if all(
+        turn is not None
+        and first is not None
+        and (turn.subject, turn.room) == (first.subject, first.room)
+        for turn in cleaned
+    ):
+        return first
+    return Lesson(
+        period=period,
+        subject=first.subject if first else "",
+        room=first.room if first else None,
+        rotation=tuple(cleaned),
+    )
+
+
+def lesson_from_options(period: int, entry: Any) -> Lesson | None:
+    """One stored period, rotation and all, or None when there is nothing in it."""
+    if not isinstance(entry, dict):
+        return None
+    turns = entry.get(CONF_ROTATION)
+    if isinstance(turns, list) and len(turns) > 1:
+        return rotating(period, (_stored_turn(period, turn) for turn in turns))
+    return _stored_turn(period, entry)
+
+
+def _stored_turn(period: int, entry: Any) -> Lesson | None:
+    subject = str((entry or {}).get("subject") or "").strip() if isinstance(entry, dict) else ""
+    if not subject:
+        return None
+    room = str(entry.get("room") or "").strip() or None
+    return Lesson(period=period, subject=subject, room=room)
 
 
 def periods_from_text(text: str | None) -> list[Period]:
@@ -498,11 +595,17 @@ def lessons_from_text(text: str | None, period_count: int) -> list[Lesson]:
         if slot > period_count:
             break
 
-        parts = _ROOM_SPLIT_RE.split(stripped, maxsplit=1)
-        subject = parts[0].strip()
-        room = parts[1].strip() if len(parts) > 1 else ""
-        if subject and subject.casefold() not in FREE_MARKERS:
-            lessons.append(Lesson(period=slot, subject=subject, room=room or None))
+        turns: list[Lesson | None] = []
+        for part in _TURN_SPLIT_RE.split(stripped):
+            pieces = _ROOM_SPLIT_RE.split(part.strip(), maxsplit=1)
+            subject = pieces[0].strip()
+            room = pieces[1].strip() if len(pieces) > 1 else ""
+            if subject and subject.casefold() not in FREE_MARKERS:
+                turns.append(Lesson(period=slot, subject=subject, room=room or None))
+            else:
+                turns.append(None)
+        if lesson := rotating(slot, turns):
+            lessons.append(lesson)
         slot += 1
 
     lessons.sort(key=lambda lesson: lesson.period)
@@ -525,7 +628,9 @@ def unify_subjects(week: dict[int, list[Lesson]]) -> None:
     canonical: dict[str, str] = {}
     for weekday in sorted(week):
         for lesson in week[weekday]:
-            lesson.subject = canonical.setdefault(lesson.subject.casefold(), lesson.subject)
+            for item in (lesson, *(turn for turn in lesson.rotation if turn)):
+                if item.subject:
+                    item.subject = canonical.setdefault(item.subject.casefold(), item.subject)
 
 
 def text_from_lessons(lessons: list[Lesson]) -> str:
@@ -541,11 +646,17 @@ def text_from_lessons(lessons: list[Lesson]) -> str:
         lesson = by_period.get(slot)
         if lesson is None:
             lines.append("-")
-        elif lesson.room:
-            lines.append(f"{lesson.subject} | {lesson.room}")
+        elif lesson.rotation:
+            lines.append(" / ".join(_turn_text(turn) for turn in lesson.rotation))
         else:
-            lines.append(lesson.subject)
+            lines.append(_turn_text(lesson))
     return "\n".join(lines)
+
+
+def _turn_text(lesson: Lesson | None) -> str:
+    if lesson is None:
+        return "-"
+    return f"{lesson.subject} | {lesson.room}" if lesson.room else lesson.subject
 
 
 @dataclass(slots=True)
@@ -627,11 +738,8 @@ class Timetable:
                         period = int(period_key)
                     except (TypeError, ValueError):
                         continue
-                    subject = str((entry or {}).get("subject") or "").strip()
-                    if not subject:
-                        continue
-                    room = str((entry or {}).get("room") or "").strip() or None
-                    day.append(Lesson(period=period, subject=subject, room=room))
+                    if lesson := lesson_from_options(period, entry):
+                        day.append(lesson)
                 if day:
                     days[slot] = sorted(day, key=lambda lesson: lesson.period)
             if days:
@@ -649,13 +757,7 @@ class Timetable:
             CONF_SUBJECT_COLORS: dict(self.colors),
             CONF_LESSONS: {
                 member_id: {
-                    str(weekday): {
-                        str(lesson.period): {
-                            "subject": lesson.subject,
-                            "room": lesson.room,
-                        }
-                        for lesson in day
-                    }
+                    str(weekday): {str(lesson.period): lesson.as_options() for lesson in day}
                     for weekday, day in sorted(week.items())
                 }
                 for member_id, week in self.lessons.items()
@@ -690,10 +792,11 @@ class Timetable:
     def subjects(self) -> list[str]:
         """Every subject in use, plus any that were given a colour, sorted."""
         names = {
-            lesson.subject
+            name
             for week in self.lessons.values()
             for day in week.values()
             for lesson in day
+            for name in lesson.names
         }
         names.update(self.colors)
         return sorted(names, key=str.casefold)
@@ -748,31 +851,6 @@ class Timetable:
             ),
             None,
         )
-
-    def lesson_at(
-        self, member_id: str, weekday: int, minutes: int, periods: list[Period]
-    ) -> tuple[Lesson, Period] | None:
-        """The lesson a member has at a point in the day, if any."""
-        period = self.period_at(minutes, periods)
-        if period is None:
-            return None
-        lesson = next(
-            (item for item in self.day(member_id, weekday) if item.period == period.index),
-            None,
-        )
-        return (lesson, period) if lesson else None
-
-    def next_lesson(
-        self, member_id: str, weekday: int, minutes: int, periods: list[Period]
-    ) -> tuple[Lesson, Period] | None:
-        """The member's next lesson that day, skipping free periods."""
-        day = {item.period: item for item in self.day(member_id, weekday)}
-        for period in periods:
-            if period.start_minutes <= minutes:
-                continue
-            if lesson := day.get(period.index):
-                return lesson, period
-        return None
 
     @staticmethod
     def boundaries_in(periods: list[Period]) -> list[int]:
@@ -832,6 +910,17 @@ class Timetable:
             # The household's first day of the week. The cards start the week on it.
             "week_start": week_start,
         }
+
+    def rotates(self, member_id: str) -> bool:
+        """True when any period of this member's week takes turns."""
+        return any(
+            lesson.rotation for day in self.week(member_id).values() for lesson in day
+        )
+
+    @property
+    def uses_rotation(self) -> bool:
+        """True when anybody's week has a rotating period in it."""
+        return any(self.rotates(member_id) for member_id in self.lessons)
 
     def member_card_dict(self, member_id: str) -> dict[str, list[dict[str, Any]]]:
         """One member's week, in the shape their sensor publishes."""
@@ -1265,8 +1354,30 @@ class SchooldayConfig:
         """
         if self.cycle_weeks < 2 or self.cycle_anchor is None:
             return 0
-        weeks = (self.start_of_week(day) - self.start_of_week(self.cycle_anchor)).days
-        return (weeks // SLOTS_PER_WEEK) % self.cycle_weeks
+        return self.weeks_from_anchor(day) % self.cycle_weeks
+
+    def weeks_from_anchor(self, day: date) -> int:
+        """How many weeks `day` is after week 1, negative before it.
+
+        The one count both the A/B cycle and every rotating period read, so week A and
+        the first turn of a rotation are always the same week. Counted in the
+        household's weeks, for the same reason as `week_index`.
+        """
+        anchor = self.cycle_anchor or ROTATION_EPOCH
+        return (self.start_of_week(day) - self.start_of_week(anchor)).days // SLOTS_PER_WEEK
+
+    def turn_for(self, day: date) -> int:
+        """Which turn of a rotating period `day` is on, before taking the modulo.
+
+        Counted in the weeks the period actually runs. With an A/B cycle a week A cell
+        only comes round every other week, and counting calendar weeks would land a
+        rotation of two on the same turn every single time — "Chor / Orchester" would
+        be choir for ever. So the A weeks are counted, and the B weeks.
+        """
+        weeks = self.weeks_from_anchor(day)
+        if self.cycle_weeks > 1 and self.cycle_anchor is not None:
+            return weeks // self.cycle_weeks
+        return weeks
 
     def start_of_week(self, day: date) -> date:
         """The first day of the household's week that `day` falls in."""
@@ -1298,9 +1409,14 @@ class SchooldayConfig:
         like; only a date knows whether this Tuesday's third period was cancelled, and
         the two answers must never be worked out in two places.
         """
-        lessons = self.timetable.day(member_id, self.slot_for(day))
+        turn = self.turn_for(day)
+        lessons = [
+            lesson
+            for planned in self.timetable.day(member_id, self.slot_for(day))
+            if (lesson := planned.on_turn(turn)) is not None
+        ]
         change = self.exception(member_id, day)
-        return change.applied_to(lessons) if change else list(lessons)
+        return change.applied_to(lessons) if change else lessons
 
     def packing_list(self, subjects: Iterable[str]) -> list[tuple[str, str]]:
         """What a day of these subjects needs packed, as (item, subject) pairs.
@@ -1389,6 +1505,9 @@ class SchooldayConfig:
             # Which week the household is in right now, so the editor can open on it
             # rather than making somebody work it out from a date.
             "cycle_now": self.week_index(today()),
+            # How many weeks this one is from week 1, so the editor can work out which
+            # turn of a rotating period is this week's, or any date's, by counting weeks.
+            "rotation_now": self.weeks_from_anchor(today()),
             "week_start": self.week_start,
             # Every subject in use, so the materials editor can offer them instead of
             # asking the household to type a subject name that has to match exactly.

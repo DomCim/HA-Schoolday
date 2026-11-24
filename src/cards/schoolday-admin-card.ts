@@ -31,9 +31,10 @@ import { schooldayButtons, schooldayTokens } from '../lib/styles';
 import {
   gridFor,
   lessonAt,
-  usesSecondWeek,
   schoolDays,
   SLOTS_PER_WEEK,
+  turnOf,
+  usesSecondWeek,
   weekOf,
   type TimetableLesson,
   type TimetableWeek,
@@ -97,6 +98,17 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
   @state() private _adding = false;
   @state() private _draftSubject = '';
   @state() private _draftRoom = '';
+  /**
+   * The turns of the cell being edited, when it takes turns week by week. Empty for
+   * an ordinary lesson, which is what the subject and room above are for.
+   */
+  @state() private _draftTurns: { subject: string; room: string }[] = [];
+  /**
+   * Which week the timetable editor shows, in weeks from this one. Only offered once a
+   * period takes turns: then a week is a dated thing, and the grid shows each rotating
+   * period's turn for it rather than every turn at once.
+   */
+  @state() private _weekOffset = 0;
   /**
    * What the pickers currently hold, by `member-field`.
    *
@@ -362,6 +374,13 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
    */
   private _renderCycle(config: AdminConfig): TemplateResult {
     const anchorWeek = config.cycleAnchor ? isoWeek(config.cycleAnchor) : null;
+    // A rotating lesson counts from the same week as week A, so the field is needed by
+    // a household that rotates without an A/B cycle too — and only by those.
+    const rotating = config.members.some((member) =>
+      Object.values(weekOf(memberSensor(this.hass!, member.id))).some((day) =>
+        day.some((lesson) => lesson.rotation),
+      ),
+    );
     return html`
       <div class="cycle">
         <div class="segmented">
@@ -377,6 +396,24 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
             `,
           )}
         </div>
+        ${config.cycleWeeks === 1 && rotating
+          ? html`
+              <label class="field">
+                <span class="label">${t(this.hass, 'admin.rotation_start')}</span>
+                <input
+                  id="rotation-start"
+                  type="date"
+                  .value=${config.cycleAnchor ?? ''}
+                  @change=${(event: Event) => {
+                    const value = (event.target as HTMLInputElement).value;
+                    if (value) {
+                      this._call('set_cycle', { weeks: 1, anchor: value });
+                    }
+                  }}
+                />
+              </label>
+            `
+          : nothing}
         ${config.cycleWeeks > 1
           ? html`
               <label class="field">
@@ -391,7 +428,7 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
                     const value = Number((event.target as HTMLInputElement).value);
                     if (value >= 1 && value <= 53) {
                       this._call('set_cycle', {
-                        weeks: 2,
+                        weeks: config.cycleWeeks,
                         iso_week: value,
                         iso_year: anchorWeek?.year,
                       });
@@ -450,7 +487,19 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
       : {};
     // Which week is being edited. Opens on the one the household is in, because that
     // is the one somebody standing at the board is thinking about.
-    const cycleWeek = config.cycleWeeks > 1 ? (this._week ?? config.cycleNow) : 0;
+    const rotating = Object.values(week).some((day) => day.some((lesson) => lesson.rotation));
+    const offset = rotating ? this._weekOffset : 0;
+    const mod = (value: number, by: number) => ((value % by) + by) % by;
+    // With a rotation the week shown is a dated one, and its A or B follows from the
+    // date rather than from a switch that could disagree with it.
+    const cycleWeek =
+      config.cycleWeeks > 1
+        ? rotating
+          ? mod(config.cycleNow + offset, config.cycleWeeks)
+          : (this._week ?? config.cycleNow)
+        : 0;
+    // Before anybody set week 1, saving makes this week week 1, so count from here.
+    const turn = this._turn(config, (config.cycleAnchor ? config.rotationNow : 0) + offset);
     // The same days as the timetable card: the first five of the household's week, and
     // any later day up to the last one with a lesson in either week.
     const order = weekOrder(config.weekStart);
@@ -472,7 +521,8 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
           ? html`<div class="notice">${t(this.hass, 'admin.no_members')}</div>`
           : html`
               ${this._memberChips(config, member)}
-              ${config.cycleWeeks > 1
+              ${rotating ? this._renderWeekStep(config, offset, cycleWeek) : nothing}
+              ${config.cycleWeeks > 1 && !rotating
                 ? html`<div class="segmented week-pick">
                     ${[0, 1].map(
                       (index) => html`
@@ -519,34 +569,170 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
                       const slot = day + SLOTS_PER_WEEK * cycleWeek;
                       const key = `${slot}:${period.index}`;
                       const lesson = lessonAt(week, slot, period.index);
+                      // A rotating period shows the turn of the week on screen, like the
+                      // board does, with which turn of how many it is beside it. All the
+                      // turns are in the editor, where they are being changed.
+                      const turns = lesson?.rotation;
+                      const shownLesson = lesson ? turnOf(lesson, turn) : null;
+                      const shown = shownLesson?.subject ?? (turns ? '–' : undefined);
                       return html`
                         <button
-                          class="slot ${lesson ? 'filled' : ''} ${this._cell === key ? 'open' : ''}"
-                          style=${lesson
-                            ? `--subject:${grid.subjects[lesson.subject] ?? 'var(--schoolday-line)'}`
+                          class="slot ${shownLesson ? 'filled' : ''} ${turns ? 'rotating' : ''} ${this._cell === key ? 'open' : ''}"
+                          style=${shownLesson
+                            ? `--subject:${grid.subjects[shownLesson.subject] ?? 'var(--schoolday-line)'}`
                             : ''}
                           @click=${() => {
                             this._cell = this._cell === key ? undefined : key;
                             this._draftSubject = lesson?.subject ?? '';
                             this._draftRoom = lesson?.room ?? '';
+                            this._draftTurns = (turns ?? []).map((turn) => ({
+                              subject: turn?.subject ?? '',
+                              room: turn?.room ?? '',
+                            }));
                           }}
                         >
-                          <span class="subject" dir="auto" title=${lesson?.subject ?? ''}
-                            >${lesson?.subject ?? '+'}</span
-                          >
-                          ${lesson?.room ? html`<span class="room"><bdi>${lesson.room}</bdi></span>` : nothing}
+                          <span class="subject" dir="auto" title=${shown ?? ''}>${shown ?? '+'}</span>
+                          ${shownLesson?.room
+                            ? html`<span class="room"><bdi>${shownLesson.room}</bdi></span>`
+                            : nothing}
+                          ${turns
+                            ? html`<span class="turn-mark"
+                                >↻ ${mod(turn, turns.length) + 1}/${turns.length}</span
+                              >`
+                            : nothing}
                         </button>
                       `;
                     })}
                   `,
                 )}
               </div>
-              ${this._cell ? this._renderCellEditor(member) : nothing}
+              ${this._cell ? this._renderCellEditor(member, turn, offset) : nothing}
             `}
     `;
   }
 
-  private _renderCellEditor(member: AdminMember): TemplateResult {
+  /** The first day of the household's week `offset` weeks from this one, as `dd.mm.`. */
+  private _weekStartLabel(config: AdminConfig, offset: number): string {
+    const now = new Date();
+    const back = (now.getDay() - config.weekStart + 7) % 7;
+    const first = new Date(now.getFullYear(), now.getMonth(), now.getDate() - back + 7 * offset);
+    return `${String(first.getDate()).padStart(2, '0')}.${String(first.getMonth() + 1).padStart(2, '0')}.`;
+  }
+
+  /** Back and forward a week, and which week is on screen. */
+  private _renderWeekStep(config: AdminConfig, offset: number, cycleWeek: number): TemplateResult {
+    const rtl = isRtl(this.hass);
+    const name =
+      offset === 0
+        ? t(this.hass, 'admin.this_week')
+        : offset === 1
+          ? t(this.hass, 'admin.next_week')
+          : t(this.hass, 'admin.week_of', { date: this._weekStartLabel(config, offset) });
+    const step = (by: number) => {
+      this._weekOffset = offset + by;
+      this._cell = undefined;
+    };
+    return html`
+      <div class="week-step">
+        <button class="link" id="week-prev" aria-label=${t(this.hass, 'admin.week_prev')} @click=${() => step(-1)}>
+          ${rtl ? '›' : '‹'}
+        </button>
+        <span id="week-shown">
+          ${name}${config.cycleWeeks > 1
+            ? ` · ${t(this.hass, cycleWeek === 1 ? 'admin.week_b' : 'admin.week_a')}`
+            : ''}
+        </span>
+        <button class="link" id="week-next" aria-label=${t(this.hass, 'admin.week_next')} @click=${() => step(1)}>
+          ${rtl ? '‹' : '›'}
+        </button>
+        ${offset !== 0
+          ? html`<button class="link" id="week-now" @click=${() => step(-offset)}>
+              ${t(this.hass, 'admin.this_week')}
+            </button>`
+          : nothing}
+      </div>
+    `;
+  }
+
+  /**
+   * The turns of a rotating cell, one row per week.
+   *
+   * The row of the week on screen is marked — "this week" when that is the one —
+   * because "week 3" means nothing to somebody standing at the board. A rotation that
+   * has just been started is counted from that week too, which is where saving puts
+   * week 1 when nothing set it yet.
+   */
+  private _renderTurns(turn: number, offset: number, known: string[]): TemplateResult {
+    const turns = this._draftTurns;
+    const current = ((turn % turns.length) + turns.length) % turns.length;
+    const update = (index: number, field: 'subject' | 'room', value: string) => {
+      this._draftTurns = turns.map((turn, at) => (at === index ? { ...turn, [field]: value } : turn));
+    };
+    return html`
+      <div class="notice quiet">${t(this.hass, 'admin.rotation_hint')}</div>
+      ${turns.map(
+        (turn, index) => html`
+          <div class="row turn">
+            <span class="label turn-no ${index === current ? 'now' : ''}">
+              ${t(this.hass, 'admin.rotation_week', { week: String(index + 1) })}${index === current
+                ? html` · ${t(this.hass, offset === 0 ? 'admin.rotation_this' : 'admin.rotation_shown')}`
+                : nothing}
+            </span>
+            <input
+              class="grow subject-in"
+              dir="auto"
+              list="schoolday-subjects"
+              aria-label=${t(this.hass, 'admin.subject')}
+              placeholder=${t(this.hass, 'admin.rotation_free')}
+              .value=${turn.subject}
+              @input=${(e: Event) => update(index, 'subject', (e.target as HTMLInputElement).value)}
+            />
+            <input
+              class="grow"
+              dir="auto"
+              aria-label=${t(this.hass, 'admin.room')}
+              placeholder=${t(this.hass, 'admin.room')}
+              .value=${turn.room}
+              @input=${(e: Event) => update(index, 'room', (e.target as HTMLInputElement).value)}
+            />
+            <button
+              class="link"
+              aria-label=${t(this.hass, 'admin.rotation_remove')}
+              @click=${() => {
+                const left = turns.filter((_, at) => at !== index);
+                // One turn left is an ordinary lesson again, in the ordinary fields.
+                if (left.length < 2) {
+                  this._draftSubject = left[0]?.subject ?? '';
+                  this._draftRoom = left[0]?.room ?? '';
+                  this._draftTurns = [];
+                } else {
+                  this._draftTurns = left;
+                }
+              }}
+            >
+              ×
+            </button>
+          </div>
+        `,
+      )}
+      <datalist id="schoolday-subjects">
+        ${known.map((subject) => html`<option value=${subject}></option>`)}
+      </datalist>
+      ${turns.length < 8
+        ? html`<button
+            class="link"
+            id="rotation-more"
+            @click=${() => {
+              this._draftTurns = [...turns, { subject: '', room: '' }];
+            }}
+          >
+            ${t(this.hass, 'admin.rotation_more')}
+          </button>`
+        : nothing}
+    `;
+  }
+
+  private _renderCellEditor(member: AdminMember, turn: number, offset: number): TemplateResult {
     // The cell is keyed by slot, so the weekday and the week of the cycle both fall
     // out of it — one number to carry around rather than two to keep in step.
     const [slot, period] = this._cell!.split(':').map(Number);
@@ -561,7 +747,9 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
             ? ` ${t(this.hass, week === 1 ? 'admin.week_b' : 'admin.week_a')}`
             : ''} · ${period}.
         </div>
-        <div class="row">
+        ${this._draftTurns.length > 1
+          ? this._renderTurns(turn, offset, known)
+          : html`<div class="row">
           <label class="field grow">
             <span class="label">${t(this.hass, 'admin.subject')}</span>
             <input
@@ -585,19 +773,45 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
             />
           </label>
         </div>
+        <button
+          class="link"
+          id="rotation-add"
+          @click=${() => {
+            this._draftTurns = [
+              { subject: this._draftSubject, room: this._draftRoom },
+              { subject: '', room: '' },
+            ];
+          }}
+        >
+          ${t(this.hass, 'admin.rotation_add')}
+        </button>`}
         <div class="row">
           <button
             class="apply"
             ?disabled=${this._busy}
             @click=${async () => {
-              await this._call('set_lesson', {
-                member: member.id,
-                weekday,
-                week,
-                period,
-                subject: this._draftSubject,
-                room: this._draftRoom,
-              });
+              await this._call(
+                'set_lesson',
+                this._draftTurns.length > 1
+                  ? {
+                      member: member.id,
+                      weekday,
+                      week,
+                      period,
+                      rotation: this._draftTurns.map((turn) => ({
+                        subject: turn.subject.trim(),
+                        room: turn.room.trim(),
+                      })),
+                    }
+                  : {
+                      member: member.id,
+                      weekday,
+                      week,
+                      period,
+                      subject: this._draftSubject,
+                      room: this._draftRoom,
+                    },
+              );
               this._cell = undefined;
             }}
           >
@@ -1069,7 +1283,7 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
   }
 
   /**
-   * What the timetable plans for one date and period, in that date's week of the cycle.
+   * What the timetable plans for one date and period, rotation and A/B week included.
    *
    * Counted from this week, whose place in the cycle the integration publishes, so the
    * card only has to know how many weeks away the date is — not where week A is.
@@ -1096,7 +1310,18 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
         ? (((config.cycleNow + ahead) % config.cycleWeeks) + config.cycleWeeks) % config.cycleWeeks
         : 0;
     const weekday = (target.getDay() + 6) % 7;
-    return lessonAt(week, weekday + SLOTS_PER_WEEK * cycled, period) ?? null;
+    const lesson = lessonAt(week, weekday + SLOTS_PER_WEEK * cycled, period);
+    return lesson ? turnOf(lesson, this._turn(config, config.rotationNow + ahead)) : null;
+  }
+
+  /**
+   * The turn a number of weeks after week 1 is on. Mirrors `turn_for`: with an A/B
+   * cycle a cell runs every other week, so its turns count A weeks, or B weeks.
+   */
+  private _turn(config: AdminConfig, weeks: number): number {
+    return config.cycleWeeks > 1 && config.cycleAnchor
+      ? Math.floor(weeks / config.cycleWeeks)
+      : weeks;
   }
 
   /**
@@ -1579,6 +1804,29 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
         color: var(--schoolday-muted);
       }
 
+      .turn {
+        align-items: center;
+      }
+
+      .turn input {
+        min-width: 0;
+        flex: 1 1 6em;
+      }
+
+      .turn .subject-in {
+        flex-grow: 2;
+      }
+
+      /* Above its fields rather than beside them, so a phone keeps the width for the
+         subject and the row marked "this week" lines up with the others. */
+      .turn-no {
+        flex: 1 0 100%;
+      }
+
+      .turn .link {
+        min-width: var(--schoolday-touch);
+      }
+
       /* A narrow column cuts a long subject off. It ends in an ellipsis at the end of
          its own script — "Deuts…", not "eutsch" — and the cell's title has the rest. */
       .slot .subject {
@@ -1595,6 +1843,31 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
           padding: 4px 3px;
           font-size: 0.8rem;
         }
+      }
+
+      .slot .turn-mark {
+        font-size: 0.7rem;
+        font-weight: 400;
+        color: var(--schoolday-muted);
+      }
+
+      .week-step {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .week-step #week-shown {
+        font-weight: 700;
+        min-width: 8em;
+        text-align: center;
+      }
+
+
+      .turn-no.now {
+        color: var(--schoolday-today);
+        font-weight: 700;
       }
 
       .editor,

@@ -55,6 +55,7 @@ from .const import (
     WEEKDAYS,
     WEEK_START_DAYS,
 )
+from .config_writes import rotation_anchor
 from .models import (
     InvalidPeriod,
     Lesson,
@@ -627,7 +628,12 @@ class SchooldayOptionsFlow(OptionsFlow):
                 timetable.lessons[self._member_id] = week
             else:
                 timetable.lessons.pop(self._member_id, None)
-            self._persist(**{CONF_TIMETABLE: timetable.as_options()})
+            self._persist(
+                **{
+                    CONF_TIMETABLE: timetable.as_options(),
+                    **rotation_anchor(self.config_entry.options, timetable, None),
+                }
+            )
             return await self.async_step_init()
 
         stored = timetable.week(self._member_id)

@@ -173,7 +173,7 @@
       },
       "timetable_week": {
         "title": "{name} – Stundenplan",
-        "description": "Ein Fach pro Zeile, in der Reihenfolge der Stunden:\n\n{periods}\n\nDer Raum kommt hinter einen senkrechten Strich, ein Bindestrich lässt eine Stunde frei, und eine Zeile darf ihre Stunde selbst benennen – dann braucht ein später Start keine Platzhalter:\n\nDeutsch\nMathe | 1.OG 5\n-\n6. Sport | Turnhalle\n\nDie Farbe sucht sich jedes Fach selbst. Tage, die du leer lässt, haben einfach keine Schule.",
+        "description": "Ein Fach pro Zeile, in der Reihenfolge der Stunden:\n\n{periods}\n\nDer Raum kommt hinter einen senkrechten Strich, ein Bindestrich lässt eine Stunde frei, und eine Zeile darf ihre Stunde selbst benennen – dann braucht ein später Start keine Platzhalter:\n\nDeutsch\nMathe | 1.OG 5\n-\n6. Sport | Turnhalle\n\nEine Stunde, die sich Woche für Woche abwechselt, bekommt ihre Fächer mit Schrägstrich dazwischen: Kunst / Musik / - ist Kunst, dann Musik, dann frei, dann wieder Kunst – gezählt ab Woche 1 des Zyklus.\n\nDie Farbe sucht sich jedes Fach selbst. Tage, die du leer lässt, haben einfach keine Schule.",
         "data": {
           "0": "Montag",
           "1": "Dienstag",
@@ -392,7 +392,7 @@
         },
         "lessons": {
           "name": "Stunden",
-          "description": "Eine Liste aus Einträgen mit Stunde, Fach und optionalem Raum."
+          "description": "Eine Liste mit Stunde, Fach und optional Raum, oder Stunde und Wechsel für eine Stunde, die sich abwechselt."
         },
         "week": {
           "name": "Woche des Zyklus",
@@ -461,6 +461,10 @@
         "week": {
           "name": "Woche des Zyklus",
           "description": "0 für die A-Woche, 1 für die B-Woche. Nur bei einem Zwei-Wochen-Plan von Bedeutung."
+        },
+        "rotation": {
+          "name": "Im Wechsel",
+          "description": "Optional. Was diese Stunde Woche für Woche im Wechsel ist, gezählt ab Woche 1 des Zyklus: [\"Kunst\", \"Musik\", \"-\"] ist Kunst, dann Musik, dann frei, und wieder von vorn. Geht vor Fach und Raum."
         }
       }
     },

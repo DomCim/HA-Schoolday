@@ -32,6 +32,7 @@ from .const import (
     CONF_WEEK_START,
     WEEK_START_DAYS,
     CONF_EXCEPTIONS,
+    ROTATION_MAX,
     CONF_MATERIALS,
     CONF_MEMBER_ID,
     CONF_MEMBERS,
@@ -61,6 +62,7 @@ from .models import (
     Lesson,
     Timetable,
     clock,
+    rotating,
     monday_of_week,
     parse_week_start,
     color_to_hex,
@@ -148,6 +150,46 @@ def _slot(weekday: int, week: int) -> int:
     return weekday + SLOTS_PER_WEEK * week
 
 
+def _turns(period: int, rotation: list[Any]) -> Lesson | None:
+    """A period's turns from what a card or a script sent, folded down.
+
+    Each turn is a {subject, room}, or just a subject; an empty one or "-" is a week
+    the period is free. Refused past ROTATION_MAX rather than cut, because silently
+    dropping the ninth week would leave a rotation that is shorter than it was typed.
+    """
+    if len(rotation) > ROTATION_MAX:
+        raise SchooldayValueError(
+            f"A lesson can take turns over at most {ROTATION_MAX} weeks, not {len(rotation)}."
+        )
+    turns: list[Lesson | None] = []
+    for entry in rotation:
+        if isinstance(entry, dict):
+            subject = str(entry.get("subject") or "").strip()
+            room = str(entry.get("room") or "").strip() or None
+        else:
+            subject, room = str(entry or "").strip(), None
+        if subject and subject != "-":
+            turns.append(Lesson(period=period, subject=subject, room=room))
+        else:
+            turns.append(None)
+    return rotating(period, turns)
+
+
+def rotation_anchor(
+    options: dict[str, Any], timetable: Timetable, today: date | None
+) -> dict[str, Any]:
+    """Week 1 for the rotations, when the first one is saved and nothing set it yet.
+
+    This week, for the same reason switching the A/B cycle on makes this week A: it is
+    the only guess that cannot be wrong today, and it means the first turn somebody
+    typed is the one they see on the board.
+    """
+    if options.get(CONF_CYCLE_ANCHOR) or not timetable.uses_rotation:
+        return {}
+    starts = parse_week_start(options.get(CONF_WEEK_START))
+    return {CONF_CYCLE_ANCHOR: monday_of_week(today or _today(), starts).isoformat()}
+
+
 def set_lesson(
     options: dict[str, Any],
     member_id: str,
@@ -156,6 +198,8 @@ def set_lesson(
     subject: str | None,
     room: str | None = None,
     week: int = 0,
+    rotation: list[Any] | None = None,
+    today: date | None = None,
 ) -> dict[str, Any]:
     """Put one lesson in one period of one day, or clear it.
 
@@ -165,6 +209,9 @@ def set_lesson(
     `week` is 0 for week A and 1 for week B, and is accepted whether or not the
     two-week cycle is switched on — so turning it off and on again does not lose the
     B week somebody already typed.
+
+    `rotation`, when given, is the turns the period takes week by week and wins over
+    `subject` and `room`. A rotation of one is an ordinary lesson.
     """
     timetable = _timetable(options)
     slot = _slot(weekday, week)
@@ -176,7 +223,10 @@ def set_lesson(
 
     cycle = {existing: list(lessons) for existing, lessons in timetable.week(member_id).items()}
     day = [lesson for lesson in cycle.get(slot, []) if lesson.period != period]
-    if subject := (subject or "").strip():
+    if rotation is not None:
+        if lesson := _turns(period, rotation):
+            day.append(lesson)
+    elif subject := (subject or "").strip():
         day.append(Lesson(period=period, subject=subject, room=(room or "").strip() or None))
     day.sort(key=lambda lesson: lesson.period)
 
@@ -192,7 +242,7 @@ def set_lesson(
         timetable.lessons[member_id] = cycle
     else:
         timetable.lessons.pop(member_id, None)
-    return {CONF_TIMETABLE: timetable.as_options()}
+    return {CONF_TIMETABLE: timetable.as_options(), **rotation_anchor(options, timetable, today)}
 
 
 def set_day(
@@ -201,11 +251,12 @@ def set_day(
     weekday: int,
     lessons: list[dict[str, Any]],
     week: int = 0,
+    today: date | None = None,
 ) -> dict[str, Any]:
     """Replace a whole weekday for one member.
 
-    For pasting a day in one go. Each entry needs a period and a subject; anything
-    without a subject is a free period and is simply left out.
+    For pasting a day in one go. Each entry needs a period and a subject, or a
+    `rotation`; anything without either is a free period and is simply left out.
     """
     timetable = _timetable(options)
     slot = _slot(weekday, week)
@@ -214,7 +265,8 @@ def set_day(
     day: list[Lesson] = []
     for entry in lessons:
         subject = str((entry or {}).get("subject") or "").strip()
-        if not subject:
+        rotation = (entry or {}).get("rotation")
+        if not subject and not rotation:
             continue
         try:
             period = int((entry or {}).get("period"))
@@ -227,6 +279,10 @@ def set_day(
                 f"There is no period {period}. Configured periods: "
                 f"{', '.join(str(index) for index in sorted(known)) or 'none configured'}."
             )
+        if rotation:
+            if lesson := _turns(period, list(rotation)):
+                day.append(lesson)
+            continue
         day.append(
             Lesson(
                 period=period,
@@ -246,7 +302,7 @@ def set_day(
         timetable.lessons[member_id] = cycle
     else:
         timetable.lessons.pop(member_id, None)
-    return {CONF_TIMETABLE: timetable.as_options()}
+    return {CONF_TIMETABLE: timetable.as_options(), **rotation_anchor(options, timetable, today)}
 
 
 def set_subject_color(options: dict[str, Any], subject: str, color: Any) -> dict[str, Any]:

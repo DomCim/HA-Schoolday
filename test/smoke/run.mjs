@@ -2434,6 +2434,157 @@ check(
   `${cycledButEmpty} mit Zyklus, ${withoutCycle} ohne`,
 );
 
+// --------------------------------------------------------------- taking turns
+
+// Monday's third period takes turns: art, music, nothing, theatre. This week is week 1,
+// so with the columns rolled on Monday is next week's — music — and as it stands it
+// is this week's art.
+await page.evaluate(() => window.__setRotation(true));
+const turnSubjects = async (roll) => {
+  await page.evaluate((roll) => {
+    window.__mount(
+      { type: 'custom:schoolday-timetable-card', member: 'm1', layout: 'week', roll_days: roll },
+      'schoolday-timetable-card',
+    );
+  }, roll);
+  await page.waitForTimeout(300);
+  return page.evaluate(() =>
+    [...document.querySelector('schoolday-timetable-card').shadowRoot.querySelectorAll('.cell .subject')].map(
+      (node) => node.textContent.trim(),
+    ),
+  );
+};
+const rolledTurns = await turnSubjects(true);
+const standingTurns = await turnSubjects(false);
+check(
+  'a rotating period shows the turn of the week its column stands for',
+  !rolledTurns.includes('Kunst') &&
+    rolledTurns.filter((name) => name === 'Musik').length === 2 &&
+    standingTurns.includes('Kunst'),
+  `gerollt: ${rolledTurns.filter((n) => ['Kunst', 'Musik'].includes(n)).join(',')} / stehend: ${standingTurns
+    .filter((n) => ['Kunst', 'Musik'].includes(n))
+    .join(',')}`,
+);
+
+await page.evaluate(() =>
+  window.__mount({ type: 'custom:schoolday-admin-card', section: 'timetable' }, 'schoolday-admin-card'),
+);
+await page.waitForTimeout(300);
+// The editor's grid shows the week on screen, like the board: this week's turn of a
+// rotating period, never all of them at once. Stepping a week on shows the next turn.
+const rotatingCellText = () =>
+  page.evaluate(() => {
+    const cell = document.querySelector('schoolday-admin-card').shadowRoot.querySelector('.slot.rotating');
+    return {
+      subject: cell?.querySelector('.subject')?.textContent.trim() ?? null,
+      mark: cell?.querySelector('.turn-mark')?.textContent.trim() ?? null,
+    };
+  });
+const thisWeekCell = await rotatingCellText();
+await page.evaluate(() =>
+  document.querySelector('schoolday-admin-card').shadowRoot.querySelector('#week-next').click(),
+);
+await page.waitForTimeout(200);
+const nextWeekCell = await rotatingCellText();
+const shownWeek = await page.evaluate(
+  () => document.querySelector('schoolday-admin-card').shadowRoot.querySelector('#week-shown')?.textContent.trim(),
+);
+await page.evaluate(() =>
+  document.querySelector('schoolday-admin-card').shadowRoot.querySelector('#week-prev').click(),
+);
+await page.waitForTimeout(200);
+check(
+  "the editor's grid shows only the turn of the week on screen, and steps through them",
+  thisWeekCell.subject === 'Kunst' &&
+    thisWeekCell.mark === '↻ 1/4' &&
+    nextWeekCell.subject === 'Musik' &&
+    nextWeekCell.mark === '↻ 2/4' &&
+    shownWeek === 'Nächste Woche',
+  `${JSON.stringify(thisWeekCell)} → ${shownWeek} ${JSON.stringify(nextWeekCell)}`,
+);
+const rotatingCell = await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  const cell = root.querySelector('.slot.rotating');
+  cell?.click();
+  return cell?.querySelector('.subject')?.textContent.trim() ?? null;
+});
+await page.waitForTimeout(300);
+const turnRows = await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  return [...root.querySelectorAll('.editor .turn')].map((row) => ({
+    subject: row.querySelectorAll('input')[0].value,
+    room: row.querySelectorAll('input')[1].value,
+    now: row.querySelector('.turn-no')?.classList.contains('now') ?? false,
+  }));
+});
+check(
+  'the editor shows every turn of a rotating cell, and which one is this week',
+  rotatingCell === 'Kunst' &&
+    turnRows.length === 4 &&
+    turnRows[0].now &&
+    !turnRows[1].now &&
+    turnRows[0].room === '1.OG 5' &&
+    turnRows[2].subject === '',
+  `${rotatingCell} · ${JSON.stringify(turnRows)}`,
+);
+check(
+  'without an A/B cycle, a rotation asks for the date week 1 begins, not a calendar week',
+  await page.evaluate(() => {
+    const root = document.querySelector('schoolday-admin-card').shadowRoot;
+    return root.querySelector('#rotation-start')?.value === '2026-08-03' && !root.querySelector('#cycle-week');
+  }),
+);
+
+await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  root.querySelector('#rotation-more').click();
+});
+await page.waitForTimeout(200);
+await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  const rows = root.querySelectorAll('.editor .turn');
+  const input = rows[rows.length - 1].querySelector('input');
+  input.value = 'Chor';
+  input.dispatchEvent(new Event('input'));
+});
+await page.waitForTimeout(100);
+await page.locator('schoolday-admin-card .editor .apply').click();
+await page.waitForTimeout(300);
+const rotationCall = await page.evaluate(
+  () => window.__calls.services.filter((c) => c.service === 'set_lesson').pop() ?? null,
+);
+check(
+  'saving a rotating cell sends every turn, a free one included',
+  JSON.stringify(rotationCall?.data.rotation?.map((turn) => turn.subject)) ===
+    JSON.stringify(['Kunst', 'Musik', '', 'Theater', 'Chor']) &&
+    rotationCall?.data.subject === undefined &&
+    rotationCall?.data.period === 3,
+  JSON.stringify(rotationCall?.data ?? null),
+);
+
+// An ordinary cell becomes one that takes turns with one tap, keeping what it held.
+await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  root.querySelector('.slot.filled:not(.rotating)').click();
+});
+await page.waitForTimeout(200);
+await page.evaluate(() =>
+  document.querySelector('schoolday-admin-card').shadowRoot.querySelector('#rotation-add').click(),
+);
+await page.waitForTimeout(200);
+const startedTurns = await page.evaluate(() =>
+  [...document.querySelector('schoolday-admin-card').shadowRoot.querySelectorAll('.editor .turn')].map(
+    (row) => row.querySelector('input').value,
+  ),
+);
+check(
+  'taking turns starts from the lesson that was there',
+  startedTurns.length === 2 && startedTurns[0] !== '' && startedTurns[1] === '',
+  JSON.stringify(startedTurns),
+);
+
+await page.evaluate(() => window.__setRotation(false));
+
 // An A/B timetable in the date editor: a B date plans from week B, and while week B is
 // still empty it plans from week A, as the board draws it.
 await page.evaluate(() => window.__setCycle(2));

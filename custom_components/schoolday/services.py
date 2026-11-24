@@ -51,6 +51,7 @@ from .const import (
     ATTR_STEP,
     ATTR_STEPS,
     ATTR_SUBJECT_FIELD,
+    ATTR_ROTATION,
     ATTR_UNTIL,
     ATTR_WEEK,
     ATTR_WEEKDAY_FIELD,
@@ -100,11 +101,27 @@ SET_STEP_SCHEMA = vol.Schema(
 
 RESET_SCHEMA = vol.Schema({vol.Optional(ATTR_MEMBER): cv.string})
 
+# One turn of a rotating period: a subject on its own, or a subject and a room.
+# "-" or empty is a week the period is free. The length is config_writes' to check,
+# with a message that says what the limit is.
+_TURN = vol.Any(
+    None,
+    cv.string,
+    vol.Schema(
+        {
+            vol.Optional(ATTR_SUBJECT_FIELD): vol.Any(cv.string, None),
+            vol.Optional(ATTR_ROOM_FIELD): vol.Any(cv.string, None),
+        }
+    ),
+)
+_ROTATION = vol.All(cv.ensure_list, [_TURN])
+
 _LESSON = vol.Schema(
     {
         vol.Required(ATTR_PERIOD): vol.Coerce(int),
         vol.Optional(ATTR_SUBJECT_FIELD): vol.Any(cv.string, None),
         vol.Optional(ATTR_ROOM_FIELD): vol.Any(cv.string, None),
+        vol.Optional(ATTR_ROTATION): _ROTATION,
     }
 )
 _WEEKDAY = vol.All(vol.Coerce(int), vol.Range(min=0, max=6))
@@ -128,6 +145,7 @@ SET_LESSON_SCHEMA = vol.Schema(
         vol.Optional(ATTR_SUBJECT_FIELD): vol.Any(cv.string, None),
         vol.Optional(ATTR_ROOM_FIELD): vol.Any(cv.string, None),
         vol.Optional(ATTR_WEEK, default=0): _CYCLE_WEEK,
+        vol.Optional(ATTR_ROTATION): _ROTATION,
     }
 )
 
@@ -370,6 +388,7 @@ def async_register_services(hass: HomeAssistant) -> None:
                 call.data.get(ATTR_SUBJECT_FIELD),
                 call.data.get(ATTR_ROOM_FIELD),
                 call.data[ATTR_WEEK],
+                call.data.get(ATTR_ROTATION),
             ),
         )
 

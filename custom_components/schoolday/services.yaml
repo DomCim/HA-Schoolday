@@ -94,6 +94,13 @@ set_lesson:
       example: 1.OG 5
       selector:
         text:
+    # The turns this period takes week by week, counted from week 1 (the cycle
+    # anchor). Wins over subject and room.
+    rotation:
+      required: false
+      example: ["Kunst", "Musik", "-"]
+      selector:
+        object:
 
 set_day:
   fields:

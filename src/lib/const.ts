@@ -1,5 +1,5 @@
 /** Kept in sync with custom_components/schoolday/manifest.json and package.json. */
-export const SCHOOLDAY_VERSION = '0.20.1';
+export const SCHOOLDAY_VERSION = '0.21.0';
 
 /** Prefix for every custom element this bundle defines. */
 export const PREFIX = 'schoolday';

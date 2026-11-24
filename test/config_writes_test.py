@@ -884,6 +884,13 @@ check("ersetzter Tag bleibt Schultag, nur mit dem Eingetragenen",
       and subjects_on(pull, MON) == [(2, "Begabtenzentrum", None)]
       and subjects_on(pull, datetime.date(2026, 11, 2)) == [(1, "Deutsch", None)],
       str(subjects_on(pull, MON)))
+trip = merged(W.set_exception(pull, MEMBER, "2026-09-21", label="Ausflug", today=MON), pull)
+tripped = Models.SchooldayConfig.from_options(trip).exception(MEMBER, datetime.date(2026, 9, 21))
+check("ein Datum mit Namen nimmt auch den ersetzten Tag ein",
+      tripped.closed and tripped.label == "Ausflug"
+      and subjects_on(trip, datetime.date(2026, 9, 21)) == []
+      and subjects_on(trip, MON) == [(2, "Begabtenzentrum", None)],
+      str(tripped))
 check("ersetzt wird gespeichert, sonst bleibt die Form wie sie war",
       pull["weekly_exceptions"][MEMBER][0].get("replace") is True
       and "replace" not in W.set_exception(BASE, MEMBER, SOON, label="x", today=TODAY)["exceptions"][MEMBER][SOON],

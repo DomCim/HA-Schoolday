@@ -1513,6 +1513,11 @@ class SchooldayConfig:
         )
         if weekly is None or dated is None:
             return dated or weekly
+        if dated.closed:
+            # A date that is taken over — a trip, an illness typed as a name — takes the
+            # pull-out day over too. Merged, it would inherit the weekly `replace` and
+            # stay a school day with a time to leave for a child who is not going.
+            return dated
         return DayException(
             label=dated.label or weekly.label,
             periods={**weekly.periods, **dated.periods},

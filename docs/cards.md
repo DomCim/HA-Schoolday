@@ -260,8 +260,14 @@ An empty way to school means no [leaving time](automations.md#time-to-leave); 0 
 
 ### Exceptions
 
-![One date at a time: a name takes the whole day, or a single period is cancelled or covered](images/admin-exceptions.png)
-*One date at a time: a name takes the whole day, or a single period is cancelled or covered*
+![One date at a time: a name takes the whole day, or a single period is cancelled or covered. Below, a weekday that is different for a while.](images/admin-exceptions.png)
+*One date at a time: a name takes the whole day, or a single period is cancelled or
+covered. Below, a weekday that is different for a while.*
+
+Under the single dates, **Every week, for a while** holds the
+[weekly ones](exceptions.md#every-week-for-a-while): a chip for each, and a weekday, a
+first and a last date for a new one, and whether that day has **Other lessons** or
+**No school here**.
 
 ### Days off
 

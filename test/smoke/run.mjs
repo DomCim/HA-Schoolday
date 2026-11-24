@@ -2583,6 +2583,138 @@ check(
   JSON.stringify(startedTurns),
 );
 
+// The weekly exception: a chip per one there is, opening it with its label.
+await page.locator('schoolday-admin-card .tab', { hasText: 'Ausnahmen' }).click();
+await page.waitForTimeout(300);
+const weeklyChip = await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  const chip = [...root.querySelectorAll('.chip')].find((node) => node.textContent.includes('04.08.'));
+  chip?.click();
+  return chip?.textContent.replace(/\s+/g, ' ').trim() ?? null;
+});
+await page.waitForTimeout(300);
+const weeklyForm = await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  return {
+    weekday: root.querySelector('#weekly-weekday').value,
+    from: root.querySelector('#weekly-from').value,
+    until: root.querySelector('#weekly-until').value,
+    label: root.querySelector('#weekly-label').value,
+  };
+});
+check(
+  'a weekly exception opens with its weekday, dates and label',
+  Boolean(weeklyChip) &&
+    weeklyForm.weekday === '1' &&
+    weeklyForm.from === '2026-08-04' &&
+    weeklyForm.until === '2026-12-22' &&
+    weeklyForm.label === 'Drehtürtag',
+  `${weeklyChip} · ${JSON.stringify(weeklyForm)}`,
+);
+
+await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  const until = root.querySelector('#weekly-until');
+  until.value = '2027-02-23';
+  until.dispatchEvent(new Event('change'));
+});
+await page.waitForTimeout(300);
+const moveCall = await page.evaluate(
+  () => window.__calls.services.filter((c) => c.service === 'set_weekly_exception').pop() ?? null,
+);
+check(
+  'moving the end of a weekly exception sends only the dates, so the label stays',
+  moveCall?.data.until === '2027-02-23' &&
+    moveCall?.data.from === '2026-08-04' &&
+    moveCall?.data.weekday === 1 &&
+    !('label' in (moveCall?.data ?? {})),
+  JSON.stringify(moveCall?.data ?? null),
+);
+
+// A pull-out day: other lessons, still a school day. Switching the kind of an existing
+// one saves at once, and then the period rows have no "cancelled" — an unfilled period
+// is already free.
+await page.evaluate(() =>
+  document.querySelector('schoolday-admin-card').shadowRoot.querySelector('#weekly-replace').click(),
+);
+await page.waitForTimeout(300);
+const replaceCall = await page.evaluate(
+  () => window.__calls.services.filter((c) => c.service === 'set_weekly_exception').pop() ?? null,
+);
+check(
+  'choosing other lessons for a weekly change saves it as replacing the day',
+  replaceCall?.data.replace === true && replaceCall?.data.from === '2026-08-04',
+  JSON.stringify(replaceCall?.data ?? null),
+);
+
+// The last date is optional: a new one saved without it runs until it is removed.
+await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  [...root.querySelectorAll('.chip')].find((node) => node.textContent.trim() === 'Neu')?.click();
+});
+await page.waitForTimeout(200);
+await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  const weekday = root.querySelector('#weekly-weekday');
+  weekday.value = '3';
+  weekday.dispatchEvent(new Event('change'));
+});
+await page.waitForTimeout(200);
+const openSave = await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  root.querySelector('#weekly-label').value = 'Begabtenkurs';
+  const save = root.querySelector('#weekly-save');
+  const disabled = save.disabled;
+  save.click();
+  return disabled;
+});
+await page.waitForTimeout(300);
+const openCall = await page.evaluate(
+  () => window.__calls.services.filter((c) => c.service === 'set_weekly_exception').pop() ?? null,
+);
+check(
+  'a weekly change can be saved without a last date, and then has no end',
+  openSave === false &&
+    openCall?.data.until === '' &&
+    openCall?.data.weekday === 3 &&
+    openCall?.data.label === 'Begabtenkurs',
+  JSON.stringify(openCall?.data ?? null),
+);
+await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  [...root.querySelectorAll('.chip')].find((node) => node.textContent.includes('04.08.'))?.click();
+});
+await page.waitForTimeout(200);
+
+// A date covered by a weekly change says so, instead of "nothing is different".
+await page.evaluate(() => {
+  const root = document.querySelector('schoolday-admin-card').shadowRoot;
+  const field = root.querySelector('input[type="date"]');
+  field.value = '2026-08-11';
+  field.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+});
+await page.waitForTimeout(300);
+const appliesNotice = await page.evaluate(
+  () => document.querySelector('schoolday-admin-card').shadowRoot.querySelector('#weekly-applies')?.textContent.replace(/\s+/g, ' ').trim() ?? null,
+);
+check(
+  'a date that a weekly change covers names it in the date editor',
+  Boolean(appliesNotice?.includes('Drehtürtag') && appliesNotice.includes('22.12.')),
+  appliesNotice ?? 'kein Hinweis',
+);
+
+await page.evaluate(() =>
+  document.querySelector('schoolday-admin-card').shadowRoot.querySelector('#weekly-remove').click(),
+);
+await page.waitForTimeout(300);
+const weeklyRemoveCall = await page.evaluate(
+  () => window.__calls.services.filter((c) => c.service === 'clear_weekly_exception').pop() ?? null,
+);
+check(
+  'removing a weekly exception names it by weekday and first date',
+  weeklyRemoveCall?.data.weekday === 1 && weeklyRemoveCall?.data.from === '2026-08-04',
+  JSON.stringify(weeklyRemoveCall?.data ?? null),
+);
 await page.evaluate(() => window.__setRotation(false));
 
 // An A/B timetable in the date editor: a B date plans from week B, and while week B is

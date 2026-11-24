@@ -361,6 +361,84 @@ clear_exception:
       selector:
         date:
 
+set_weekly_exception:
+  fields:
+    member:
+      required: true
+      example: Ben
+      selector:
+        text:
+    weekday:
+      required: true
+      example: 1
+      selector:
+        number:
+          min: 0
+          max: 6
+          mode: box
+    from:
+      required: true
+      example: "2026-11-03"
+      selector:
+        date:
+    until:
+      required: false
+      example: "2027-02-23"
+      selector:
+        date:
+    replace:
+      required: false
+      selector:
+        boolean:
+    period:
+      required: false
+      example: 3
+      selector:
+        number:
+          min: 1
+          max: 20
+          mode: box
+    subject:
+      required: false
+      example: Sport
+      selector:
+        text:
+    room:
+      required: false
+      selector:
+        text:
+    cancelled:
+      required: false
+      default: false
+      selector:
+        boolean:
+    label:
+      required: false
+      example: Pull-out day
+      selector:
+        text:
+
+clear_weekly_exception:
+  fields:
+    member:
+      required: true
+      example: Ben
+      selector:
+        text:
+    weekday:
+      required: true
+      example: 1
+      selector:
+        number:
+          min: 0
+          max: 6
+          mode: box
+    from:
+      required: true
+      example: "2026-11-03"
+      selector:
+        date:
+
 set_cycle:
   fields:
     weeks:

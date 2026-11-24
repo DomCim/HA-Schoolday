@@ -292,6 +292,70 @@
         }
       }
     },
+    "set_weekly_exception": {
+      "name": "Set what a weekday does differently for a while",
+      "description": "Every week on one weekday, from one date, until another or until it is removed: a pull-out day at another school, a course this term. With a period this changes that period alone; without one, a label takes the whole day over.",
+      "fields": {
+        "member": {
+          "name": "Family member",
+          "description": "Name or id."
+        },
+        "weekday": {
+          "name": "Weekday",
+          "description": "0 for Monday to 6 for Sunday."
+        },
+        "from": {
+          "name": "From",
+          "description": "The first date this applies to. Together with the weekday, it says which weekly change is meant."
+        },
+        "until": {
+          "name": "Until",
+          "description": "Optional: the last date this applies to. Leave it out to keep the end it has; an empty value means no end, so it runs until it is removed."
+        },
+        "replace": {
+          "name": "Replaces the day",
+          "description": "The periods given are the whole day and every other one is free; it stays a school day, with its leaving time and packing list. For a pull-out day at another school."
+        },
+        "period": {
+          "name": "Period",
+          "description": "Leave empty to say something about the whole day."
+        },
+        "subject": {
+          "name": "Subject",
+          "description": "What runs instead. Empty and not cancelled hands the period back to the timetable."
+        },
+        "room": {
+          "name": "Room",
+          "description": "Where the replacement is."
+        },
+        "cancelled": {
+          "name": "Cancelled",
+          "description": "The period does not happen at all."
+        },
+        "label": {
+          "name": "What the day is",
+          "description": "\"Pull-out day\", \"Swimming course\". Setting one takes the day over; an empty one hands it back; leaving it out changes only the dates."
+        }
+      }
+    },
+    "clear_weekly_exception": {
+      "name": "Clear a weekly change",
+      "description": "Hand that weekday back to the timetable.",
+      "fields": {
+        "member": {
+          "name": "Family member",
+          "description": "Name or id."
+        },
+        "weekday": {
+          "name": "Weekday",
+          "description": "0 for Monday to 6 for Sunday."
+        },
+        "from": {
+          "name": "From",
+          "description": "The first date this applies to. Together with the weekday, it says which weekly change is meant."
+        }
+      }
+    },
     "remove_member": {
       "name": "Remove a family member",
       "description": "Remove a member, along with their timetable and routines.",

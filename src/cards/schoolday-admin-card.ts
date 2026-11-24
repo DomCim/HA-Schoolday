@@ -23,7 +23,9 @@ import {
   todoEntities,
   stepsFor,
   type AdminConfig,
+  type AdminException,
   type AdminMember,
+  type AdminWeeklyException,
 } from '../lib/admin';
 import { localeOf, WEEKDAY_NAMES, weekOrder } from '../lib/dates';
 import { isRtl, t } from '../lib/i18n';
@@ -36,6 +38,7 @@ import {
   turnOf,
   usesSecondWeek,
   weekOf,
+  type TimetableGrid,
   type TimetableLesson,
   type TimetableWeek,
 } from '../lib/timetable';
@@ -103,6 +106,12 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
    * an ordinary lesson, which is what the subject and room above are for.
    */
   @state() private _draftTurns: { subject: string; room: string }[] = [];
+  /**
+   * The weekly exception being edited: its weekday and first date say which one, and
+   * whether it replaces the day's lessons or takes the day off school.
+   */
+  @state() private _weekly?: { weekday: number; from: string; until: string; replace: boolean };
+  // `until` is '' for no end, which is also what the date field holds when empty.
   /**
    * Which week the timetable editor shows, in weeks from this one. Only offered once a
    * period takes turns: then a week is a dated thing, and the grid shows each rotating
@@ -1286,7 +1295,7 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
    * What the timetable plans for one date and period, rotation and A/B week included.
    *
    * Counted from this week, whose place in the cycle the integration publishes, so the
-   * card only has to know how many weeks away the date is — not where week A is.
+   * card only has to know how many weeks away the date is — not where week 1 is.
    */
   private _plannedOn(
     config: AdminConfig,
@@ -1325,11 +1334,72 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
   }
 
   /**
-   * What one date does differently.
+   * One row per period: what is planned, what replaces it, and whether it is off.
+   *
+   * Shared by a single date and a weekday-for-a-while, because they say the same
+   * things about a period and must not drift into saying them differently.
+   */
+  private _periodRows(
+    grid: TimetableGrid,
+    current: AdminException | undefined,
+    planned: (period: number) => TimetableLesson | null,
+    save: (data: Record<string, unknown>) => void,
+    replacing = false,
+  ): TemplateResult {
+    return html`
+      <div class="exception-periods">
+        ${grid.periods.map((period) => {
+          const override = current?.periods?.[String(period.index)];
+          // `in` rather than a truthiness test: a cancelled period is stored as
+          // null, and "cancelled" and "not mentioned" are the two answers this
+          // whole row has to tell apart.
+          const overridden = current ? String(period.index) in current.periods : false;
+          const plan = planned(period.index);
+          const shown = overridden ? (override?.subject ?? null) : (plan?.subject ?? null);
+          return html`
+            <div class="exception-row">
+              <span class="no">${period.index}</span>
+              <span class="planned ${overridden && !override ? 'gone' : ''}">
+                ${shown ?? '—'}
+              </span>
+              <input
+                class="replacement"
+                dir="auto"
+                placeholder=${t(this.hass, 'admin.subject')}
+                .value=${override?.subject ?? ''}
+                @change=${(event: Event) =>
+                  save({
+                    period: period.index,
+                    subject: (event.target as HTMLInputElement).value,
+                  })}
+              />
+              ${replacing
+                ? // On a day that replaces the lessons, a period nobody filled in is
+                  // already free; "cancelled" would be a second way to say nothing.
+                  nothing
+                : html`<button
+                    class="link ${overridden && !override ? 'on' : ''}"
+                    ?disabled=${this._busy || !plan}
+                    @click=${() =>
+                      save({ period: period.index, cancelled: !(overridden && !override) })}
+                  >
+                    ${t(this.hass, 'admin.exception_cancel')}
+                  </button>`}
+            </div>
+          `;
+        })}
+      </div>
+    `;
+  }
+
+  /**
+   * What a date does differently.
    *
    * A date at a time, not a week: the timetable is worth typing in once because it
    * repeats, and the moment it can be edited per week it stops repeating and becomes
    * fifty-two timetables. This says "on the 18th, third period is off" and nothing more.
+   * The one exception is a weekday that is different *for a while* — a pull-out day
+   * until February — which ends by itself and so cannot turn into a second timetable.
    */
   private _renderExceptions(config: AdminConfig): TemplateResult {
     const member = this._selected(config);
@@ -1349,6 +1419,17 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
     const day = this._exceptionDate || today;
     const current = stored[day];
     const week = weekOf(memberSensor(this.hass!, member.id));
+    // A weekly exception on this date is what the date starts from, so the rows show
+    // its lessons and the notice says it is there rather than "nothing is different".
+    const weekly = SchooldayAdminCard._weeklyOn(config.weeklyExceptions[member.id] ?? [], day);
+    const weeklyClosed = Boolean(weekly?.label && !weekly.replace);
+    const planned = (period: number) => {
+      if (weeklyClosed) {
+        return null;
+      }
+      const fromWeekly = weekly ? SchooldayAdminCard._weeklyPeriod(weekly, period) : undefined;
+      return fromWeekly !== undefined ? fromWeekly : this._plannedOn(config, week, day, period);
+    };
 
     return html`
       <div class="notice quiet">${t(this.hass, 'admin.exceptions_hint')}</div>
@@ -1410,54 +1491,28 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
         </button>
       </label>
 
-      ${current?.label
+      ${weekly
+        ? html`<div class="notice" id="weekly-applies">
+            ${weekly.until
+              ? t(this.hass, 'admin.weekly_applies', {
+                  weekday: this._weekdayName(weekly.weekday, 'long'),
+                  until: `${weekly.until.slice(8)}.${weekly.until.slice(5, 7)}.`,
+                  label: weekly.label ?? t(this.hass, 'admin.weekly_kind_replace'),
+                })
+              : t(this.hass, 'admin.weekly_applies_open', {
+                  weekday: this._weekdayName(weekly.weekday, 'long'),
+                  label: weekly.label ?? t(this.hass, 'admin.weekly_kind_replace'),
+                })}
+          </div>`
+        : nothing}
+      ${current?.label || weeklyClosed
         ? nothing
-        : html`
-            <div class="exception-periods">
-              ${grid.periods.map((period) => {
-                const override = current?.periods?.[String(period.index)];
-                // `in` rather than a truthiness test: a cancelled period is stored as
-                // null, and "cancelled" and "not mentioned" are the two answers this
-                // whole row has to tell apart.
-                const overridden = current ? String(period.index) in current.periods : false;
-                const planned = this._plannedOn(config, week, day, period.index);
-                const shown = overridden ? (override?.subject ?? null) : (planned?.subject ?? null);
-                return html`
-                  <div class="exception-row">
-                    <span class="no">${period.index}</span>
-                    <span class="planned ${overridden && !override ? 'gone' : ''}">
-                      ${shown ?? '—'}
-                    </span>
-                    <input
-                      class="replacement"
-                      placeholder=${t(this.hass, 'admin.subject')}
-                      .value=${override?.subject ?? ''}
-                      @change=${(event: Event) =>
-                        this._call('set_exception', {
-                          member: member.id,
-                          date: day,
-                          period: period.index,
-                          subject: (event.target as HTMLInputElement).value,
-                        })}
-                    />
-                    <button
-                      class="link ${overridden && !override ? 'on' : ''}"
-                      ?disabled=${this._busy || !planned}
-                      @click=${() =>
-                        this._call('set_exception', {
-                          member: member.id,
-                          date: day,
-                          period: period.index,
-                          cancelled: !(overridden && !override),
-                        })}
-                    >
-                      ${t(this.hass, 'admin.exception_cancel')}
-                    </button>
-                  </div>
-                `;
-              })}
-            </div>
-          `}
+        : this._periodRows(
+            grid,
+            current,
+            planned,
+            (data) => this._call('set_exception', { member: member.id, date: day, ...data }),
+          )}
       ${current
         ? html`<button
             class="link"
@@ -1466,7 +1521,249 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
           >
             ${t(this.hass, 'admin.exception_reset')}
           </button>`
-        : html`<div class="notice quiet">${t(this.hass, 'admin.exception_none')}</div>`}
+        : weekly
+          ? nothing
+          : html`<div class="notice quiet">${t(this.hass, 'admin.exception_none')}</div>`}
+      ${this._renderWeekly(config, member, grid, week)}
+    `;
+  }
+
+  /** The weekly exception that covers a date, if any. */
+  private static _weeklyOn(
+    entries: AdminWeeklyException[],
+    day: string,
+  ): AdminWeeklyException | undefined {
+    const [y, m, d] = day.split('-').map(Number);
+    const weekday = (new Date(y, m - 1, d).getDay() + 6) % 7;
+    return entries.find(
+      (entry) =>
+        entry.weekday === weekday &&
+        entry.from <= day &&
+        (entry.until === null || day <= entry.until),
+    );
+  }
+
+  /**
+   * What a period holds once a weekly exception has had its say: what it names, else
+   * nothing on a day it replaces, else the timetable. Undefined when it says nothing.
+   */
+  private static _weeklyPeriod(
+    weekly: AdminException,
+    period: number,
+  ): TimetableLesson | null | undefined {
+    const key = String(period);
+    if (key in weekly.periods) {
+      const lesson = weekly.periods[key];
+      return lesson ? { period, subject: lesson.subject, room: lesson.room } : null;
+    }
+    return weekly.replace ? null : undefined;
+  }
+
+  /**
+   * A weekday that is different until a date: chips for the ones there are, and a
+   * form for the one picked or a new one.
+   *
+   * Two kinds, asked first because they behave differently all day long. "No school
+   * there" takes the day over like a school trip: no lessons, no leaving time, no
+   * packing. "Other lessons" is a pull-out day at another school: only what is filled
+   * in below takes place, and it stays a school day, so the child still gets a time to
+   * leave, a packing list and the morning announcement.
+   *
+   * Known to the integration by weekday and first date, so the draft holds exactly
+   * those; changing either is starting a different one, and the old one stays until
+   * it is removed. The last date is optional: without one it runs until it is removed.
+   */
+  private _renderWeekly(
+    config: AdminConfig,
+    member: AdminMember,
+    grid: TimetableGrid,
+    week: TimetableWeek,
+  ): TemplateResult {
+    const today = SchooldayAdminCard._todayKey();
+    const entries = config.weeklyExceptions[member.id] ?? [];
+    const draft = this._weekly ?? {
+      weekday: (new Date().getDay() + 6) % 7,
+      from: today,
+      until: '',
+      replace: false,
+    };
+    const current = entries.find(
+      (entry) => entry.weekday === draft.weekday && entry.from === draft.from,
+    );
+    const replace = current ? current.replace : draft.replace;
+    const key = { member: member.id, weekday: draft.weekday, from: draft.from };
+    const short = (iso: string) => `${iso.slice(8)}.${iso.slice(5, 7)}.`;
+    const save = (data: Record<string, unknown>) =>
+      this._call('set_weekly_exception', { ...key, until: draft.until, replace, ...data });
+    // The first date this weekday falls on, for showing what it would replace.
+    const sample = () => {
+      const [y, m, d] = draft.from.split('-').map(Number);
+      const start = new Date(y, m - 1, d);
+      start.setDate(start.getDate() + ((draft.weekday - ((start.getDay() + 6) % 7) + 7) % 7));
+      const month = String(start.getMonth() + 1).padStart(2, '0');
+      return `${start.getFullYear()}-${month}-${String(start.getDate()).padStart(2, '0')}`;
+    };
+    // A form nobody has touched yet shows no period rows: seven empty rows under the
+    // single dates, on every visit, would bury the one thing most people came for.
+    const ready = Boolean(draft.from) && (this._weekly !== undefined || current !== undefined);
+
+    return html`
+      <h3 class="subhead">${t(this.hass, 'admin.weekly_title')}</h3>
+      <div class="notice quiet">${t(this.hass, 'admin.weekly_hint')}</div>
+      <div class="chips">
+        ${entries.map(
+          (entry) => html`
+            <button
+              class="chip ${entry === current ? 'on' : ''}"
+              @click=${() => {
+                this._weekly = {
+                  weekday: entry.weekday,
+                  from: entry.from,
+                  until: entry.until ?? '',
+                  replace: entry.replace,
+                };
+              }}
+            >
+              ${this._weekdayName(entry.weekday, 'short')} ·
+              ${entry.until
+                ? html`<bdi dir="ltr">${short(entry.from)}–${short(entry.until)}</bdi>`
+                : t(this.hass, 'admin.weekly_open', { from: short(entry.from) })}
+            </button>
+          `,
+        )}
+        ${entries.length
+          ? html`<button
+              class="chip ${current ? '' : 'on'}"
+              @click=${() => {
+                this._weekly = undefined;
+              }}
+            >
+              ${t(this.hass, 'admin.weekly_new')}
+            </button>`
+          : nothing}
+      </div>
+      <div class="row dates">
+        <label class="field grow">
+          <span class="label">${t(this.hass, 'admin.weekly_weekday')}</span>
+          <select
+            id="weekly-weekday"
+            .value=${String(draft.weekday)}
+            @change=${(event: Event) => {
+              this._weekly = { ...draft, weekday: Number((event.target as HTMLSelectElement).value) };
+            }}
+          >
+            ${weekOrder(config.weekStart).map(
+              (day) => html`
+                <option value=${String(day)} ?selected=${draft.weekday === day}>
+                  ${this._weekdayName(day, 'long')}
+                </option>
+              `,
+            )}
+          </select>
+        </label>
+        <label class="field grow">
+          <span class="label">${t(this.hass, 'admin.weekly_from')}</span>
+          <input
+            id="weekly-from"
+            type="date"
+            .value=${draft.from}
+            @change=${(event: Event) => {
+              this._weekly = { ...draft, from: (event.target as HTMLInputElement).value };
+            }}
+          />
+        </label>
+        <label class="field grow">
+          <span class="label">${t(this.hass, 'admin.weekly_until')}</span>
+          <input
+            id="weekly-until"
+            type="date"
+            min=${draft.from > today ? draft.from : today}
+            .value=${draft.until}
+            @change=${(event: Event) => {
+              const until = (event.target as HTMLInputElement).value;
+              this._weekly = { ...draft, until };
+              // An existing one moves its end at once — or loses it, when the field is
+              // emptied — and a new one waits for its label.
+              if (current) {
+                this._call('set_weekly_exception', { ...key, until });
+              }
+            }}
+          />
+        </label>
+      </div>
+      <div class="segmented weekly-kind">
+        ${[false, true].map(
+          (kind) => html`
+            <button
+              id=${kind ? 'weekly-replace' : 'weekly-off'}
+              aria-pressed=${replace === kind}
+              ?disabled=${this._busy}
+              @click=${() => {
+                this._weekly = { ...draft, replace: kind };
+                if (current && current.replace !== kind) {
+                  this._call('set_weekly_exception', { ...key, replace: kind });
+                }
+              }}
+            >
+              ${t(this.hass, kind ? 'admin.weekly_kind_replace' : 'admin.weekly_kind_off')}
+            </button>
+          `,
+        )}
+      </div>
+      <div class="notice quiet">
+        ${t(this.hass, replace ? 'admin.weekly_replace_hint' : 'admin.weekly_off_hint')}
+      </div>
+      <label class="field">
+        <span class="label"
+          >${t(this.hass, replace ? 'admin.weekly_name' : 'admin.exception_label')}</span
+        >
+        <input
+          id="weekly-label"
+          dir="auto"
+          placeholder=${t(this.hass, replace ? 'admin.weekly_name_hint' : 'admin.weekly_label_hint')}
+          .value=${current?.label ?? ''}
+        />
+        <button
+          class="apply"
+          id="weekly-save"
+          ?disabled=${this._busy || !draft.from}
+          @click=${(event: Event) => {
+            const root = (event.target as HTMLElement).closest('.field');
+            const field = root?.querySelector('input') as HTMLInputElement | null;
+            save({ label: field?.value ?? '' });
+          }}
+        >
+          ${t(this.hass, 'admin.save')}
+        </button>
+      </label>
+      ${!ready || (!replace && current?.label)
+        ? nothing
+        : this._periodRows(
+            grid,
+            current,
+            (period) => {
+              const weekly = current ? SchooldayAdminCard._weeklyPeriod(current, period) : undefined;
+              if (weekly !== undefined) {
+                return weekly;
+              }
+              return replace ? null : this._plannedOn(config, week, sample(), period);
+            },
+            save,
+            replace,
+          )}
+      ${current
+        ? html`<button
+            class="link"
+            id="weekly-remove"
+            ?disabled=${this._busy}
+            @click=${async () => {
+              await this._call('clear_weekly_exception', key);
+              this._weekly = undefined;
+            }}
+          >
+            ${t(this.hass, 'admin.weekly_remove')}
+          </button>`
+        : nothing}
     `;
   }
 
@@ -1864,10 +2161,19 @@ export class SchooldayAdminCard extends LitElement implements LovelaceCard {
         text-align: center;
       }
 
+      /* A date field squeezed below this width cuts its own year off. */
+      .dates .field {
+        min-width: 10em;
+      }
 
       .turn-no.now {
         color: var(--schoolday-today);
         font-weight: 700;
+      }
+
+      .subhead {
+        margin: 12px 0 0;
+        font-size: 1rem;
       }
 
       .editor,

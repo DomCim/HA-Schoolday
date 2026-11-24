@@ -5,26 +5,6 @@ version you are updating to; the [manual](https://domcim.github.io/HA-Schoolday/
 details. Releases before 0.14.0 are listed on
 [GitHub](https://github.com/DomCim/HA-Schoolday/releases).
 
-## 0.22.0
-
-### A weekday that is different for a while
-
-A child at another school every Tuesday until February or until further notice, or a
-course every Thursday this term, is now one entry instead of a date at a time. Under
-**Exceptions → Every week, for a while**, pick the weekday, the first date, the last date
-if there is one, and the kind of day:
-
-- **Other lessons**: only the periods you fill in take place, and it stays a school day
-  with its time to leave, packing list and announcement. Use this for a pull-out day.
-- **No school here**: the day is taken over, like a school trip.
-
-With a last date it ends by itself; without one it runs until you remove it. What you say
-about a single date still wins over it, and the date editor says when a weekly change
-covers the date.
-
-Two new services do the same from a script: `schoolday.set_weekly_exception` and
-`schoolday.clear_weekly_exception`.
-
 ## 0.21.0
 
 ### Lessons that take turns
@@ -47,7 +27,25 @@ The admin card's grid shows each rotating period's turn for the week on screen, 
 two-week timetable on or off, moves every rotation, so check a few weeks after doing
 either.
 
-## 0.20.1
+### A weekday that is different for a while
+
+A child at another school every Tuesday until February or until further notice, or a
+course every Thursday this term, is now one entry instead of a date at a time. Under
+**Exceptions → Every week, for a while**, pick the weekday, the first date, the last date
+if there is one, and the kind of day:
+
+- **Other lessons**: only the periods you fill in take place, and it stays a school day
+  with its time to leave, packing list and announcement. Use this for a pull-out day.
+- **No school here**: the day is taken over, like a school trip.
+
+With a last date it ends by itself; without one it runs until you remove it. What you say
+about a single date still wins over it, and the date editor says when a weekly change
+covers the date.
+
+Two new services do the same from a script: `schoolday.set_weekly_exception` and
+`schoolday.clear_weekly_exception`.
+
+### Fixes
 
 Saving a child's week in the options dialog no longer throws away a week B typed in the
 admin card.
@@ -62,6 +60,8 @@ colour showed `admin.reset_color` instead of a name. It now says **Reset colour*
 On a phone, a subject too long for its cell in the admin card's timetable is cut off at
 its end with "…", so the start stays readable, and the cells give the text more room.
 Before, a Hebrew dashboard cut off the beginning of the word.
+
+Thanks to [@Shenharo](https://github.com/Shenharo) for lessons that take turns, the weekday that is different for a while, and these fixes.
 
 ## 0.20.0
 

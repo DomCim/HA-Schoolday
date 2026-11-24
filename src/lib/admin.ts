@@ -67,6 +67,10 @@ export interface AdminConfig {
   cycleAnchor: string | null;
   /** Which week the household is in right now: 0 for A, 1 for B. */
   cycleNow: number;
+  /** How many weeks this week is after week 1, which every rotating period counts from. */
+  rotationNow: number;
+  /** member id -> what a weekday does differently for a while, still running or to come. */
+  weeklyExceptions: Record<string, AdminWeeklyException[]>;
   /** The first day of the household's week, 0 = Monday … 6 = Sunday. */
   weekStart: number;
 }
@@ -76,6 +80,36 @@ export interface AdminException {
   label: string | null;
   /** period -> the replacement, or null for a period that is cancelled. */
   periods: Record<string, { subject: string; room: string | null } | null>;
+  /** The periods above are the whole day, the rest are free, and it is still a school day. */
+  replace: boolean;
+}
+
+export interface AdminWeeklyException extends AdminException {
+  /** 0 = Monday … 6 = Sunday. */
+  weekday: number;
+  /** `YYYY-MM-DD`, inclusive. The first date and the weekday say which one it is. */
+  from: string;
+  /** The last date, inclusive, or null for no end: it runs until it is removed. */
+  until: string | null;
+}
+
+function parseException(raw: Record<string, unknown>): AdminException {
+  const periods: AdminException['periods'] = {};
+  for (const [key, value] of Object.entries((raw.periods as Record<string, unknown>) ?? {})) {
+    const lesson = (value ?? {}) as Record<string, unknown>;
+    periods[key] =
+      typeof lesson.subject === 'string' && lesson.subject
+        ? {
+            subject: lesson.subject,
+            room: typeof lesson.room === 'string' && lesson.room ? lesson.room : null,
+          }
+        : null;
+  }
+  return {
+    label: typeof raw.label === 'string' && raw.label ? raw.label : null,
+    periods,
+    replace: raw.replace === true,
+  };
 }
 
 const EMPTY: AdminConfig = {
@@ -94,6 +128,8 @@ const EMPTY: AdminConfig = {
   cycleWeeks: 1,
   cycleAnchor: null,
   cycleNow: 0,
+  rotationNow: 0,
+  weeklyExceptions: {},
   weekStart: 0,
 };
 
@@ -181,27 +217,33 @@ export function parseAdmin(raw: unknown): AdminConfig {
   )) {
     const perDate: Record<string, AdminException> = {};
     for (const [day, entry] of Object.entries((dates as Record<string, unknown>) ?? {})) {
-      const raw = (entry ?? {}) as Record<string, unknown>;
-      const periods: AdminException['periods'] = {};
-      for (const [key, value] of Object.entries(
-        (raw.periods as Record<string, unknown>) ?? {},
-      )) {
-        const lesson = (value ?? {}) as Record<string, unknown>;
-        periods[key] =
-          typeof lesson.subject === 'string' && lesson.subject
-            ? {
-                subject: lesson.subject,
-                room: typeof lesson.room === 'string' && lesson.room ? lesson.room : null,
-              }
-            : null;
-      }
-      perDate[day] = {
-        label: typeof raw.label === 'string' && raw.label ? raw.label : null,
-        periods,
-      };
+      perDate[day] = parseException((entry ?? {}) as Record<string, unknown>);
     }
     if (Object.keys(perDate).length) {
       exceptions[memberId] = perDate;
+    }
+  }
+
+  const weeklyExceptions: AdminConfig['weeklyExceptions'] = {};
+  for (const [memberId, entries] of Object.entries(
+    (data.weekly_exceptions as Record<string, unknown>) ?? {},
+  )) {
+    const kept = (Array.isArray(entries) ? entries : [])
+      .map((entry) => (entry ?? {}) as Record<string, unknown>)
+      .filter(
+        (entry) =>
+          Number.isInteger(entry.weekday) &&
+          typeof entry.from === 'string' &&
+          (typeof entry.until === 'string' || entry.until === null || entry.until === undefined),
+      )
+      .map((entry) => ({
+        ...parseException(entry),
+        weekday: Number(entry.weekday),
+        from: String(entry.from),
+        until: typeof entry.until === 'string' && entry.until ? entry.until : null,
+      }));
+    if (kept.length) {
+      weeklyExceptions[memberId] = kept;
     }
   }
 
@@ -225,6 +267,8 @@ export function parseAdmin(raw: unknown): AdminConfig {
     cycleWeeks: Number(data.cycle_weeks ?? 1) === 2 ? 2 : 1,
     cycleAnchor: typeof data.cycle_anchor === 'string' ? data.cycle_anchor : null,
     cycleNow: Number(data.cycle_now ?? 0) === 1 ? 1 : 0,
+    rotationNow: Number.isInteger(data.rotation_now) ? Number(data.rotation_now) : 0,
+    weeklyExceptions,
     weekStart: weekStartOf(data.week_start),
   };
 }

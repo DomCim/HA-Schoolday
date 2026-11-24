@@ -55,6 +55,7 @@ from .const import (
     WEEKDAYS,
     WEEK_START_DAYS,
 )
+from .config_writes import rotation_anchor
 from .models import (
     InvalidPeriod,
     Lesson,
@@ -611,7 +612,13 @@ class SchooldayOptionsFlow(OptionsFlow):
         timetable = self._timetable
 
         if user_input is not None:
-            week: dict[int, list[Lesson]] = {}
+            # Week B is not on this form, so it is carried over rather than rebuilt:
+            # saving week A here used to throw away a B week typed on the card.
+            week: dict[int, list[Lesson]] = {
+                slot: lessons
+                for slot, lessons in timetable.week(self._member_id).items()
+                if slot >= len(WEEKDAYS)
+            }
             for day in WEEKDAYS:
                 lessons = lessons_from_text(user_input.get(day), len(timetable.periods))
                 if lessons:
@@ -621,7 +628,12 @@ class SchooldayOptionsFlow(OptionsFlow):
                 timetable.lessons[self._member_id] = week
             else:
                 timetable.lessons.pop(self._member_id, None)
-            self._persist(**{CONF_TIMETABLE: timetable.as_options()})
+            self._persist(
+                **{
+                    CONF_TIMETABLE: timetable.as_options(),
+                    **rotation_anchor(self.config_entry.options, timetable, None),
+                }
+            )
             return await self.async_step_init()
 
         stored = timetable.week(self._member_id)
